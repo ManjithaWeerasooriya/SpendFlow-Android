@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# Local machine config (SDK path, secrets)
+local.properties
+
+# Android Studio / IntelliJ
+*.iml
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+
+# Firebase emulator logs
+*-debug.log
+
+# AI agent tooling
+AGENTS.md
+.agents/
+.claude/
+skills-lock.json
+
+# OS
+.DS_Store

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "376530847419",
+    "project_id": "spendflow-6fd4f",
+    "storage_bucket": "spendflow-6fd4f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:376530847419:android:a9bc8fe33877ad9fa44b9e",
+        "android_client_info": {
+          "package_name": "com.example.spendflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBISMePvRECEiTAarbDrA0QlXUoh6o59Ec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
