@@ -2,4 +2,22 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Approved wireframe tokens. Keep names in sync with values-night/colors.xml. -->
+    <!-- Brand -->
+    <color name="sf_primary_violet">#532CFA</color>
+    <color name="sf_ink">#161E2C</color>
+    <color name="sf_lavender">#BEB1FA</color>
+
+    <!-- Semantic -->
+    <color name="sf_income">#22B14C</color>
+    <color name="sf_over_cap">#E5484D</color>
+    <color name="sf_warning">#F08424</color>
+    <color name="sf_information">#4C6EF0</color>
+
+    <!-- Surfaces and text -->
+    <color name="sf_page">#ECEDF0</color>
+    <color name="sf_card_shell">#F7F7F9</color>
+    <color name="sf_inset_card">#FFFFFF</color>
+    <color name="sf_body_text">#363D4C</color>
 </resources>
