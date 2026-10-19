@@ -30,7 +30,9 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
 
     fun boolean(key: String, default: Boolean): Boolean = read(key) ?: default
 
-    fun instant(key: String): Instant = read<Timestamp>(key)?.toInstant() ?: missing(key)
+    // Via seconds/nanos: Timestamp.toInstant() is API 26+ and isn't covered by desugaring
+    fun instant(key: String): Instant =
+        read<Timestamp>(key)?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) } ?: missing(key)
 
     fun localDate(key: String): LocalDate = optLocalDate(key) ?: missing(key)
     fun optLocalDate(key: String): LocalDate? = optString(key)?.let { value ->
@@ -71,7 +73,7 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
         throw FirestoreMappingException("Document '$id': $message", cause)
 }
 
-internal fun Instant.toTimestamp() = Timestamp(this)
+internal fun Instant.toTimestamp() = Timestamp(epochSecond, nano)
 
 /** Dates are stored as ISO strings ("2026-10-19"): no time zone, and they sort correctly. */
 internal fun LocalDate.toFirestore(): String = toString()
