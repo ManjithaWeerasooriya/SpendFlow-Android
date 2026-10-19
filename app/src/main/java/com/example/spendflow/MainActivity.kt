@@ -11,9 +11,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.AndroidEntryPoint
 
+/** Hosts the screens (currently only categories, set in activity_main.xml). */
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     // Firestore keeps retrying, so once this is granted the pending write goes through
     private val requestLocalNetwork =
@@ -24,9 +25,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) {
-            // 10.0.2.2 is the host machine as seen from the Android emulator
-            FirebaseFirestore.getInstance().useEmulator("10.0.2.2", 8080)
-            FirebaseAuth.getInstance().useEmulator("10.0.2.2", 9099)
             // Android 17+ treats 10.0.2.2 as local network and silently drops traffic to it
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_LOCAL_NETWORK)
@@ -38,16 +36,10 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            // Include the keyboard so the input stays visible while typing (edge-to-edge disables adjustResize)
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
-
-        val db = FirebaseFirestore.getInstance()
-        db.collection("test").document("ping").set(mapOf("ok" to true))
-            .addOnSuccessListener {
-                db.collection("test").document("ping").get()
-                    .addOnSuccessListener { Log.d("SF-01", "Read back: ${it.data}") }
-            }
     }
 }
