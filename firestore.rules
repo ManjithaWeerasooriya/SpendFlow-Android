@@ -1,0 +1,284 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Everything a user owns lives under users/{uid}. Ownership comes from the path, so documents
+// carry no uid/owner field (and the strict schemas below reject one).
+//
+// The app writes every field of an entity on each create/update; optional fields are sent as null.
+// createdAt/updatedAt are FieldValue.serverTimestamp(). Updates use set(..., merge), so createdAt
+// is carried over from the stored document.
+//
+// Common to every document:
+//   - createdAt: timestamp (required, == request.time on create, immutable)
+//   - updatedAt: timestamp (required, == request.time on every write)
+//
+// Document: users/{uid}                      (profile; contains PII, owner-only)
+//   - displayName: string | null (<= 100)
+//   - email: string | null (valid email, <= 254)
+//   - defaultCurrency: string (ISO 4217, ^[A-Z]{3}$)
+//
+// Collection: users/{uid}/accounts/{accountId}
+//   - name: string (1..100)
+//   - type: 'CASH' | 'BANK' | 'CREDIT_CARD' | 'SAVINGS' | 'OTHER'
+//   - balanceMinor: int (may be negative, |x| <= 1e14), amount in currency minor units
+//   - currencyCode: string (^[A-Z]{3}$)
+//   - isArchived: bool
+//
+// Collection: users/{uid}/categories/{categoryId}
+//   - name: string (1..100)
+//   - type: 'EXPENSE' | 'INCOME'
+//   - iconName: string | null (<= 64)
+//   - colorArgb: int | null (32-bit signed)
+//   - isArchived: bool
+//
+// Collection: users/{uid}/transactions/{transactionId}
+//   - type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
+//   - amountMinor: int (> 0, <= 1e14)
+//   - currencyCode: string (^[A-Z]{3}$)
+//   - accountId: string (document ID)
+//   - categoryId: string | null (document ID; must be null for TRANSFER)
+//   - transferAccountId: string | null (required and != accountId for TRANSFER, else null)
+//   - note: string | null (<= 500)
+//   - occurredAt: timestamp
+//   - recurringTransactionId: string | null (document ID)
+//
+// Collection: users/{uid}/budgets/{budgetId}
+//   - name: string (1..100)
+//   - limitMinor: int (> 0, <= 1e14)
+//   - currencyCode: string (^[A-Z]{3}$)
+//   - period: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+//   - startDate: string (YYYY-MM-DD)
+//   - categoryId: string | null (document ID; null = all expenses)
+//
+// Collection: users/{uid}/recurring/{recurringId}
+//   - type, amountMinor, currencyCode, accountId, categoryId, transferAccountId, note:
+//     same as transactions
+//   - frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+//   - interval: int (1..365)
+//   - startDate: string (YYYY-MM-DD)
+//   - endDate: string | null (YYYY-MM-DD, >= startDate)
+//   - nextOccurrence: string (YYYY-MM-DD, >= startDate)
+//   - isActive: bool
+//
+// Queries the app runs (all within the caller's own users/{uid} subtree):
+//   - full collection reads of accounts, categories, budgets, recurring
+//   - transactions where occurredAt >= from and occurredAt < until, orderBy occurredAt desc
+//
+// Not enforced here: that accountId/categoryId/... point at existing documents. They are only
+// ever resolved inside the owner's own subtree, so a bad reference can't expose other users' data.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function isValidString(value, minLen, maxLen) {
+      return value is string && value.size() >= minLen && value.size() <= maxLen;
+    }
+
+    // Optional fields are written as null, but tolerate them being absent too
+    function isOptionalString(data, field, maxLen) {
+      return !(field in data) || data[field] == null || isValidString(data[field], 0, maxLen);
+    }
+
+    function isDocId(value) {
+      return isValidString(value, 1, 128);
+    }
+
+    function isOptionalDocId(data, field) {
+      return !(field in data) || data[field] == null || isDocId(data[field]);
+    }
+
+    function isValidEmail(email) {
+      return isValidString(email, 3, 254) &&
+        email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+[.][a-zA-Z]{2,}$');
+    }
+
+    function isCurrencyCode(value) {
+      return value is string && value.matches('^[A-Z]{3}$');
+    }
+
+    // Format only (accepts 2026-02-31); the app parses with LocalDate.parse and rejects bad dates
+    function isIsoDate(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function maxAmount() {
+      return 100000000000000;
+    }
+
+    function isPositiveAmount(value) {
+      return value is int && value > 0 && value <= maxAmount();
+    }
+
+    // createdAt/updatedAt must be server timestamps; createdAt can never change
+    function hasCreateTimestamps(data) {
+      return data.createdAt == request.time && data.updatedAt == request.time;
+    }
+
+    function hasUpdateTimestamps(data) {
+      return data.createdAt == resource.data.createdAt && data.updatedAt == request.time;
+    }
+
+    function isValidWrite(validator, data) {
+      return validator &&
+        ((request.method == 'create' && hasCreateTimestamps(data)) ||
+         (request.method == 'update' && hasUpdateTimestamps(data)));
+    }
+
+    // ===============================================================
+    // Domain Validators (used by both create and update)
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(data, ['defaultCurrency', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['displayName', 'email', 'defaultCurrency', 'createdAt', 'updatedAt']) &&
+        isOptionalString(data, 'displayName', 100) &&
+        (!('email' in data) || data.email == null || isValidEmail(data.email)) &&
+        isCurrencyCode(data.defaultCurrency);
+    }
+
+    function isValidAccount(data) {
+      let fields = ['name', 'type', 'balanceMinor', 'currencyCode', 'isArchived', 'createdAt', 'updatedAt'];
+      return hasRequiredFields(data, fields) &&
+        hasOnlyAllowedFields(data, fields) &&
+        isValidString(data.name, 1, 100) &&
+        data.type in ['CASH', 'BANK', 'CREDIT_CARD', 'SAVINGS', 'OTHER'] &&
+        data.balanceMinor is int &&
+        data.balanceMinor >= -maxAmount() && data.balanceMinor <= maxAmount() &&
+        isCurrencyCode(data.currencyCode) &&
+        data.isArchived is bool;
+    }
+
+    function isValidCategory(data) {
+      return hasRequiredFields(data, ['name', 'type', 'isArchived', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'isArchived', 'createdAt', 'updatedAt']) &&
+        isValidString(data.name, 1, 100) &&
+        data.type in ['EXPENSE', 'INCOME'] &&
+        isOptionalString(data, 'iconName', 64) &&
+        (!('colorArgb' in data) || data.colorArgb == null ||
+          (data.colorArgb is int && data.colorArgb >= -2147483648 && data.colorArgb <= 2147483647)) &&
+        data.isArchived is bool;
+    }
+
+    // Shared by transactions and recurring templates; mirrors the domain model's checks
+    function isValidMovement(data) {
+      return data.type in ['EXPENSE', 'INCOME', 'TRANSFER'] &&
+        isPositiveAmount(data.amountMinor) &&
+        isCurrencyCode(data.currencyCode) &&
+        isDocId(data.accountId) &&
+        isOptionalDocId(data, 'categoryId') &&
+        isOptionalDocId(data, 'transferAccountId') &&
+        isOptionalString(data, 'note', 500) &&
+        (data.type == 'TRANSFER'
+          ? (data.get('transferAccountId', null) != null &&
+             data.transferAccountId != data.accountId &&
+             data.get('categoryId', null) == null)
+          : data.get('transferAccountId', null) == null);
+    }
+
+    function isValidTransaction(data) {
+      return hasRequiredFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'occurredAt', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'categoryId',
+          'transferAccountId', 'note', 'occurredAt', 'recurringTransactionId', 'createdAt', 'updatedAt']) &&
+        isValidMovement(data) &&
+        data.occurredAt is timestamp &&
+        isOptionalDocId(data, 'recurringTransactionId');
+    }
+
+    function isValidBudget(data) {
+      return hasRequiredFields(data, ['name', 'limitMinor', 'currencyCode', 'period', 'startDate', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'limitMinor', 'currencyCode', 'period', 'startDate', 'categoryId',
+          'createdAt', 'updatedAt']) &&
+        isValidString(data.name, 1, 100) &&
+        isPositiveAmount(data.limitMinor) &&
+        isCurrencyCode(data.currencyCode) &&
+        data.period in ['WEEKLY', 'MONTHLY', 'YEARLY'] &&
+        isIsoDate(data.startDate) &&
+        isOptionalDocId(data, 'categoryId');
+    }
+
+    function isValidRecurring(data) {
+      return hasRequiredFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'frequency', 'interval',
+          'startDate', 'nextOccurrence', 'isActive', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'categoryId',
+          'transferAccountId', 'note', 'frequency', 'interval', 'startDate', 'endDate', 'nextOccurrence',
+          'isActive', 'createdAt', 'updatedAt']) &&
+        isValidMovement(data) &&
+        data.frequency in ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] &&
+        data.interval is int && data.interval >= 1 && data.interval <= 365 &&
+        isIsoDate(data.startDate) &&
+        // ISO dates compare correctly as strings
+        (!('endDate' in data) || data.endDate == null ||
+          (isIsoDate(data.endDate) && data.endDate >= data.startDate)) &&
+        isIsoDate(data.nextOccurrence) && data.nextOccurrence >= data.startDate &&
+        data.isActive is bool;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Profile holds PII (email): owner only
+      allow read, delete: if isOwner(userId);
+      allow create, update: if isOwner(userId) &&
+        isValidWrite(isValidUser(request.resource.data), request.resource.data);
+
+      match /accounts/{accountId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isDocId(accountId) &&
+          isValidWrite(isValidAccount(request.resource.data), request.resource.data);
+      }
+
+      match /categories/{categoryId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isDocId(categoryId) &&
+          isValidWrite(isValidCategory(request.resource.data), request.resource.data);
+      }
+
+      match /transactions/{transactionId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isDocId(transactionId) &&
+          isValidWrite(isValidTransaction(request.resource.data), request.resource.data);
+      }
+
+      match /budgets/{budgetId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isDocId(budgetId) &&
+          isValidWrite(isValidBudget(request.resource.data), request.resource.data);
+      }
+
+      match /recurring/{recurringId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isDocId(recurringId) &&
+          isValidWrite(isValidRecurring(request.resource.data), request.resource.data);
+      }
+    }
+
+    // Anything not matched above is denied by default.
+  }
+}

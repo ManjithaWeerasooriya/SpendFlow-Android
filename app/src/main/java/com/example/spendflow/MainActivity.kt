@@ -62,9 +62,10 @@ class MainActivity : AppCompatActivity() {
                 Log.w("SF-01", "Sign-in failed: $signIn")
                 return@launch
             }
-            categories.create(Category(id = "smoke-test", name = "Smoke test", type = CategoryType.EXPENSE))
+            val id = categories.newId()
+            categories.create(Category(id = id, name = "Smoke test", type = CategoryType.EXPENSE))
             val listed = categories.observeCategories().first { it is AppResult.Success && it.data.isNotEmpty() }
-            Log.d("SF-01", "uid=${signIn.data} categories=$listed get=${categories.get("smoke-test")}")
+            Log.d("SF-01", "uid=${signIn.data} categories=$listed get=${categories.get(id)}")
         }
     }
 }
