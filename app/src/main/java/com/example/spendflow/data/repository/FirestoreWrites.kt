@@ -29,9 +29,16 @@ internal fun DocumentReference.writeLocally(
     AppResult.Error(e.toAppError())
 }
 
+/**
+ * Pending server timestamps (createdAt/updatedAt right after a local write) read as the local
+ * estimate instead of null, so a just-saved item already has them.
+ */
+internal fun DocumentSnapshot.estimatedData(): Map<String, Any?>? =
+    getData(DocumentSnapshot.ServerTimestampBehavior.ESTIMATE)
+
 /** Maps a document, or logs and returns null if it's malformed, so one bad document can't break a list. */
 internal fun <T> DocumentSnapshot.toModelOrNull(fromFirestore: (String, Map<String, Any?>) -> T): T? {
-    val data = data ?: return null
+    val data = estimatedData() ?: return null
     return try {
         fromFirestore(id, data)
     } catch (e: FirestoreMappingException) {

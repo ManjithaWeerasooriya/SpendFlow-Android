@@ -4,12 +4,12 @@ import com.example.spendflow.domain.model.User
 
 private const val DISPLAY_NAME = "displayName"
 private const val EMAIL = "email"
-private const val DEFAULT_CURRENCY = "defaultCurrency"
+private const val BASE_CURRENCY_FIELD = "baseCurrency"
 
 fun User.toFirestore(): Map<String, Any?> = mapOf(
     DISPLAY_NAME to displayName,
     EMAIL to email,
-    DEFAULT_CURRENCY to defaultCurrency,
+    BASE_CURRENCY_FIELD to baseCurrency,
 )
 
 fun userFromFirestore(id: String, data: Map<String, Any?>): User = FirestoreData(id, data).build {
@@ -17,6 +17,6 @@ fun userFromFirestore(id: String, data: Map<String, Any?>): User = FirestoreData
         id = id,
         displayName = optString(DISPLAY_NAME),
         email = optString(EMAIL),
-        defaultCurrency = string(DEFAULT_CURRENCY),
+        baseCurrency = string(BASE_CURRENCY_FIELD),
     )
 }

@@ -3,6 +3,7 @@ package com.example.spendflow.data.remote.mapper
 import com.example.spendflow.data.remote.FirestoreFields
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
@@ -31,8 +32,19 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
     fun boolean(key: String, default: Boolean): Boolean = read(key) ?: default
 
     // Via seconds/nanos: Timestamp.toInstant() is API 26+ and isn't covered by desugaring
-    fun instant(key: String): Instant =
-        read<Timestamp>(key)?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) } ?: missing(key)
+    fun instant(key: String): Instant = optInstant(key) ?: missing(key)
+    fun optInstant(key: String): Instant? =
+        read<Timestamp>(key)?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) }
+
+    /** Decimals are stored as plain strings ("312.45"): Firestore has no exact decimal type. */
+    fun decimal(key: String): BigDecimal {
+        val value = string(key)
+        return try {
+            BigDecimal(value)
+        } catch (e: NumberFormatException) {
+            fail("Field '$key' is not a decimal: '$value'", e)
+        }
+    }
 
     fun localDate(key: String): LocalDate = optLocalDate(key) ?: missing(key)
     fun optLocalDate(key: String): LocalDate? = optString(key)?.let { value ->
@@ -43,8 +55,10 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
         }
     }
 
-    inline fun <reified E : Enum<E>> enum(key: String): E {
-        val value = string(key)
+    inline fun <reified E : Enum<E>> enum(key: String): E = optEnum<E>(key) ?: missing(key)
+
+    inline fun <reified E : Enum<E>> optEnum(key: String): E? {
+        val value = optString(key) ?: return null
         return enumValues<E>().firstOrNull { it.name == value }
             ?: fail("Field '$key' has unknown ${E::class.simpleName} '$value'")
     }
@@ -64,7 +78,7 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
         else -> wrongType(key, T::class.simpleName ?: "?", value)
     }
 
-    private fun missing(key: String): Nothing = fail("Missing required field '$key'")
+    fun missing(key: String): Nothing = fail("Missing required field '$key'")
 
     private fun wrongType(key: String, expected: String, value: Any): Nothing =
         fail("Field '$key' should be $expected but was ${value::class.simpleName}")
@@ -74,6 +88,9 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
 }
 
 internal fun Instant.toTimestamp() = Timestamp(epochSecond, nano)
+
+/** Keeps the scale ("1.50" stays "1.50") so the value reads back equal. */
+internal fun BigDecimal.toFirestore(): String = toPlainString()
 
 /** Dates are stored as ISO strings ("2026-10-19"): no time zone, and they sort correctly. */
 internal fun LocalDate.toFirestore(): String = toString()

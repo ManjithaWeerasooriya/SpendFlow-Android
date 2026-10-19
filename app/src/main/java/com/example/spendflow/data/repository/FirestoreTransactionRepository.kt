@@ -34,8 +34,8 @@ class FirestoreTransactionRepository @Inject constructor(
     override fun observeTransactions(from: Instant, until: Instant): Flow<AppResult<List<Transaction>>> =
         observe { collection ->
             collection
-                .whereGreaterThanOrEqualTo(FirestoreFields.OCCURRED_AT, from.toTimestamp())
-                .whereLessThan(FirestoreFields.OCCURRED_AT, until.toTimestamp())
-                .orderBy(FirestoreFields.OCCURRED_AT, Query.Direction.DESCENDING)
+                .whereGreaterThanOrEqualTo(FirestoreFields.DATE_TIME, from.toTimestamp())
+                .whereLessThan(FirestoreFields.DATE_TIME, until.toTimestamp())
+                .orderBy(FirestoreFields.DATE_TIME, Query.Direction.DESCENDING)
         }
 }

@@ -6,6 +6,6 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 interface TransactionRepository : UserOwnedRepository<Transaction> {
-    /** Transactions with [from] <= occurredAt < [until], newest first. */
+    /** Transactions with [from] <= dateTime < [until], newest first. */
     fun observeTransactions(from: Instant, until: Instant): Flow<AppResult<List<Transaction>>>
 }

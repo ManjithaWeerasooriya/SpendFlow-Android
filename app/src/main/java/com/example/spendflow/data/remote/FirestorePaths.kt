@@ -42,7 +42,7 @@ object FirestoreFields {
     const val IS_ARCHIVED = "isArchived"
     const val ACCOUNT_ID = "accountId"
     const val CATEGORY_ID = "categoryId"
-    const val OCCURRED_AT = "occurredAt"
+    const val DATE_TIME = "dateTime"
     const val NEXT_OCCURRENCE = "nextOccurrence"
     const val IS_ACTIVE = "isActive"
 }

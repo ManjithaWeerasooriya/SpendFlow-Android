@@ -8,13 +8,16 @@ import com.example.spendflow.domain.model.BudgetPeriod
 import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
 import com.example.spendflow.domain.model.Money
+import com.example.spendflow.domain.model.PaymentMethod
 import com.example.spendflow.domain.model.RecurrenceFrequency
 import com.example.spendflow.domain.model.RecurringTransaction
 import com.example.spendflow.domain.model.Transaction
 import com.example.spendflow.domain.model.TransactionType
 import com.example.spendflow.domain.model.User
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
@@ -24,7 +27,7 @@ class MapperRoundTripTest {
 
     @Test
     fun user() {
-        val user = User(id = "u1", displayName = "Sam", email = "sam@example.com", defaultCurrency = "LKR")
+        val user = User(id = "u1", displayName = "Sam", email = "sam@example.com", baseCurrency = "LKR")
         assertEquals(user, userFromFirestore("u1", user.toFirestore()))
     }
 
@@ -50,12 +53,46 @@ class MapperRoundTripTest {
     @Test
     fun transaction() {
         val transaction = Transaction(
-            id = "t1", type = TransactionType.TRANSFER, amount = usd,
-            accountId = "a1", categoryId = null, transferAccountId = "a2",
-            note = "Rent float", occurredAt = Instant.parse("2026-10-19T08:30:15.123456789Z"),
+            id = "t1", type = TransactionType.EXPENSE, amount = Money(20_00, "EUR"),
+            // Scale is kept, so "325.10" must read back as "325.10", not "325.1"
+            rate = BigDecimal("325.10"), baseAmount = Money(650_200, "LKR"),
+            dateTime = Instant.parse("2026-10-19T08:30:15.123456789Z"), categoryId = "c1",
+            paymentMethod = PaymentMethod.CREDIT_CARD, note = "Dinner in Paris", accountId = "a1",
             recurringTransactionId = "r1",
         )
         assertEquals(transaction, transactionFromFirestore("t1", transaction.toFirestore()))
+    }
+
+    @Test
+    fun `transaction reads server timestamps`() {
+        val transaction = Transaction(
+            id = "t2", type = TransactionType.TRANSFER, amount = usd, rate = BigDecimal.ONE, baseAmount = usd,
+            dateTime = Instant.parse("2026-10-19T08:30:00Z"), categoryId = null, paymentMethod = null,
+            accountId = "a1", transferAccountId = "a2",
+        )
+        val created = Instant.parse("2026-10-19T08:31:00Z")
+        val stored = transaction.toFirestore() + mapOf(
+            FirestoreFields.CREATED_AT to created.toTimestamp(),
+            FirestoreFields.UPDATED_AT to created.toTimestamp(),
+        )
+        assertEquals(
+            transaction.copy(createdAt = created, updatedAt = created),
+            transactionFromFirestore("t2", stored),
+        )
+    }
+
+    @Test
+    fun `transaction uses the field names from the acceptance criteria`() {
+        val stored = Transaction(
+            id = "t3", type = TransactionType.INCOME, amount = Money(100_00, "USD"), rate = BigDecimal("300.25"),
+            baseAmount = Money(3_002_500, "LKR"), dateTime = Instant.parse("2026-10-19T08:30:00Z"),
+            categoryId = "salary", paymentMethod = null,
+        ).toFirestore()
+        listOf("amount", "currency", "rate", "baseAmount", "categoryId", "dateTime", "paymentMethod", "note")
+            .forEach { assertTrue("missing $it", it in stored) }
+        assertEquals("300.25", stored["rate"])
+        assertEquals(10_000L, stored["amount"])
+        assertEquals(3_002_500L, stored["baseAmount"])
     }
 
     @Test
@@ -70,10 +107,10 @@ class MapperRoundTripTest {
     @Test
     fun recurringTransaction() {
         val recurring = RecurringTransaction(
-            id = "r1", type = TransactionType.EXPENSE, amount = usd,
-            accountId = "a1", categoryId = "rent", frequency = RecurrenceFrequency.WEEKLY,
-            interval = 2, startDate = LocalDate.of(2026, 1, 1), endDate = LocalDate.of(2026, 12, 31),
-            nextOccurrence = LocalDate.of(2026, 10, 22), isActive = false,
+            id = "r1", type = TransactionType.EXPENSE, amount = usd, rate = BigDecimal("300.5"),
+            baseAmount = Money(3_709_672, "LKR"), categoryId = "rent", paymentMethod = PaymentMethod.BANK_TRANSFER,
+            frequency = RecurrenceFrequency.WEEKLY, interval = 2, startDate = LocalDate.of(2026, 1, 1),
+            endDate = LocalDate.of(2026, 12, 31), nextOccurrence = LocalDate.of(2026, 10, 22), isActive = false,
         )
         assertEquals(recurring, recurringTransactionFromFirestore("r1", recurring.toFirestore()))
     }

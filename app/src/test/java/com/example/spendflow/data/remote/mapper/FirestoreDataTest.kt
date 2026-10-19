@@ -1,6 +1,7 @@
 package com.example.spendflow.data.remote.mapper
 
 import com.example.spendflow.data.remote.FirestoreFields
+import com.google.firebase.Timestamp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -56,6 +57,26 @@ class FirestoreDataTest {
         )
         val error = assertThrows(FirestoreMappingException::class.java) { budgetFromFirestore("b1", budget) }
         assertTrue("startDate" in error.message!!)
+    }
+
+    @Test
+    fun `invalid rate and unknown payment method`() {
+        val expense = mapOf<String, Any?>(
+            "type" to "EXPENSE", "amount" to 100L, "currency" to "USD", "rate" to "300.25",
+            "baseAmount" to 30_025L, "baseCurrency" to "LKR", "paymentMethod" to "CASH",
+            FirestoreFields.DATE_TIME to Timestamp(1_760_000_000, 0),
+        )
+        transactionFromFirestore("t1", expense)
+
+        val badRate = assertThrows(FirestoreMappingException::class.java) {
+            transactionFromFirestore("t1", expense + ("rate" to "3,00"))
+        }
+        assertTrue("rate" in badRate.message!!)
+
+        val badMethod = assertThrows(FirestoreMappingException::class.java) {
+            transactionFromFirestore("t1", expense + ("paymentMethod" to "BITCOIN"))
+        }
+        assertTrue("BITCOIN" in badMethod.message!!)
     }
 
     @Test

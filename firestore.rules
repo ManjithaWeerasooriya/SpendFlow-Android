@@ -18,7 +18,7 @@ rules_version = '2';
 // Document: users/{uid}                      (profile; contains PII, owner-only)
 //   - displayName: string | null (<= 100)
 //   - email: string | null (valid email, <= 254)
-//   - defaultCurrency: string (ISO 4217, ^[A-Z]{3}$)
+//   - baseCurrency: string (ISO 4217, ^[A-Z]{3}$, immutable once set: stored baseAmounts are in it)
 //
 // Collection: users/{uid}/accounts/{accountId}
 //   - name: string (1..100)
@@ -36,13 +36,18 @@ rules_version = '2';
 //
 // Collection: users/{uid}/transactions/{transactionId}
 //   - type: 'EXPENSE' | 'INCOME' | 'TRANSFER'
-//   - amountMinor: int (> 0, <= 1e14)
-//   - currencyCode: string (^[A-Z]{3}$)
-//   - accountId: string (document ID)
+//   - amount: int (> 0, <= 1e14), in minor units of currency
+//   - currency: string (^[A-Z]{3}$)
+//   - rate: string (positive decimal, e.g. "312.45"): 1 unit of currency = rate units of baseCurrency
+//   - baseAmount: int (>= 0, <= 1e14), amount converted at rate, in minor units of baseCurrency
+//   - baseCurrency: string (^[A-Z]{3}$); if equal to currency, rate is 1 and baseAmount == amount
+//   - paymentMethod: 'CASH' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'BANK_TRANSFER' | 'MOBILE_WALLET' | 'OTHER'
+//       (required for EXPENSE, null otherwise)
+//   - accountId: string | null (document ID; required for TRANSFER)
 //   - categoryId: string | null (document ID; must be null for TRANSFER)
 //   - transferAccountId: string | null (required and != accountId for TRANSFER, else null)
 //   - note: string | null (<= 500)
-//   - occurredAt: timestamp
+//   - dateTime: timestamp
 //   - recurringTransactionId: string | null (document ID)
 //
 // Collection: users/{uid}/budgets/{budgetId}
@@ -54,8 +59,8 @@ rules_version = '2';
 //   - categoryId: string | null (document ID; null = all expenses)
 //
 // Collection: users/{uid}/recurring/{recurringId}
-//   - type, amountMinor, currencyCode, accountId, categoryId, transferAccountId, note:
-//     same as transactions
+//   - type, amount, currency, rate, baseAmount, baseCurrency, paymentMethod, accountId, categoryId,
+//     transferAccountId, note: same as transactions
 //   - frequency: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 //   - interval: int (1..365)
 //   - startDate: string (YYYY-MM-DD)
@@ -65,10 +70,13 @@ rules_version = '2';
 //
 // Queries the app runs (all within the caller's own users/{uid} subtree):
 //   - full collection reads of accounts, categories, budgets, recurring
-//   - transactions where occurredAt >= from and occurredAt < until, orderBy occurredAt desc
+//   - transactions where dateTime >= from and dateTime < until, orderBy dateTime desc
 //
-// Not enforced here: that accountId/categoryId/... point at existing documents. They are only
-// ever resolved inside the owner's own subtree, so a bad reference can't expose other users' data.
+// Not enforced here:
+//   - that accountId/categoryId/... point at existing documents. They are only ever resolved inside
+//     the owner's own subtree, so a bad reference can't expose other users' data.
+//   - that baseAmount == amount x rate (rules can't do exact decimal math) or that baseCurrency
+//     matches the profile's (would cost a read per write and require a profile to exist first).
 //
 // ===============================================================
 
@@ -134,6 +142,17 @@ service cloud.firestore {
       return value is int && value > 0 && value <= maxAmount();
     }
 
+    // Plain positive decimal string, as written by BigDecimal.toPlainString()
+    function isPositiveRate(value) {
+      return isValidString(value, 1, 30) &&
+        value.matches('^[0-9]{1,15}([.][0-9]{1,12})?$') &&
+        !value.matches('^0+([.]0+)?$');
+    }
+
+    function isRateOne(value) {
+      return value.matches('^0*1([.]0+)?$');
+    }
+
     // createdAt/updatedAt must be server timestamps; createdAt can never change
     function hasCreateTimestamps(data) {
       return data.createdAt == request.time && data.updatedAt == request.time;
@@ -154,11 +173,13 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasRequiredFields(data, ['defaultCurrency', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['displayName', 'email', 'defaultCurrency', 'createdAt', 'updatedAt']) &&
+      return hasRequiredFields(data, ['baseCurrency', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['displayName', 'email', 'baseCurrency', 'createdAt', 'updatedAt']) &&
         isOptionalString(data, 'displayName', 100) &&
         (!('email' in data) || data.email == null || isValidEmail(data.email)) &&
-        isCurrencyCode(data.defaultCurrency);
+        isCurrencyCode(data.baseCurrency) &&
+        // Changing it would leave every stored baseAmount in the wrong currency
+        (request.method == 'create' || data.baseCurrency == resource.data.baseCurrency);
     }
 
     function isValidAccount(data) {
@@ -187,25 +208,34 @@ service cloud.firestore {
     // Shared by transactions and recurring templates; mirrors the domain model's checks
     function isValidMovement(data) {
       return data.type in ['EXPENSE', 'INCOME', 'TRANSFER'] &&
-        isPositiveAmount(data.amountMinor) &&
-        isCurrencyCode(data.currencyCode) &&
-        isDocId(data.accountId) &&
+        isPositiveAmount(data.amount) &&
+        isCurrencyCode(data.currency) &&
+        isPositiveRate(data.rate) &&
+        data.baseAmount is int && data.baseAmount >= 0 && data.baseAmount <= maxAmount() &&
+        isCurrencyCode(data.baseCurrency) &&
+        (data.currency != data.baseCurrency || (isRateOne(data.rate) && data.baseAmount == data.amount)) &&
+        (data.type == 'EXPENSE'
+          ? data.get('paymentMethod', null) in ['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'BANK_TRANSFER', 'MOBILE_WALLET', 'OTHER']
+          : data.get('paymentMethod', null) == null) &&
+        isOptionalDocId(data, 'accountId') &&
         isOptionalDocId(data, 'categoryId') &&
         isOptionalDocId(data, 'transferAccountId') &&
         isOptionalString(data, 'note', 500) &&
         (data.type == 'TRANSFER'
-          ? (data.get('transferAccountId', null) != null &&
+          ? (data.get('accountId', null) != null &&
+             data.get('transferAccountId', null) != null &&
              data.transferAccountId != data.accountId &&
              data.get('categoryId', null) == null)
           : data.get('transferAccountId', null) == null);
     }
 
     function isValidTransaction(data) {
-      return hasRequiredFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'occurredAt', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'categoryId',
-          'transferAccountId', 'note', 'occurredAt', 'recurringTransactionId', 'createdAt', 'updatedAt']) &&
+      return hasRequiredFields(data, ['type', 'amount', 'currency', 'rate', 'baseAmount', 'baseCurrency', 'dateTime',
+          'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['type', 'amount', 'currency', 'rate', 'baseAmount', 'baseCurrency', 'paymentMethod', 'accountId', 'categoryId',
+          'transferAccountId', 'note', 'dateTime', 'recurringTransactionId', 'createdAt', 'updatedAt']) &&
         isValidMovement(data) &&
-        data.occurredAt is timestamp &&
+        data.dateTime is timestamp &&
         isOptionalDocId(data, 'recurringTransactionId');
     }
 
@@ -222,11 +252,11 @@ service cloud.firestore {
     }
 
     function isValidRecurring(data) {
-      return hasRequiredFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'frequency', 'interval',
-          'startDate', 'nextOccurrence', 'isActive', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['type', 'amountMinor', 'currencyCode', 'accountId', 'categoryId',
-          'transferAccountId', 'note', 'frequency', 'interval', 'startDate', 'endDate', 'nextOccurrence',
-          'isActive', 'createdAt', 'updatedAt']) &&
+      return hasRequiredFields(data, ['type', 'amount', 'currency', 'rate', 'baseAmount', 'baseCurrency', 'frequency',
+          'interval', 'startDate', 'nextOccurrence', 'isActive', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['type', 'amount', 'currency', 'rate', 'baseAmount', 'baseCurrency', 'paymentMethod', 'accountId', 'categoryId',
+          'transferAccountId', 'note', 'frequency', 'interval', 'startDate', 'endDate',
+          'nextOccurrence', 'isActive', 'createdAt', 'updatedAt']) &&
         isValidMovement(data) &&
         data.frequency in ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] &&
         data.interval is int && data.interval >= 1 && data.interval <= 365 &&

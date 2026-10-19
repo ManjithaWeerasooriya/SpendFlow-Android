@@ -59,7 +59,7 @@ abstract class FirestoreUserOwnedRepository<T>(
         val uid = session.currentUid() ?: return@withContext AppResult.Error(AppError.Unauthenticated)
         val result = appResultOf(errorMapper = { it.toAppError() }) {
             val snapshot = collection(uid).document(id).get().await()
-            snapshot.data?.let { fromFirestore(snapshot.id, it) }
+            snapshot.estimatedData()?.let { fromFirestore(snapshot.id, it) }
         }
         when (result) {
             is AppResult.Success -> result.data?.let { AppResult.Success(it) } ?: AppResult.Error(AppError.NotFound)
