@@ -11,12 +11,15 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+    @Inject
+    lateinit var firestore: FirebaseFirestore
+
     // Firestore keeps retrying, so once this is granted the pending write goes through
     private val requestLocalNetwork =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -26,9 +29,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (BuildConfig.DEBUG) {
-            // 10.0.2.2 is the host machine as seen from the Android emulator
-            FirebaseFirestore.getInstance().useEmulator("10.0.2.2", 8080)
-            FirebaseAuth.getInstance().useEmulator("10.0.2.2", 9099)
             // Android 17+ treats 10.0.2.2 as local network and silently drops traffic to it
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
                 ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_LOCAL_NETWORK)
@@ -45,10 +45,9 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val db = FirebaseFirestore.getInstance()
-        db.collection("test").document("ping").set(mapOf("ok" to true))
+        firestore.collection("test").document("ping").set(mapOf("ok" to true))
             .addOnSuccessListener {
-                db.collection("test").document("ping").get()
+                firestore.collection("test").document("ping").get()
                     .addOnSuccessListener { Log.d("SF-01", "Read back: ${it.data}") }
             }
     }
