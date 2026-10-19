@@ -23,7 +23,8 @@ class FirestoreTransactionRepository @Inject constructor(
     session: UserSession,
     private val refs: FirestoreRefs,
     dispatchers: DispatcherProvider,
-) : FirestoreUserOwnedRepository<Transaction>(session, refs, dispatchers), TransactionRepository {
+    writeFailures: WriteFailureReporter,
+) : FirestoreUserOwnedRepository<Transaction>(session, refs, dispatchers, writeFailures), TransactionRepository {
 
     override fun collection(uid: String): CollectionReference = refs.transactions(uid)
     override fun Transaction.id(): String = id

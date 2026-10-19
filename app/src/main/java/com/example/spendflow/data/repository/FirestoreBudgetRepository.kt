@@ -19,7 +19,8 @@ class FirestoreBudgetRepository @Inject constructor(
     session: UserSession,
     private val refs: FirestoreRefs,
     dispatchers: DispatcherProvider,
-) : FirestoreUserOwnedRepository<Budget>(session, refs, dispatchers), BudgetRepository {
+    writeFailures: WriteFailureReporter,
+) : FirestoreUserOwnedRepository<Budget>(session, refs, dispatchers, writeFailures), BudgetRepository {
 
     override fun collection(uid: String): CollectionReference = refs.budgets(uid)
     override fun Budget.id(): String = id

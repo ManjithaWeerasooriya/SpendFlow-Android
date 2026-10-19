@@ -19,7 +19,8 @@ class FirestoreAccountRepository @Inject constructor(
     session: UserSession,
     private val refs: FirestoreRefs,
     dispatchers: DispatcherProvider,
-) : FirestoreUserOwnedRepository<Account>(session, refs, dispatchers), AccountRepository {
+    writeFailures: WriteFailureReporter,
+) : FirestoreUserOwnedRepository<Account>(session, refs, dispatchers, writeFailures), AccountRepository {
 
     override fun collection(uid: String): CollectionReference = refs.accounts(uid)
     override fun Account.id(): String = id

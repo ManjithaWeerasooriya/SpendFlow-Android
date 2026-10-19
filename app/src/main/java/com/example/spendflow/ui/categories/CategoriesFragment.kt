@@ -39,6 +39,7 @@ class CategoriesFragment : Fragment(R.layout.fragment_categories) {
             when (event) {
                 CategoriesEvent.CategoryAdded -> binding.nameInput.text = null
                 is CategoriesEvent.ShowMessage -> Snackbar.make(view, event.messageRes, Snackbar.LENGTH_SHORT).show()
+                is CategoriesEvent.ShowError -> Snackbar.make(view, event.error.messageRes, Snackbar.LENGTH_LONG).show()
             }
         }
     }

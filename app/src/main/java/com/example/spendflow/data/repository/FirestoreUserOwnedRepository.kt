@@ -9,6 +9,7 @@ import com.example.spendflow.data.remote.mapper.withCreateTimestamps
 import com.example.spendflow.data.remote.mapper.withUpdateTimestamp
 import com.example.spendflow.data.remote.toAppError
 import com.example.spendflow.data.session.UserSession
+import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.Query
@@ -22,12 +23,14 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 /** Firestore plumbing for one users/{uid}/<collection>. Subclasses add their entity-specific queries. */
 abstract class FirestoreUserOwnedRepository<T>(
     private val session: UserSession,
     private val refs: FirestoreRefs,
     private val dispatchers: DispatcherProvider,
+    private val writeFailures: WriteFailureReporter,
 ) : UserOwnedRepository<T> {
 
     protected abstract fun collection(uid: String): CollectionReference
@@ -48,34 +51,35 @@ abstract class FirestoreUserOwnedRepository<T>(
                     }
                     .catch { emit(AppResult.Error(it.toAppError())) }
             }
-        }.flowOn(dispatchers.default)
+        }.flowOn(dispatchers.io)
 
     override fun newId(): String = refs.newId()
 
-    override suspend fun get(id: String): AppResult<T> {
-        val uid = session.currentUid() ?: return AppResult.Error(AppError.Unauthenticated)
+    override suspend fun get(id: String): AppResult<T> = withContext(dispatchers.io) {
+        val uid = session.currentUid() ?: return@withContext AppResult.Error(AppError.Unauthenticated)
         val result = appResultOf(errorMapper = { it.toAppError() }) {
             val snapshot = collection(uid).document(id).get().await()
             snapshot.data?.let { fromFirestore(snapshot.id, it) }
         }
-        return when (result) {
+        when (result) {
             is AppResult.Success -> result.data?.let { AppResult.Success(it) } ?: AppResult.Error(AppError.NotFound)
             is AppResult.Error -> result
         }
     }
 
     override suspend fun create(item: T): AppResult<Unit> =
-        document(item.id()) { it.writeLocally { doc -> doc.set(item.toFirestore().withCreateTimestamps()) } }
+        write(item.id()) { it.set(item.toFirestore().withCreateTimestamps()) }
 
     // merge keeps createdAt, which toFirestore() doesn't include
-    override suspend fun update(item: T): AppResult<Unit> = document(item.id()) {
-        it.writeLocally { doc -> doc.set(item.toFirestore().withUpdateTimestamp(), SetOptions.merge()) }
-    }
+    override suspend fun update(item: T): AppResult<Unit> =
+        write(item.id()) { it.set(item.toFirestore().withUpdateTimestamp(), SetOptions.merge()) }
 
-    override suspend fun delete(id: String): AppResult<Unit> = document(id) { it.writeLocally { doc -> doc.delete() } }
+    override suspend fun delete(id: String): AppResult<Unit> = write(id) { it.delete() }
 
-    private inline fun document(id: String, block: (DocumentReference) -> AppResult<Unit>): AppResult<Unit> {
-        val uid = session.currentUid() ?: return AppResult.Error(AppError.Unauthenticated)
-        return block(collection(uid).document(id))
-    }
+    // Serializing the data and queuing the write happen on the IO dispatcher, off the main thread
+    private suspend fun write(id: String, op: (DocumentReference) -> Task<Void>): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            val uid = session.currentUid() ?: return@withContext AppResult.Error(AppError.Unauthenticated)
+            collection(uid).document(id).writeLocally(writeFailures, op)
+        }
 }

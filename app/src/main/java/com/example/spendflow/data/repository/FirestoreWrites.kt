@@ -14,10 +14,16 @@ private const val TAG = "SpendFlowData"
  * Starts a write without waiting for the server. Firestore applies it to the local cache
  * immediately, so snapshot listeners update at once, and it syncs when the device is online.
  * Awaiting the returned Task would hang for as long as the device is offline.
- * Server-side rejections (e.g. security rules) are logged.
+ * Server-side rejections (e.g. security rules) are logged and sent to [failures].
  */
-internal fun DocumentReference.writeLocally(op: (DocumentReference) -> Task<Void>): AppResult<Unit> = try {
-    op(this).addOnFailureListener { Log.w(TAG, "Write to $path failed", it) }
+internal fun DocumentReference.writeLocally(
+    failures: WriteFailureReporter,
+    op: (DocumentReference) -> Task<Void>,
+): AppResult<Unit> = try {
+    op(this).addOnFailureListener {
+        Log.w(TAG, "Write to $path failed", it)
+        failures.report(WriteFailure(path, it.toAppError()))
+    }
     AppResult.Success(Unit)
 } catch (e: Exception) {
     AppResult.Error(e.toAppError())

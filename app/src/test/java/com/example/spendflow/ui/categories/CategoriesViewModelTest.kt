@@ -10,6 +10,7 @@ import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
 import com.example.spendflow.testing.FakeCategoryRepository
 import com.example.spendflow.testing.FakeUserSession
+import com.example.spendflow.testing.FakeWriteFailures
 import com.example.spendflow.testing.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -36,7 +37,9 @@ class CategoriesViewModelTest {
         ),
     )
 
-    private fun viewModel() = CategoriesViewModel(session, repository)
+    private val writeFailures = FakeWriteFailures()
+
+    private fun viewModel() = CategoriesViewModel(session, repository, writeFailures)
 
     /**
      * Skips Loading. With the unconfined dispatcher, StateFlow often settles before Turbine reads it,
@@ -124,8 +127,21 @@ class CategoriesViewModelTest {
 
             viewModel.addCategory("Travel", CategoryType.EXPENSE)
 
-            assertEquals(CategoriesEvent.ShowMessage(R.string.error_unauthenticated), events.awaitItem())
+            assertEquals(CategoriesEvent.ShowError(AppError.Unauthenticated), events.awaitItem())
             states.expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `save rejected later by the server is shown as a typed error`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.events.test {
+            viewModel.addCategory("Travel", CategoryType.EXPENSE)
+            assertEquals(CategoriesEvent.CategoryAdded, awaitItem())
+
+            writeFailures.reject("users/test-user/categories/category-1", AppError.PermissionDenied)
+            assertEquals(CategoriesEvent.ShowError(AppError.PermissionDenied), awaitItem())
         }
     }
 }

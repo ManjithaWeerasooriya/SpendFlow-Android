@@ -19,7 +19,8 @@ class FirestoreRecurringTransactionRepository @Inject constructor(
     session: UserSession,
     private val refs: FirestoreRefs,
     dispatchers: DispatcherProvider,
-) : FirestoreUserOwnedRepository<RecurringTransaction>(session, refs, dispatchers), RecurringTransactionRepository {
+    writeFailures: WriteFailureReporter,
+) : FirestoreUserOwnedRepository<RecurringTransaction>(session, refs, dispatchers, writeFailures), RecurringTransactionRepository {
 
     override fun collection(uid: String): CollectionReference = refs.recurring(uid)
     override fun RecurringTransaction.id(): String = id

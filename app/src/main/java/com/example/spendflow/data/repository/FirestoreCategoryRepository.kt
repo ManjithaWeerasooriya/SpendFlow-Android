@@ -20,7 +20,8 @@ class FirestoreCategoryRepository @Inject constructor(
     session: UserSession,
     private val refs: FirestoreRefs,
     dispatchers: DispatcherProvider,
-) : FirestoreUserOwnedRepository<Category>(session, refs, dispatchers), CategoryRepository {
+    writeFailures: WriteFailureReporter,
+) : FirestoreUserOwnedRepository<Category>(session, refs, dispatchers, writeFailures), CategoryRepository {
 
     override fun collection(uid: String): CollectionReference = refs.categories(uid)
     override fun Category.id(): String = id

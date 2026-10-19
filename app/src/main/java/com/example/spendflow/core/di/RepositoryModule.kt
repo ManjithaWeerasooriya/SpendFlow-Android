@@ -12,6 +12,8 @@ import com.example.spendflow.data.repository.FirestoreUserRepository
 import com.example.spendflow.data.repository.RecurringTransactionRepository
 import com.example.spendflow.data.repository.TransactionRepository
 import com.example.spendflow.data.repository.UserRepository
+import com.example.spendflow.data.repository.WriteFailureReporter
+import com.example.spendflow.data.repository.WriteFailures
 import com.example.spendflow.data.session.FirebaseUserSession
 import com.example.spendflow.data.session.UserSession
 import dagger.Binds
@@ -23,6 +25,7 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
     @Binds abstract fun bindUserSession(impl: FirebaseUserSession): UserSession
+    @Binds abstract fun bindWriteFailures(impl: WriteFailureReporter): WriteFailures
     @Binds abstract fun bindUserRepository(impl: FirestoreUserRepository): UserRepository
     @Binds abstract fun bindAccountRepository(impl: FirestoreAccountRepository): AccountRepository
     @Binds abstract fun bindCategoryRepository(impl: FirestoreCategoryRepository): CategoryRepository

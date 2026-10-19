@@ -4,13 +4,14 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
+import com.example.spendflow.core.common.AppError
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.common.onError
 import com.example.spendflow.core.common.onSuccess
 import com.example.spendflow.core.ui.UiState
-import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.core.ui.toUiState
 import com.example.spendflow.data.repository.CategoryRepository
+import com.example.spendflow.data.repository.WriteFailures
 import com.example.spendflow.data.session.UserSession
 import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
@@ -32,7 +33,12 @@ import javax.inject.Inject
 
 sealed interface CategoriesEvent {
     data object CategoryAdded : CategoriesEvent
+
+    /** Input problems the ViewModel catches before anything is saved. */
     data class ShowMessage(@StringRes val messageRes: Int) : CategoriesEvent
+
+    /** A failed operation, including a save the server rejected after it was applied locally. */
+    data class ShowError(val error: AppError) : CategoriesEvent
 }
 
 /**
@@ -43,7 +49,12 @@ sealed interface CategoriesEvent {
 class CategoriesViewModel @Inject constructor(
     private val session: UserSession,
     private val categories: CategoryRepository,
+    writeFailures: WriteFailures,
 ) : ViewModel() {
+
+    // One-shot effects: delivered once, not replayed to a recreated view like state would be
+    private val _events = Channel<CategoriesEvent>(Channel.BUFFERED)
+    val events: Flow<CategoriesEvent> = _events.receiveAsFlow()
 
     private val retries = MutableSharedFlow<Unit>(replay = 1).apply { tryEmit(Unit) }
 
@@ -61,9 +72,11 @@ class CategoriesViewModel @Inject constructor(
         // Keeps the subscription through configuration changes, stops it 5 s after the UI goes away
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState.Loading)
 
-    // One-shot effects: delivered once, not replayed to a recreated view like state would be
-    private val _events = Channel<CategoriesEvent>(Channel.BUFFERED)
-    val events: Flow<CategoriesEvent> = _events.receiveAsFlow()
+    init {
+        viewModelScope.launch {
+            writeFailures.failures.collect { _events.send(CategoriesEvent.ShowError(it.error)) }
+        }
+    }
 
     fun retry() {
         retries.tryEmit(Unit)
@@ -78,7 +91,7 @@ class CategoriesViewModel @Inject constructor(
         viewModelScope.launch {
             categories.create(Category(id = categories.newId(), name = trimmed, type = type))
                 .onSuccess { _events.send(CategoriesEvent.CategoryAdded) }
-                .onError { _events.send(CategoriesEvent.ShowMessage(it.messageRes)) }
+                .onError { _events.send(CategoriesEvent.ShowError(it)) }
         }
     }
 }

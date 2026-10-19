@@ -11,6 +11,7 @@ import com.example.spendflow.data.remote.mapper.withUpdateTimestamp
 import com.example.spendflow.data.remote.toAppError
 import com.example.spendflow.data.session.UserSession
 import com.example.spendflow.domain.model.User
+import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,6 +31,7 @@ class FirestoreUserRepository @Inject constructor(
     private val session: UserSession,
     private val refs: FirestoreRefs,
     private val dispatchers: DispatcherProvider,
+    private val writeFailures: WriteFailureReporter,
 ) : UserRepository {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -40,19 +43,18 @@ class FirestoreUserRepository @Inject constructor(
                 .map<_, AppResult<User?>> { AppResult.Success(it.toModelOrNull(::userFromFirestore)) }
                 .catch { emit(AppResult.Error(it.toAppError())) }
         }
-    }.flowOn(dispatchers.default)
+    }.flowOn(dispatchers.io)
 
-    override suspend fun createProfile(user: User): AppResult<Unit> = profile(user) {
-        it.writeLocally { doc -> doc.set(user.toFirestore().withCreateTimestamps()) }
-    }
+    override suspend fun createProfile(user: User): AppResult<Unit> =
+        writeProfile(user) { it.set(user.toFirestore().withCreateTimestamps()) }
 
-    override suspend fun updateProfile(user: User): AppResult<Unit> = profile(user) {
-        it.writeLocally { doc -> doc.set(user.toFirestore().withUpdateTimestamp(), SetOptions.merge()) }
-    }
+    override suspend fun updateProfile(user: User): AppResult<Unit> =
+        writeProfile(user) { it.set(user.toFirestore().withUpdateTimestamp(), SetOptions.merge()) }
 
-    private inline fun profile(user: User, block: (DocumentReference) -> AppResult<Unit>): AppResult<Unit> {
-        val uid = session.currentUid() ?: return AppResult.Error(AppError.Unauthenticated)
-        if (user.id != uid) return AppResult.Error(AppError.PermissionDenied)
-        return block(refs.user(uid))
-    }
+    private suspend fun writeProfile(user: User, op: (DocumentReference) -> Task<Void>): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            val uid = session.currentUid() ?: return@withContext AppResult.Error(AppError.Unauthenticated)
+            if (user.id != uid) return@withContext AppResult.Error(AppError.PermissionDenied)
+            refs.user(uid).writeLocally(writeFailures, op)
+        }
 }
