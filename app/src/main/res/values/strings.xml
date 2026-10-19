@@ -6,4 +6,14 @@
     <string name="error_permission_denied">You don\'t have access to this data.</string>
     <string name="error_not_found">We couldn\'t find what you were looking for.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
+
+    <string name="action_retry">Retry</string>
+
+    <string name="categories_title">Categories</string>
+    <string name="categories_name_hint">Category name</string>
+    <string name="categories_add">Add</string>
+    <string name="categories_empty">No categories yet. Add your first one above.</string>
+    <string name="categories_error_name_required">Enter a category name.</string>
+    <string name="category_type_expense">Expense</string>
+    <string name="category_type_income">Income</string>
 </resources>

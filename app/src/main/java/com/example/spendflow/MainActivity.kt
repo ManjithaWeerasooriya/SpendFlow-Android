@@ -11,25 +11,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.lifecycle.lifecycleScope
-import com.example.spendflow.core.common.AppResult
-import com.example.spendflow.data.repository.CategoryRepository
-import com.example.spendflow.data.session.UserSession
-import com.example.spendflow.domain.model.Category
-import com.example.spendflow.domain.model.CategoryType
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
+/** Hosts the screens (currently only categories, set in activity_main.xml). */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
-    @Inject
-    lateinit var session: UserSession
-
-    @Inject
-    lateinit var categories: CategoryRepository
-
     // Firestore keeps retrying, so once this is granted the pending write goes through
     private val requestLocalNetwork =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -50,22 +36,10 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            // Include the keyboard so the input stays visible while typing (edge-to-edge disables adjustResize)
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
+            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
-        }
-
-        // Temporary end-to-end check of session + repository; replaced by the reference feature
-        lifecycleScope.launch {
-            val signIn = session.ensureSignedIn()
-            if (signIn !is AppResult.Success) {
-                Log.w("SF-01", "Sign-in failed: $signIn")
-                return@launch
-            }
-            val id = categories.newId()
-            categories.create(Category(id = id, name = "Smoke test", type = CategoryType.EXPENSE))
-            val listed = categories.observeCategories().first { it is AppResult.Success && it.data.isNotEmpty() }
-            Log.d("SF-01", "uid=${signIn.data} categories=$listed get=${categories.get(id)}")
         }
     }
 }
