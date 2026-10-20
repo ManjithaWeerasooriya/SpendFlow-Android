@@ -28,3 +28,6 @@ skills-lock.json
 
 # OS
 .DS_Store
+
+# Firestore rules tests
+firestore-tests/node_modules/
