@@ -9,7 +9,7 @@ need access to the production Firebase project to work on it.
 - **Android Studio** (a recent version with Android Gradle Plugin 9.3 support) with:
   - Android SDK Platform **37**
   - An Android Virtual Device (AVD), e.g. Pixel 8 on API 37
-- **Node.js** 20 or later, and the **Firebase CLI**:
+- **Node.js** 22 or later, and the **Firebase CLI**:
   ```sh
   npm install -g firebase-tools
   ```
@@ -76,6 +76,22 @@ need access to the production Firebase project to work on it.
 ./gradlew :app:testDebugUnitTest            # unit tests
 ./gradlew :app:connectedDebugAndroidTest    # instrumented tests (needs a running emulator/device)
 ```
+
+### Firestore security rules
+
+`firestore-tests/` checks `firestore.rules` against the Firestore emulator: owner-only access
+under `users/{uid}`, denial for other and unauthenticated users, and the field validation for
+every entity. It starts its own emulator on port 8180 under the `demo-spendflow` project, so it can
+run while `firebase emulators:start` is up and never touches real data.
+
+```sh
+cd firestore-tests
+npm ci
+npm run test:emulator
+```
+
+Run it after any change to `firestore.rules` or a mapper in `data/remote/mapper/`. CI runs it on
+every pull request.
 
 ## Troubleshooting
 
