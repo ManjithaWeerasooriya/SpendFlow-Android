@@ -59,6 +59,14 @@
     <string name="auth_error_invalid_credentials">Email or password is incorrect</string>
     <string name="auth_error_too_many_requests">Too many attempts. Wait a few minutes and try again.</string>
 
+    <string name="onboarding_overline">One quick step</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_title">Set up SpendFlow</string>
+    <string name="onboarding_message">Check your base currency before you start.</string>
+    <string name="onboarding_currency_value">%1$s – %2$s</string>
+    <string name="onboarding_currency_caption">All totals and reports use this currency.</string>
+    <string name="onboarding_continue">Continue</string>
+
     <string name="quick_add_title">Add transaction</string>
     <string name="quick_add_placeholder">Amount, category and Save will live here.</string>
 
