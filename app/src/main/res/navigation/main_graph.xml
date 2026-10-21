@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The four tab destinations share their ids with the items in menu/bottom_bar.xml -->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_graph"
+    app:startDestination="@id/homeFragment">
+
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.example.spendflow.ui.home.HomeFragment"
+        android:label="@string/nav_home" />
+
+    <fragment
+        android:id="@+id/transactionsFragment"
+        android:name="com.example.spendflow.ui.transactions.TransactionsFragment"
+        android:label="@string/nav_transactions" />
+
+    <fragment
+        android:id="@+id/analyticsFragment"
+        android:name="com.example.spendflow.ui.analytics.AnalyticsFragment"
+        android:label="@string/nav_analytics" />
+
+    <fragment
+        android:id="@+id/moreFragment"
+        android:name="com.example.spendflow.ui.more.MoreFragment"
+        android:label="@string/nav_more">
+        <action
+            android:id="@+id/action_more_to_categories"
+            app:destination="@id/categoriesFragment" />
+        <action
+            android:id="@+id/action_more_to_goals"
+            app:destination="@id/goalsFragment" />
+        <action
+            android:id="@+id/action_more_to_settings"
+            app:destination="@id/settingsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/categoriesFragment"
+        android:name="com.example.spendflow.ui.categories.CategoriesFragment"
+        android:label="@string/budget_categories_title" />
+
+    <fragment
+        android:id="@+id/goalsFragment"
+        android:name="com.example.spendflow.ui.goals.GoalsFragment"
+        android:label="@string/goals_title" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.spendflow.ui.settings.SettingsFragment"
+        android:label="@string/settings_title" />
+
+    <dialog
+        android:id="@+id/quickAddSheet"
+        android:name="com.example.spendflow.ui.quickadd.QuickAddBottomSheet"
+        android:label="@string/quick_add_title" />
+</navigation>

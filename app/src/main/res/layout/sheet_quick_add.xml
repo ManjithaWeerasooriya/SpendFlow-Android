@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/sf_screen_padding"
+    android:paddingBottom="@dimen/sf_space_xxxl"
+    tools:context=".ui.quickadd.QuickAddBottomSheet">
+
+    <com.google.android.material.bottomsheet.BottomSheetDragHandleView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/quick_add_title"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:textColor="?attr/sfColorTextHeading" />
+
+        <Button
+            android:id="@+id/closeButton"
+            style="?attr/materialIconButtonFilledTonalStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/action_close"
+            app:backgroundTint="?attr/sfColorTile"
+            app:icon="@drawable/ic_close"
+            app:iconTint="?attr/sfColorTextHeading" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_xxl"
+        android:gravity="center"
+        android:text="@string/quick_add_placeholder"
+        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+        android:textColor="?attr/sfColorTextMuted" />
+</LinearLayout>

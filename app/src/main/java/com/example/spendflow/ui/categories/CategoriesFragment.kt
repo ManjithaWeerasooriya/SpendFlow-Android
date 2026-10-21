@@ -6,6 +6,7 @@ import android.view.inputmethod.EditorInfo
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.example.spendflow.R
 import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.core.ui.collectWithLifecycle
@@ -28,6 +29,7 @@ class CategoriesFragment : Fragment(R.layout.fragment_categories) {
         val binding = FragmentCategoriesBinding.bind(view)
         val adapter = CategoryAdapter()
         binding.list.adapter = adapter
+        binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
 
         binding.addButton.setOnClickListener { submit(binding) }
         binding.nameInput.setOnEditorActionListener { _, actionId, _ ->

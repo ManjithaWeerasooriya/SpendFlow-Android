@@ -70,4 +70,74 @@
         <item name="android:paddingStart">@dimen/sf_space_xl</item>
         <item name="android:paddingEnd">@dimen/sf_space_xl</item>
     </style>
+
+    <!-- Bottom bar (02a): white bar with rounded top corners; the selected tab darkens instead of a pill -->
+    <style name="Widget.SpendFlow.BottomBar" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">?attr/sfColorInsetCard</item>
+        <item name="elevation">@dimen/sf_bottom_bar_elevation</item>
+        <item name="itemIconTint">@color/sf_bottom_bar_item</item>
+        <item name="itemTextColor">@color/sf_bottom_bar_item</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.SpendFlow.NavLabel</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.SpendFlow.NavLabel.Active</item>
+        <item name="labelVisibilityMode">labeled</item>
+    </style>
+
+    <!-- The central +: the most prominent element on every main screen -->
+    <style name="Widget.SpendFlow.AddButton" parent="Widget.Material3.FloatingActionButton.Primary">
+        <item name="fabCustomSize">@dimen/sf_add_button_size</item>
+        <item name="maxImageSize">@dimen/sf_add_icon_size</item>
+        <item name="backgroundTint">?attr/sfColorViolet</item>
+        <item name="tint">?attr/colorOnPrimary</item>
+        <item name="srcCompat">@drawable/ic_plus</item>
+        <item name="elevation">4dp</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.SpendFlow.Pill</item>
+    </style>
+
+    <!-- Pushed screens (07a, 08a): back chevron and a centred title -->
+    <style name="Widget.SpendFlow.TopBar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="navigationIcon">@drawable/ic_chevron_left</item>
+        <item name="navigationContentDescription">@string/action_back</item>
+        <item name="titleCentered">true</item>
+        <item name="titleTextAppearance">@style/TextAppearance.SpendFlow.TopBarTitle</item>
+        <item name="titleTextColor">?attr/sfColorTextHeading</item>
+    </style>
+
+    <!-- Tappable row in a card, as on Settings and More -->
+    <style name="Widget.SpendFlow.LinkRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">@dimen/sf_link_row_height</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">@dimen/sf_space_l</item>
+        <item name="android:paddingEnd">@dimen/sf_space_l</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <style name="Widget.SpendFlow.LinkRow.Icon" parent="">
+        <item name="android:layout_width">@dimen/sf_icon_size</item>
+        <item name="android:layout_height">@dimen/sf_icon_size</item>
+        <item name="android:layout_marginEnd">@dimen/sf_space_l</item>
+        <item name="android:importantForAccessibility">no</item>
+        <item name="tint">?attr/sfColorTextHeading</item>
+    </style>
+
+    <style name="Widget.SpendFlow.LinkRow.Title" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Body</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">?attr/sfColorTextHeading</item>
+    </style>
+
+    <style name="Widget.SpendFlow.LinkRow.Chevron" parent="">
+        <item name="android:layout_width">@dimen/sf_icon_size</item>
+        <item name="android:layout_height">@dimen/sf_icon_size</item>
+        <item name="android:importantForAccessibility">no</item>
+        <item name="android:src">@drawable/ic_chevron_right</item>
+    </style>
 </resources>
