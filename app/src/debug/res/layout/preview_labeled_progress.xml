@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview in light and dark: Layout Editor > Night Mode, or run ComponentGalleryActivity -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/previewLabeledProgress"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical"
+    android:padding="@dimen/sf_screen_padding">
+
+    <com.google.android.material.card.MaterialCardView
+        style="@style/Widget.SpendFlow.CardShell"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.example.spendflow.core.ui.components.LabeledProgressView
+            android:id="@+id/goalProgress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="LKR 260,000 to go"
+            app:sfAmountMinor="24000000"
+            app:sfCurrency="LKR"
+            app:sfTargetMinor="50000000" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.example.spendflow.core.ui.components.LabeledProgressView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_m"
+        android:text="14 months to go"
+        app:sfAmountMinor="18000000"
+        app:sfCurrency="LKR"
+        app:sfProgressTone="info"
+        app:sfTargetMinor="60000000" />
+
+    <com.example.spendflow.core.ui.components.LabeledProgressView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_m"
+        android:text="LKR 1,500 left"
+        app:sfAmountMinor="850000"
+        app:sfCurrency="LKR"
+        app:sfProgressTone="warning"
+        app:sfTargetMinor="1000000" />
+
+    <com.example.spendflow.core.ui.components.LabeledProgressView
+        android:id="@+id/capProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_m"
+        android:text="Shopping"
+        app:sfAmountMinor="1050000"
+        app:sfCurrency="LKR"
+        app:sfProgressTone="overCap"
+        app:sfStatusText="Over cap by LKR 500"
+        app:sfTargetMinor="1000000" />
+</LinearLayout>

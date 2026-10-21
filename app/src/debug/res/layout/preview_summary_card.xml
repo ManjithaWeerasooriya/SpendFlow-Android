@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview in light and dark: Layout Editor > Night Mode, or run ComponentGalleryActivity.
+     The Layout Editor fills in sample data; the gallery calls setSummary(). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/previewSummaryCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground"
+    android:padding="@dimen/sf_screen_padding">
+
+    <com.example.spendflow.core.ui.components.SummaryCardView
+        android:id="@+id/summaryCard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+</FrameLayout>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview in light and dark: Layout Editor > Night Mode, or run ComponentGalleryActivity -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/previewAmountView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical"
+    android:padding="@dimen/sf_screen_padding">
+
+    <com.example.spendflow.core.ui.components.AmountView
+        android:id="@+id/displayAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        app:sfAmountMinor="245000"
+        app:sfAmountSize="display"
+        app:sfCurrency="LKR" />
+
+    <com.example.spendflow.core.ui.components.AmountView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_l"
+        app:sfAmountMinor="18500000"
+        app:sfAmountSize="title"
+        app:sfCurrency="LKR" />
+
+    <com.example.spendflow.core.ui.components.AmountView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_l"
+        app:sfAmountMinor="15000000"
+        app:sfAmountSize="inline"
+        app:sfAmountTone="income"
+        app:sfCurrency="LKR"
+        app:sfShowDecimals="true"
+        app:sfSigned="true" />
+
+    <com.example.spendflow.core.ui.components.AmountView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_s"
+        app:sfAmountMinor="-245000"
+        app:sfAmountSize="inline"
+        app:sfAmountTone="expense"
+        app:sfCurrency="LKR"
+        app:sfShowDecimals="true" />
+</LinearLayout>

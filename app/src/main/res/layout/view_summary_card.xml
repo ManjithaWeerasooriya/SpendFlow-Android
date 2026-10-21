@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:orientation="vertical"
+    tools:parentTag="android.widget.LinearLayout">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="@dimen/sf_space_m"
+                android:gravity="center_vertical"
+                android:text="@string/summary_income"
+                android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+                android:textColor="?attr/sfColorTextOnDarkMuted"
+                app:drawableStartCompat="@drawable/ic_badge_income" />
+
+            <com.example.spendflow.core.ui.components.AmountView
+                android:id="@+id/incomeAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/sf_space_s"
+                app:sfAmountSize="title"
+                app:sfAmountTone="onDark" />
+
+            <TextView
+                android:id="@+id/incomeCaption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/sf_space_xs"
+                android:textAppearance="@style/TextAppearance.SpendFlow.BodyMedium"
+                android:textColor="?attr/sfColorTextOnDarkMuted"
+                tools:text="3 sources" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="@dimen/sf_stroke_hairline"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="@dimen/sf_space_l"
+            android:background="?attr/sfColorHeroPill" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="@dimen/sf_space_m"
+                android:gravity="center_vertical"
+                android:text="@string/summary_expenses"
+                android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+                android:textColor="?attr/sfColorTextOnDarkMuted"
+                app:drawableStartCompat="@drawable/ic_badge_expense" />
+
+            <com.example.spendflow.core.ui.components.AmountView
+                android:id="@+id/expensesAmount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/sf_space_s"
+                app:sfAmountSize="title"
+                app:sfAmountTone="onDark" />
+
+            <TextView
+                android:id="@+id/expensesCaption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/sf_space_xs"
+                android:textAppearance="@style/TextAppearance.SpendFlow.BodyMedium"
+                android:textColor="?attr/sfColorTextOnDarkMuted"
+                tools:text="61% of income" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/sf_stroke_hairline"
+        android:layout_marginVertical="@dimen/sf_space_l"
+        android:background="?attr/sfColorHeroPill" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/summary_net_savings"
+        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+        android:textColor="?attr/sfColorTextOnDarkMuted" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <com.example.spendflow.core.ui.components.AmountView
+            android:id="@+id/netAmount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:sfAmountSize="display"
+            app:sfAmountTone="onDark" />
+
+        <TextView
+            android:id="@+id/savedRate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_pill_hero"
+            android:drawablePadding="@dimen/sf_space_s"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/sf_space_l"
+            android:paddingVertical="10dp"
+            android:textAppearance="@style/TextAppearance.SpendFlow.TitleSmall"
+            android:textColor="?attr/sfColorTextOnDark"
+            app:drawableStartCompat="@drawable/dot_income"
+            tools:text="39% saved" />
+    </LinearLayout>
+</merge>

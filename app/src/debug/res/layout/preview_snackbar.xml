@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A Snackbar only exists at runtime, so this preview has buttons that show one.
+     Run ComponentGalleryActivity to see it in light and dark. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/previewSnackbar"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground"
+    android:orientation="horizontal"
+    android:padding="@dimen/sf_screen_padding">
+
+    <Button
+        android:id="@+id/showSuccessSnackbar"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/sf_space_s"
+        android:layout_weight="1"
+        android:text="Saved toast" />
+
+    <Button
+        android:id="@+id/showErrorSnackbar"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/sf_space_s"
+        android:layout_weight="1"
+        android:text="Error toast" />
+</LinearLayout>

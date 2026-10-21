@@ -5,6 +5,12 @@
          without this. Only needed to reach the local Firebase emulators. -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
-    <application android:networkSecurityConfig="@xml/network_security_config" />
+    <application android:networkSecurityConfig="@xml/network_security_config">
+        <!-- Design-system gallery; exported so it can be opened with `adb shell am start` -->
+        <activity
+            android:name=".gallery.ComponentGalleryActivity"
+            android:exported="true"
+            android:label="Components" />
+    </application>
 
 </manifest>

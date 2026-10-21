@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <!-- Dark-deck tokens. Keep names in sync with values/colors.xml. -->
+
+    <!-- Brand. Deck violet #6A48FB nudged to #6E4DFB so outlines reach 3:1 on inset cards.
+         Violet as text is too dark on dark surfaces, so text uses lavender. -->
+    <color name="sf_violet">#6E4DFB</color>
+    <color name="sf_violet_text">#A894FC</color>
+    <color name="sf_violet_tint">#2B2652</color>
+    <color name="sf_lavender">#BEB1FA</color>
+    <color name="sf_ink">#161E2C</color>
+
+    <!-- Signal fills -->
+    <color name="sf_income">#34C463</color>
+    <color name="sf_over_cap">#F26369</color>
+    <color name="sf_warning">#F59A45</color>
+    <color name="sf_info">#6E8BF5</color>
+
+    <!-- Signal text: the dark fills already pass AA on dark surfaces -->
+    <color name="sf_income_text">#34C463</color>
+    <color name="sf_over_cap_text">#F26369</color>
+    <color name="sf_warning_text">#F59A45</color>
+    <color name="sf_info_text">#6E8BF5</color>
+
+    <!-- Destructive filled button: white on #F26369 fails AA, ink passes -->
+    <color name="sf_destructive">#F26369</color>
+    <color name="sf_on_destructive">#161E2C</color>
+
+    <!-- Surfaces -->
+    <color name="sf_page">#0B0E14</color>
+    <color name="sf_card_shell">#151A24</color>
+    <color name="sf_inset_card">#1C2230</color>
+    <color name="sf_tile">#232A38</color>
+    <color name="sf_outline">#2E3646</color>
+    <color name="sf_hero_start">#232A38</color>
+    <color name="sf_hero_end">#1C2230</color>
+    <color name="sf_hero_pill">#2E3646</color>
+    <color name="sf_snackbar">#232A38</color>
+    <color name="sf_snackbar_action">#2E3646</color>
+
+    <!-- Text -->
+    <color name="sf_text_heading">#F3F4F8</color>
+    <color name="sf_text_body">#D2D5DD</color>
+    <color name="sf_text_muted">#9DA2AE</color>
+    <color name="sf_text_on_dark">#FFFFFF</color>
+    <color name="sf_text_on_dark_muted">#9DA2AE</color>
+</resources>

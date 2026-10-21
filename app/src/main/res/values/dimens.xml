@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="sf_space_xs">4dp</dimen>
+    <dimen name="sf_space_s">8dp</dimen>
+    <dimen name="sf_space_m">12dp</dimen>
+    <dimen name="sf_space_l">16dp</dimen>
+    <dimen name="sf_space_xl">20dp</dimen>
+    <dimen name="sf_space_xxl">24dp</dimen>
+    <dimen name="sf_space_xxxl">32dp</dimen>
+    <dimen name="sf_screen_padding">20dp</dimen>
+
+    <dimen name="sf_corner_small">8dp</dimen>
+    <dimen name="sf_corner_tile">12dp</dimen>
+    <dimen name="sf_corner_inset">14dp</dimen>
+    <dimen name="sf_corner_shell">20dp</dimen>
+    <dimen name="sf_corner_sheet">28dp</dimen>
+
+    <dimen name="sf_button_height">56dp</dimen>
+    <dimen name="sf_icon_size">24dp</dimen>
+    <dimen name="sf_icon_tile_size">52dp</dimen>
+    <dimen name="sf_badge_size">28dp</dimen>
+    <dimen name="sf_empty_icon_size">64dp</dimen>
+    <dimen name="sf_progress_track">8dp</dimen>
+    <dimen name="sf_stroke_selected">2dp</dimen>
+    <dimen name="sf_stroke_hairline">1dp</dimen>
+</resources>
