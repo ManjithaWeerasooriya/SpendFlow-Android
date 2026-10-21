@@ -10,7 +10,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Back-stack rules for the auth and main graphs (AC1, AC4), checked against the real nav graphs. */
+/** Back-stack rules for the auth, onboarding and main graphs (AC1, AC4, AC5), checked against the real nav graphs. */
 @RunWith(AndroidJUnit4::class)
 class AppNavigationTest {
 
@@ -41,6 +41,19 @@ class AppNavigationTest {
     @Test
     fun signingInReplacesLoginSoBackLeavesTheApp() = onMain {
         val nav = navController(AppGraph.AUTH)
+        nav.showGraph(AppGraph.MAIN)
+        assertEquals(R.id.homeFragment, nav.currentId)
+        assertNull(nav.previousBackStackEntry)
+    }
+
+    @Test
+    fun registeringOpensOnboardingAndFinishingItReplacesItWithHome() = onMain {
+        val nav = navController(AppGraph.AUTH)
+        nav.showGraph(AppGraph.ONBOARDING)
+        assertEquals(R.id.onboardingFragment, nav.currentId)
+        assertNull(nav.previousBackStackEntry)
+        assertFalse(R.id.onboardingFragment in topLevelDestinations)
+
         nav.showGraph(AppGraph.MAIN)
         assertEquals(R.id.homeFragment, nav.currentId)
         assertNull(nav.previousBackStackEntry)
