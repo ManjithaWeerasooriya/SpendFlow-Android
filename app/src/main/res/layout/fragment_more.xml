@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.more.MoreFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/sf_screen_padding"
+        android:paddingTop="@dimen/sf_space_xxl"
+        android:paddingBottom="@dimen/sf_add_button_overhang">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/nav_more"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            android:layout_marginBottom="@dimen/sf_space_s"
+            android:text="@string/more_section_manage"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Overline" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.SpendFlow.CardShell"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="?attr/sfColorInsetCard"
+            app:contentPadding="0dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/budgetCategoriesRow"
+                    style="@style/Widget.SpendFlow.LinkRow">
+
+                    <ImageView
+                        style="@style/Widget.SpendFlow.LinkRow.Icon"
+                        android:src="@drawable/ic_budget_mono" />
+
+                    <TextView
+                        style="@style/Widget.SpendFlow.LinkRow.Title"
+                        android:text="@string/budget_categories_title" />
+
+                    <ImageView style="@style/Widget.SpendFlow.LinkRow.Chevron" />
+                </LinearLayout>
+
+                <com.google.android.material.divider.MaterialDivider
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:dividerColor="?attr/colorOutlineVariant"
+                    app:dividerInsetEnd="@dimen/sf_space_l"
+                    app:dividerInsetStart="56dp" />
+
+                <LinearLayout
+                    android:id="@+id/goalsRow"
+                    style="@style/Widget.SpendFlow.LinkRow">
+
+                    <ImageView
+                        style="@style/Widget.SpendFlow.LinkRow.Icon"
+                        android:src="@drawable/ic_savings_goal_mono" />
+
+                    <TextView
+                        style="@style/Widget.SpendFlow.LinkRow.Title"
+                        android:text="@string/goals_title" />
+
+                    <ImageView style="@style/Widget.SpendFlow.LinkRow.Chevron" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            android:layout_marginBottom="@dimen/sf_space_s"
+            android:text="@string/more_section_app"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Overline" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.SpendFlow.CardShell"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="?attr/sfColorInsetCard"
+            app:contentPadding="0dp">
+
+            <LinearLayout
+                android:id="@+id/settingsRow"
+                style="@style/Widget.SpendFlow.LinkRow">
+
+                <ImageView
+                    style="@style/Widget.SpendFlow.LinkRow.Icon"
+                    android:src="@drawable/ic_settings_mono" />
+
+                <TextView
+                    style="@style/Widget.SpendFlow.LinkRow.Title"
+                    android:text="@string/settings_title" />
+
+                <ImageView style="@style/Widget.SpendFlow.LinkRow.Chevron" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

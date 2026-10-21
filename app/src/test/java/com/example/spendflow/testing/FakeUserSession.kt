@@ -20,4 +20,8 @@ class FakeUserSession(initialUid: String? = "test-user") : UserSession {
         val uid = _uid.value ?: "test-user".also { _uid.value = it }
         return AppResult.Success(uid)
     }
+
+    fun signOut() {
+        _uid.value = null
+    }
 }

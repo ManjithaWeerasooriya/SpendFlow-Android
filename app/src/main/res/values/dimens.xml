@@ -23,4 +23,12 @@
     <dimen name="sf_progress_track">8dp</dimen>
     <dimen name="sf_stroke_selected">2dp</dimen>
     <dimen name="sf_stroke_hairline">1dp</dimen>
+
+    <!-- Bottom bar: the Add button sits in a ring that rises above the bar's top edge -->
+    <dimen name="sf_bottom_bar_elevation">8dp</dimen>
+    <dimen name="sf_add_button_size">60dp</dimen>
+    <dimen name="sf_add_ring_size">72dp</dimen>
+    <dimen name="sf_add_button_overhang">30dp</dimen>
+    <dimen name="sf_add_icon_size">28dp</dimen>
+    <dimen name="sf_link_row_height">64dp</dimen>
 </resources>

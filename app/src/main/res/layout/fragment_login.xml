@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="@dimen/sf_screen_padding"
+    tools:context=".ui.auth.LoginFragment">
+
+    <ImageView
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/logo_spendflow_mark" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_xxl"
+        android:gravity="center"
+        android:text="@string/login_title"
+        android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_s"
+        android:gravity="center"
+        android:text="@string/login_message"
+        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+        android:textColor="?attr/sfColorTextMuted" />
+
+    <Button
+        android:id="@+id/continueButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_xxxl"
+        android:text="@string/login_continue" />
+</LinearLayout>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The disabled middle item reserves the slot under the Add button and supplies its "Add" label -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/homeFragment"
+        android:icon="@drawable/ic_home_mono"
+        android:title="@string/nav_home" />
+    <item
+        android:id="@+id/transactionsFragment"
+        android:icon="@drawable/ic_transactions_mono"
+        android:title="@string/nav_transactions" />
+    <item
+        android:id="@+id/addSlot"
+        android:enabled="false"
+        android:title="@string/nav_add" />
+    <item
+        android:id="@+id/analyticsFragment"
+        android:icon="@drawable/ic_analytics_mono"
+        android:title="@string/nav_analytics" />
+    <item
+        android:id="@+id/moreFragment"
+        android:icon="@drawable/ic_more_mono"
+        android:title="@string/nav_more" />
+</menu>

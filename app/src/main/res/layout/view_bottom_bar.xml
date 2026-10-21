@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:parentTag="android.widget.FrameLayout">
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/navigation"
+        style="@style/Widget.SpendFlow.BottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_add_button_overhang"
+        app:menu="@menu/bottom_bar" />
+
+    <!-- Same elevation as the bar but drawn after it, so the ring sits on top -->
+    <FrameLayout
+        android:id="@+id/addRing"
+        android:layout_width="@dimen/sf_add_ring_size"
+        android:layout_height="@dimen/sf_add_ring_size"
+        android:layout_gravity="top|center_horizontal"
+        android:background="@drawable/bg_add_ring"
+        android:elevation="@dimen/sf_bottom_bar_elevation">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/addButton"
+            style="@style/Widget.SpendFlow.AddButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:contentDescription="@string/nav_add_transaction" />
+    </FrameLayout>
+</merge>

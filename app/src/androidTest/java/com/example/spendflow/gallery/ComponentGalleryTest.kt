@@ -38,6 +38,7 @@ class ComponentGalleryTest(private val dark: Boolean) {
             R.id.switches,
             R.id.snackbars,
             R.id.empty,
+            R.id.bottomBars,
         )
     }
 
