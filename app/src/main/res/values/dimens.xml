@@ -30,4 +30,5 @@
     <dimen name="sf_add_ring_size">72dp</dimen>
     <dimen name="sf_add_button_overhang">30dp</dimen>
     <dimen name="sf_add_icon_size">28dp</dimen>
+    <dimen name="sf_link_row_height">64dp</dimen>
 </resources>
