@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SpendFlow colour roles that Material 3 has no attribute for. Set in Base.Theme.SpendFlow. -->
+    <attr name="sfColorViolet" format="color" />
+    <attr name="sfColorVioletText" format="color" />
+    <attr name="sfColorVioletTint" format="color" />
+    <attr name="sfColorIncome" format="color" />
+    <attr name="sfColorIncomeText" format="color" />
+    <attr name="sfColorOverCap" format="color" />
+    <attr name="sfColorOverCapText" format="color" />
+    <attr name="sfColorWarning" format="color" />
+    <attr name="sfColorWarningText" format="color" />
+    <attr name="sfColorInfo" format="color" />
+    <attr name="sfColorInfoText" format="color" />
+    <attr name="sfColorDestructive" format="color" />
+    <attr name="sfColorOnDestructive" format="color" />
+    <attr name="sfColorCardShell" format="color" />
+    <attr name="sfColorInsetCard" format="color" />
+    <attr name="sfColorTile" format="color" />
+    <attr name="sfColorHeroStart" format="color" />
+    <attr name="sfColorHeroEnd" format="color" />
+    <attr name="sfColorHeroPill" format="color" />
+    <attr name="sfColorTextHeading" format="color" />
+    <attr name="sfColorTextBody" format="color" />
+    <attr name="sfColorTextMuted" format="color" />
+    <attr name="sfColorTextOnDark" format="color" />
+    <attr name="sfColorTextOnDarkMuted" format="color" />
+    <attr name="sfColorSnackbarAction" format="color" />
+
+    <!-- Component attributes, shared across the styleables below -->
+    <attr name="sfIcon" format="reference" />
+    <attr name="sfTitle" format="string" />
+    <attr name="sfMessage" format="string" />
+    <attr name="sfCurrency" format="string" />
+    <attr name="sfAmountMinor" format="integer" />
+
+    <declare-styleable name="AmountView">
+        <attr name="sfAmountMinor" />
+        <attr name="sfCurrency" />
+        <attr name="sfAmountSize" format="enum">
+            <enum name="display" value="0" />
+            <enum name="title" value="1" />
+            <enum name="inline" value="2" />
+        </attr>
+        <attr name="sfAmountTone" format="enum">
+            <enum name="neutral" value="0" />
+            <enum name="income" value="1" />
+            <enum name="expense" value="2" />
+            <enum name="onDark" value="3" />
+        </attr>
+        <attr name="sfShowDecimals" format="boolean" />
+        <attr name="sfSigned" format="boolean" />
+    </declare-styleable>
+
+    <declare-styleable name="CategoryChip">
+        <attr name="sfIcon" />
+        <attr name="android:text" />
+        <attr name="android:checked" />
+    </declare-styleable>
+
+    <declare-styleable name="LabeledProgressView">
+        <attr name="sfAmountMinor" />
+        <attr name="sfTargetMinor" format="integer" />
+        <attr name="sfCurrency" />
+        <attr name="android:text" />
+        <attr name="sfStatusText" format="string" />
+        <attr name="sfShowCard" format="boolean" />
+        <attr name="sfProgressTone" format="enum">
+            <enum name="violet" value="0" />
+            <enum name="info" value="1" />
+            <enum name="warning" value="2" />
+            <enum name="overCap" value="3" />
+        </attr>
+    </declare-styleable>
+
+    <declare-styleable name="LabeledSwitch">
+        <attr name="sfIcon" />
+        <attr name="sfTitle" />
+        <attr name="sfMessage" />
+        <attr name="android:checked" />
+    </declare-styleable>
+
+    <declare-styleable name="EmptyStateView">
+        <attr name="sfIcon" />
+        <attr name="sfTitle" />
+        <attr name="sfMessage" />
+        <attr name="sfActionText" format="string" />
+        <attr name="sfActionIcon" format="reference" />
+    </declare-styleable>
+</resources>

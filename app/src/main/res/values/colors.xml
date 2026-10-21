@@ -2,4 +2,49 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Hi-fi wireframe tokens. values-night/colors.xml must define the same names.
+         Layouts use theme attributes (attrs.xml), never these colours directly. -->
+
+    <!-- Brand -->
+    <color name="sf_violet">#532CFA</color>
+    <color name="sf_violet_text">#532CFA</color>
+    <color name="sf_violet_tint">#EFEBFF</color>
+    <color name="sf_lavender">#BEB1FA</color>
+    <color name="sf_ink">#161E2C</color>
+
+    <!-- Signal fills (bars, icons, badges): need 3:1 against their surface -->
+    <color name="sf_income">#22B14C</color>
+    <color name="sf_over_cap">#E5484D</color>
+    <color name="sf_warning">#F08424</color>
+    <color name="sf_info">#4C6EF0</color>
+
+    <!-- Signal text: darker than the fills so text meets WCAG AA 4.5:1 on light surfaces -->
+    <color name="sf_income_text">#177934</color>
+    <color name="sf_over_cap_text">#D01E23</color>
+    <color name="sf_warning_text">#A5540B</color>
+    <color name="sf_info_text">#345BEE</color>
+
+    <!-- Destructive filled button -->
+    <color name="sf_destructive">#D01E23</color>
+    <color name="sf_on_destructive">#FFFFFF</color>
+
+    <!-- Surfaces -->
+    <color name="sf_page">#ECEDF0</color>
+    <color name="sf_card_shell">#F7F7F9</color>
+    <color name="sf_inset_card">#FFFFFF</color>
+    <color name="sf_tile">#E6E7EB</color>
+    <color name="sf_outline">#D9DBE1</color>
+    <color name="sf_hero_start">#161E2C</color>
+    <color name="sf_hero_end">#0B0E14</color>
+    <color name="sf_hero_pill">#2A3140</color>
+    <color name="sf_snackbar">#161E2C</color>
+    <color name="sf_snackbar_action">#363D4C</color>
+
+    <!-- Text -->
+    <color name="sf_text_heading">#161E2C</color>
+    <color name="sf_text_body">#363D4C</color>
+    <color name="sf_text_muted">#626772</color>
+    <color name="sf_text_on_dark">#FFFFFF</color>
+    <color name="sf_text_on_dark_muted">#9DA2AE</color>
 </resources>

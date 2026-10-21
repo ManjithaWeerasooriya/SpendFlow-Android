@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview in light and dark: Layout Editor > Night Mode, or run ComponentGalleryActivity -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/previewCategoryChip"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/sfColorInsetCard"
+    android:orientation="horizontal"
+    android:padding="@dimen/sf_screen_padding">
+
+    <com.example.spendflow.core.ui.components.CategoryChip
+        android:id="@+id/chipGroceries"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:checked="true"
+        android:text="Groceries"
+        app:sfIcon="@drawable/ic_cat_food" />
+
+    <com.example.spendflow.core.ui.components.CategoryChip
+        android:id="@+id/chipTransport"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Transport"
+        app:sfIcon="@drawable/ic_cat_transport" />
+
+    <com.example.spendflow.core.ui.components.CategoryChip
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Bills"
+        app:sfIcon="@drawable/ic_cat_utilities" />
+
+    <com.example.spendflow.core.ui.components.CategoryChip
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Shopping"
+        app:sfIcon="@drawable/ic_cat_shopping" />
+
+    <com.example.spendflow.core.ui.components.CategoryChip
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Salary"
+        app:sfIcon="@drawable/ic_inc_salary" />
+</LinearLayout>

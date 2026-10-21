@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:orientation="vertical"
+    tools:parentTag="android.widget.LinearLayout">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/current"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="@style/TextAppearance.SpendFlow.TitleSmall"
+            android:textColor="?attr/sfColorTextHeading"
+            tools:text="LKR 240,000" />
+
+        <TextView
+            android:id="@+id/target"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+            android:textColor="?attr/sfColorTextMuted"
+            tools:text="LKR 500,000" />
+    </LinearLayout>
+
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginVertical="@dimen/sf_space_m"
+        android:max="100"
+        app:indicatorTrackGapSize="0dp"
+        app:trackColor="?attr/sfColorTile"
+        app:trackCornerRadius="4dp"
+        app:trackStopIndicatorSize="0dp"
+        app:trackThickness="@dimen/sf_progress_track"
+        tools:progress="48" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+            android:textColor="?attr/sfColorTextHeading"
+            tools:text="LKR 260,000 to go" />
+
+        <TextView
+            android:id="@+id/percent"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.SpendFlow.TitleSmall"
+            android:textColor="?attr/sfColorTextHeading"
+            tools:text="48%" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_s"
+        android:drawablePadding="@dimen/sf_space_s"
+        android:gravity="center_vertical"
+        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+        android:textColor="?attr/sfColorOverCapText"
+        android:visibility="gone"
+        app:drawableStartCompat="@drawable/ic_warning"
+        tools:text="Over cap by LKR 500"
+        tools:visibility="visible" />
+</merge>

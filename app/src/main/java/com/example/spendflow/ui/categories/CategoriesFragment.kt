@@ -9,6 +9,7 @@ import androidx.fragment.app.viewModels
 import com.example.spendflow.R
 import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.core.ui.collectWithLifecycle
+import com.example.spendflow.core.ui.components.SpendFlowSnackbar
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.databinding.FragmentCategoriesBinding
 import com.example.spendflow.domain.model.Category
@@ -38,8 +39,10 @@ class CategoriesFragment : Fragment(R.layout.fragment_categories) {
         viewModel.events.collectWithLifecycle(viewLifecycleOwner) { event ->
             when (event) {
                 CategoriesEvent.CategoryAdded -> binding.nameInput.text = null
-                is CategoriesEvent.ShowMessage -> Snackbar.make(view, event.messageRes, Snackbar.LENGTH_SHORT).show()
-                is CategoriesEvent.ShowError -> Snackbar.make(view, event.error.messageRes, Snackbar.LENGTH_LONG).show()
+                is CategoriesEvent.ShowMessage ->
+                    SpendFlowSnackbar.make(view, getString(event.messageRes)).show()
+                is CategoriesEvent.ShowError ->
+                    SpendFlowSnackbar.make(view, getString(event.error.messageRes), SpendFlowSnackbar.Tone.ERROR, duration = Snackbar.LENGTH_LONG).show()
             }
         }
     }
@@ -56,7 +59,7 @@ class CategoriesFragment : Fragment(R.layout.fragment_categories) {
         binding.progress.isVisible = state is UiState.Loading
         binding.errorGroup.isVisible = state is UiState.Error
         binding.list.isVisible = state is UiState.Success
-        binding.emptyText.isVisible = state is UiState.Success && state.data.isEmpty()
+        binding.emptyState.isVisible = state is UiState.Success && state.data.isEmpty()
         when (state) {
             is UiState.Success -> adapter.submitList(state.data)
             is UiState.Error -> binding.errorText.setText(state.error.messageRes)
