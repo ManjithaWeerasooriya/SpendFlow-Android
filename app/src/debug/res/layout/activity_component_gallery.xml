@@ -101,6 +101,14 @@
             <include
                 android:id="@+id/empty"
                 layout="@layout/preview_empty_state" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Bottom bar with Add button" />
+
+            <include
+                android:id="@+id/bottomBars"
+                layout="@layout/preview_bottom_bar" />
         </LinearLayout>
     </ScrollView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

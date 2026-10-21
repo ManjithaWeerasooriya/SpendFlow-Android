@@ -25,4 +25,11 @@
     <string name="categories_error_name_required">Enter a category name.</string>
     <string name="category_type_expense">Expense</string>
     <string name="category_type_income">Income</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_add">Add</string>
+    <string name="nav_analytics">Analytics</string>
+    <string name="nav_more">More</string>
+    <string name="nav_add_transaction">Add transaction</string>
 </resources>
