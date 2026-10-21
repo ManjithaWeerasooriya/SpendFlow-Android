@@ -34,6 +34,8 @@
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
 
+    <string name="action_cancel">Cancel</string>
+
     <string name="login_title">Welcome back</string>
     <string name="login_message">Log in to see how this month is going.</string>
     <string name="register_title">Create your account</string>
@@ -75,6 +77,10 @@
     <string name="budget_categories_title">Budget &amp; categories</string>
     <string name="goals_title">Goals</string>
     <string name="settings_title">Settings</string>
+    <string name="more_section_account">Account</string>
+    <string name="log_out">Log out</string>
+    <string name="log_out_confirm_title">Log out?</string>
+    <string name="log_out_confirm_message">Your data stays in your account. Entries saved offline that haven\'t synced yet will be lost.</string>
 
     <string name="placeholder_title">Coming soon</string>
     <string name="placeholder_home">Your monthly overview will appear here.</string>
