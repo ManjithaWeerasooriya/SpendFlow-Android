@@ -92,4 +92,14 @@
         <item name="elevation">4dp</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.SpendFlow.Pill</item>
     </style>
+
+    <!-- Pushed screens (07a, 08a): back chevron and a centred title -->
+    <style name="Widget.SpendFlow.TopBar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="navigationIcon">@drawable/ic_chevron_left</item>
+        <item name="navigationContentDescription">@string/action_back</item>
+        <item name="titleCentered">true</item>
+        <item name="titleTextAppearance">@style/TextAppearance.SpendFlow.TopBarTitle</item>
+        <item name="titleTextColor">?attr/sfColorTextHeading</item>
+    </style>
 </resources>

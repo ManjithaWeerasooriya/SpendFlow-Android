@@ -120,6 +120,14 @@
         <item name="android:fontFamily">@font/dm_sans_semibold</item>
     </style>
 
+    <style name="TextAppearance.SpendFlow.TopBarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:textSize">19sp</item>
+        <item name="lineHeight">24sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
     <!-- "GENERAL", "TODAY · 7 OCT" -->
     <style name="TextAppearance.SpendFlow.Overline" parent="TextAppearance.Material3.LabelSmall">
         <item name="fontFamily">@font/dm_sans_medium</item>

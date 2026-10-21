@@ -17,7 +17,6 @@
     <string name="summary_net_savings">Net savings</string>
     <string name="summary_saved_rate">%1$d%% saved</string>
 
-    <string name="categories_title">Categories</string>
     <string name="categories_name_hint">Category name</string>
     <string name="categories_add">Add</string>
     <string name="categories_empty_title">No categories yet</string>
@@ -32,4 +31,24 @@
     <string name="nav_analytics">Analytics</string>
     <string name="nav_more">More</string>
     <string name="nav_add_transaction">Add transaction</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+
+    <string name="login_title">Welcome to SpendFlow</string>
+    <string name="login_message">Track every rupee in seconds. Email sign-in is on its way.</string>
+    <string name="login_continue">Continue</string>
+
+    <string name="quick_add_title">Add transaction</string>
+    <string name="quick_add_placeholder">Amount, category and Save will live here.</string>
+
+    <string name="budget_categories_title">Budget &amp; categories</string>
+    <string name="goals_title">Goals</string>
+    <string name="settings_title">Settings</string>
+
+    <string name="placeholder_title">Coming soon</string>
+    <string name="placeholder_home">Your monthly overview will appear here.</string>
+    <string name="placeholder_transactions">Your transactions, grouped by day, will appear here.</string>
+    <string name="placeholder_analytics">Charts of where your money goes will appear here.</string>
+    <string name="placeholder_goals">Your savings goals will appear here.</string>
+    <string name="placeholder_settings">Currency, reminders and alerts will be set here.</string>
 </resources>
