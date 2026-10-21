@@ -5,14 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
 import com.example.spendflow.core.common.AppError
-import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.common.onError
 import com.example.spendflow.core.common.onSuccess
 import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.core.ui.toUiState
 import com.example.spendflow.data.repository.CategoryRepository
 import com.example.spendflow.data.repository.WriteFailures
-import com.example.spendflow.data.session.UserSession
 import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,10 +20,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -47,7 +44,6 @@ sealed interface CategoriesEvent {
  */
 @HiltViewModel
 class CategoriesViewModel @Inject constructor(
-    private val session: UserSession,
     private val categories: CategoryRepository,
     writeFailures: WriteFailures,
 ) : ViewModel() {
@@ -61,13 +57,9 @@ class CategoriesViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UiState<List<Category>>> = retries
         .flatMapLatest {
-            flow {
-                emit(UiState.Loading)
-                when (val signIn = session.ensureSignedIn()) {
-                    is AppResult.Error -> emit(UiState.Error(signIn.error))
-                    is AppResult.Success -> emitAll(categories.observeCategories().map { it.toUiState() })
-                }
-            }
+            categories.observeCategories()
+                .map { it.toUiState() }
+                .onStart { emit(UiState.Loading) }
         }
         // Keeps the subscription through configuration changes, stops it 5 s after the UI goes away
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState.Loading)

@@ -32,6 +32,35 @@
         <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.Pill</item>
     </style>
 
+    <!-- Text field (01a/01b): outlined inset-card box; errors show as text under the field -->
+    <style name="Widget.SpendFlow.TextField" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxBackgroundColor">?attr/sfColorInsetCard</item>
+        <item name="boxStrokeColor">?attr/sfColorViolet</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.InsetCard</item>
+        <item name="hintEnabled">false</item>
+        <item name="errorIconDrawable">@null</item>
+        <item name="android:layout_marginTop">@dimen/sf_space_s</item>
+    </style>
+
+    <style name="Widget.SpendFlow.TextField.Label" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">@dimen/sf_space_l</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.BodyMedium</item>
+        <item name="android:textColor">?attr/sfColorTextHeading</item>
+    </style>
+
+    <!-- Inline text link ("Forgot password?", "Create account"), with a 48dp touch target -->
+    <style name="Widget.SpendFlow.TextLink" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Button</item>
+        <item name="android:textColor">?attr/sfColorVioletText</item>
+    </style>
+
     <!-- Cards: a shell holds sections; inset cards sit inside a shell -->
     <style name="Widget.SpendFlow.CardShell" parent="Widget.Material3.CardView.Filled">
         <item name="cardBackgroundColor">?attr/sfColorCardShell</item>

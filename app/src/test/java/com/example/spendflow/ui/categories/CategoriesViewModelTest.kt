@@ -9,12 +9,10 @@ import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
 import com.example.spendflow.testing.FakeCategoryRepository
-import com.example.spendflow.testing.FakeUserSession
 import com.example.spendflow.testing.FakeWriteFailures
 import com.example.spendflow.testing.MainDispatcherRule
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -29,7 +27,6 @@ class CategoriesViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val session = FakeUserSession()
     private val repository = FakeCategoryRepository(
         listOf(
             Category(id = "1", name = "rent", type = CategoryType.EXPENSE),
@@ -39,7 +36,7 @@ class CategoriesViewModelTest {
 
     private val writeFailures = FakeWriteFailures()
 
-    private fun viewModel() = CategoriesViewModel(session, repository, writeFailures)
+    private fun viewModel() = CategoriesViewModel(repository, writeFailures)
 
     /**
      * Skips Loading. With the unconfined dispatcher, StateFlow often settles before Turbine reads it,
@@ -52,7 +49,7 @@ class CategoriesViewModelTest {
     }
 
     @Test
-    fun `signs in and shows categories sorted by name`() = runTest {
+    fun `shows categories sorted by name`() = runTest {
         viewModel().uiState.test {
             val state = awaitSettled() as UiState.Success
             assertEquals(listOf("Food", "rent"), state.data.map { it.name })
@@ -66,20 +63,6 @@ class CategoriesViewModelTest {
             repository.create(Category(id = "3", name = "Bills", type = CategoryType.EXPENSE))
             val state = awaitItem() as UiState.Success
             assertEquals(listOf("Bills", "Food", "rent"), state.data.map { it.name })
-        }
-    }
-
-    @Test
-    fun `sign-in failure shows error and retry recovers`() = runTest {
-        session.signInError = AppError.Network
-        val viewModel = viewModel()
-
-        viewModel.uiState.test {
-            assertEquals(UiState.Error(AppError.Network), awaitSettled())
-
-            session.signInError = null
-            viewModel.retry()
-            assertTrue(awaitSettled() is UiState.Success)
         }
     }
 

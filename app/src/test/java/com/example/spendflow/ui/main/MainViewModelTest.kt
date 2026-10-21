@@ -28,7 +28,7 @@ class MainViewModelTest {
         val session = FakeUserSession(initialUid = null)
         MainViewModel(session).graph.test {
             assertEquals(AppGraph.AUTH, awaitItem())
-            session.ensureSignedIn()
+            session.signIn()
             assertEquals(AppGraph.MAIN, awaitItem())
             session.signOut()
             assertEquals(AppGraph.AUTH, awaitItem())

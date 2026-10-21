@@ -1,8 +1,10 @@
 package com.example.spendflow.core.di
 
 import com.example.spendflow.data.repository.AccountRepository
+import com.example.spendflow.data.repository.AuthRepository
 import com.example.spendflow.data.repository.BudgetRepository
 import com.example.spendflow.data.repository.CategoryRepository
+import com.example.spendflow.data.repository.FirebaseAuthRepository
 import com.example.spendflow.data.repository.FirestoreAccountRepository
 import com.example.spendflow.data.repository.FirestoreBudgetRepository
 import com.example.spendflow.data.repository.FirestoreCategoryRepository
@@ -25,6 +27,7 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
     @Binds abstract fun bindUserSession(impl: FirebaseUserSession): UserSession
+    @Binds abstract fun bindAuthRepository(impl: FirebaseAuthRepository): AuthRepository
     @Binds abstract fun bindWriteFailures(impl: WriteFailureReporter): WriteFailures
     @Binds abstract fun bindUserRepository(impl: FirestoreUserRepository): UserRepository
     @Binds abstract fun bindAccountRepository(impl: FirestoreAccountRepository): AccountRepository

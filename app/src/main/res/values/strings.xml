@@ -34,9 +34,30 @@
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
 
-    <string name="login_title">Welcome to SpendFlow</string>
-    <string name="login_message">Track every rupee in seconds. Email sign-in is on its way.</string>
-    <string name="login_continue">Continue</string>
+    <string name="login_title">Welcome back</string>
+    <string name="login_message">Log in to see how this month is going.</string>
+    <string name="register_title">Create your account</string>
+    <string name="register_message">Takes under a minute.</string>
+    <string name="auth_mode_log_in">Log in</string>
+    <string name="auth_mode_create_account">Create account</string>
+    <string name="auth_email_label">Email</string>
+    <string name="auth_email_placeholder">name@mail.com</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_confirm_label">Confirm password</string>
+    <string name="auth_confirm_placeholder">Re-enter password</string>
+    <string name="auth_forgot_password">Forgot password?</string>
+    <string name="auth_new_here">New here?</string>
+    <string name="auth_reset_sent">If an account exists for %1$s, we\'ve sent a link to reset the password.</string>
+
+    <string name="auth_error_email_required">Enter your email</string>
+    <string name="auth_error_email_invalid">Enter a valid email, like name@mail.com</string>
+    <string name="auth_error_email_in_use">An account with this email already exists. Log in instead.</string>
+    <string name="auth_error_password_required">Enter your password</string>
+    <string name="auth_error_password_short">Use at least 6 characters</string>
+    <string name="auth_error_confirm_required">Re-enter your password</string>
+    <string name="auth_error_confirm_mismatch">Passwords don\'t match</string>
+    <string name="auth_error_invalid_credentials">Email or password is incorrect</string>
+    <string name="auth_error_too_many_requests">Too many attempts. Wait a few minutes and try again.</string>
 
     <string name="quick_add_title">Add transaction</string>
     <string name="quick_add_placeholder">Amount, category and Save will live here.</string>
