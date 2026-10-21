@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="GallerySection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingStart">@dimen/sf_screen_padding</item>
+        <item name="android:paddingEnd">@dimen/sf_screen_padding</item>
+        <item name="android:paddingTop">@dimen/sf_space_xxl</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Overline</item>
+    </style>
+</resources>

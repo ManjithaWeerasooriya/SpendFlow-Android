@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview in light and dark: Layout Editor > Night Mode, or run ComponentGalleryActivity -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/previewEmptyState"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground">
+
+    <com.example.spendflow.core.ui.components.EmptyStateView
+        android:id="@+id/emptyState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:sfActionIcon="@drawable/ic_add_mono"
+        app:sfActionText="Add transaction"
+        app:sfIcon="@drawable/ic_transactions"
+        app:sfMessage="Entries you add for October will show up here."
+        app:sfTitle="No transactions yet" />
+</FrameLayout>

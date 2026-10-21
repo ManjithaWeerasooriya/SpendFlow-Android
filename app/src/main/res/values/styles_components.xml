@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary button: violet pill. Set as materialButtonStyle, so a plain <Button> gets it. -->
+    <style name="Widget.SpendFlow.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">@dimen/sf_button_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">@dimen/sf_space_xxl</item>
+        <item name="android:paddingEnd">@dimen/sf_space_xxl</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Button</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.Pill</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">@dimen/sf_space_s</item>
+        <item name="iconSize">20dp</item>
+    </style>
+
+    <style name="Widget.SpendFlow.Button.Destructive">
+        <item name="backgroundTint">@color/sf_button_destructive_bg</item>
+        <item name="android:textColor">@color/sf_button_destructive_text</item>
+        <item name="iconTint">@color/sf_button_destructive_text</item>
+    </style>
+
+    <style name="Widget.SpendFlow.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">@dimen/sf_button_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">@dimen/sf_space_xxl</item>
+        <item name="android:paddingEnd">@dimen/sf_space_xxl</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Button</item>
+        <item name="android:textColor">?attr/sfColorTextHeading</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.Pill</item>
+    </style>
+
+    <!-- Cards: a shell holds sections; inset cards sit inside a shell -->
+    <style name="Widget.SpendFlow.CardShell" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">?attr/sfColorCardShell</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.CardShell</item>
+        <item name="contentPadding">@dimen/sf_space_l</item>
+    </style>
+
+    <style name="Widget.SpendFlow.InsetCard" parent="Widget.Material3.CardView.Outlined">
+        <item name="cardBackgroundColor">?attr/sfColorInsetCard</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">?attr/colorOutlineVariant</item>
+        <item name="strokeWidth">@dimen/sf_stroke_hairline</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.InsetCard</item>
+        <item name="contentPadding">@dimen/sf_space_l</item>
+    </style>
+
+    <!-- Snackbar: dark pill with a filled action, as in "Saved · Groceries LKR 2,450 [Undo]" -->
+    <style name="Widget.SpendFlow.Snackbar" parent="Widget.Material3.Snackbar">
+        <item name="backgroundTint">?attr/colorSurfaceInverse</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.Sheet</item>
+        <item name="android:layout_margin">@dimen/sf_space_l</item>
+    </style>
+
+    <style name="Widget.SpendFlow.Snackbar.TextView" parent="Widget.Material3.Snackbar.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Body</item>
+        <item name="android:textColor">?attr/colorOnSurfaceInverse</item>
+    </style>
+
+    <style name="Widget.SpendFlow.Snackbar.Button" parent="Widget.Material3.Button.TextButton.Snackbar">
+        <item name="backgroundTint">?attr/sfColorSnackbarAction</item>
+        <item name="android:textColor">?attr/colorOnSurfaceInverse</item>
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.Button</item>
+        <item name="shapeAppearance">@style/ShapeAppearance.SpendFlow.Pill</item>
+        <item name="android:paddingStart">@dimen/sf_space_xl</item>
+        <item name="android:paddingEnd">@dimen/sf_space_xl</item>
+    </style>
+</resources>

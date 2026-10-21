@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Preview in light and dark: Layout Editor > Night Mode, or run ComponentGalleryActivity -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/previewLabeledSwitch"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?android:attr/colorBackground"
+    android:padding="@dimen/sf_screen_padding">
+
+    <com.google.android.material.card.MaterialCardView
+        style="@style/Widget.SpendFlow.CardShell"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:cardBackgroundColor="?attr/sfColorInsetCard">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.example.spendflow.core.ui.components.LabeledSwitch
+                android:id="@+id/streakSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                app:sfIcon="@drawable/ic_streak"
+                app:sfMessage="Off hides streak badges and reminders everywhere"
+                app:sfTitle="Tracking streak" />
+
+            <com.example.spendflow.core.ui.components.LabeledSwitch
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                app:sfIcon="@drawable/ic_notification"
+                app:sfTitle="Daily reminder" />
+
+            <com.example.spendflow.core.ui.components.LabeledSwitch
+                android:id="@+id/lockScreenSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:sfMessage="Shows only Expense / Income. No balances or history appear on the lock screen."
+                app:sfTitle="Lock-screen quick entry" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

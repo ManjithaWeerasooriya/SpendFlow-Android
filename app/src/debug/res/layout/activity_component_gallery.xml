@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground">
+
+    <ScrollView
+        android:id="@+id/scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="96dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="@dimen/sf_screen_padding">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Components"
+                    android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+                <Button
+                    android:id="@+id/toggleTheme"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Switch theme" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Primary button" />
+
+            <include
+                android:id="@+id/buttons"
+                layout="@layout/preview_primary_button" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Large amount display" />
+
+            <include
+                android:id="@+id/amounts"
+                layout="@layout/preview_amount_view" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Category / source chip" />
+
+            <include
+                android:id="@+id/chips"
+                layout="@layout/preview_category_chip" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Summary card" />
+
+            <include
+                android:id="@+id/summary"
+                layout="@layout/preview_summary_card" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Progress bar with label" />
+
+            <include
+                android:id="@+id/progress"
+                layout="@layout/preview_labeled_progress" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Switch with ON/OFF text" />
+
+            <include
+                android:id="@+id/switches"
+                layout="@layout/preview_labeled_switch" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Snackbar with action" />
+
+            <include
+                android:id="@+id/snackbars"
+                layout="@layout/preview_snackbar" />
+
+            <TextView
+                style="@style/GallerySection"
+                android:text="Empty state" />
+
+            <include
+                android:id="@+id/empty"
+                layout="@layout/preview_empty_state" />
+        </LinearLayout>
+    </ScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

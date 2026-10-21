@@ -9,10 +9,19 @@
 
     <string name="action_retry">Retry</string>
 
+    <string name="switch_on">ON</string>
+    <string name="switch_off">OFF</string>
+    <string name="percent">%1$d%%</string>
+    <string name="summary_income">Income</string>
+    <string name="summary_expenses">Expenses</string>
+    <string name="summary_net_savings">Net savings</string>
+    <string name="summary_saved_rate">%1$d%% saved</string>
+
     <string name="categories_title">Categories</string>
     <string name="categories_name_hint">Category name</string>
     <string name="categories_add">Add</string>
-    <string name="categories_empty">No categories yet. Add your first one above.</string>
+    <string name="categories_empty_title">No categories yet</string>
+    <string name="categories_empty_message">Add your first one above.</string>
     <string name="categories_error_name_required">Enter a category name.</string>
     <string name="category_type_expense">Expense</string>
     <string name="category_type_income">Income</string>

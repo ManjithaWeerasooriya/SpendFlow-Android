@@ -1,35 +1,99 @@
 <resources>
-    <!-- DayNight follows the phone setting; color resources provide the palette. -->
+    <!-- DayNight follows the phone setting: values-night/colors.xml swaps in the dark-deck palette,
+         so this one theme serves both modes. -->
     <style name="Base.Theme.SpendFlow" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/sf_primary_violet</item>
+        <item name="colorPrimary">@color/sf_violet</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/sf_lavender</item>
-        <item name="colorOnPrimaryContainer">@color/sf_ink</item>
+        <item name="colorPrimaryContainer">@color/sf_violet_tint</item>
+        <item name="colorOnPrimaryContainer">@color/sf_text_heading</item>
         <item name="colorSecondary">@color/sf_lavender</item>
         <item name="colorOnSecondary">@color/sf_ink</item>
-        <item name="colorSecondaryContainer">@color/sf_lavender</item>
-        <item name="colorOnSecondaryContainer">@color/sf_ink</item>
+        <item name="colorSecondaryContainer">@color/sf_tile</item>
+        <item name="colorOnSecondaryContainer">@color/sf_text_heading</item>
+        <item name="colorTertiary">@color/sf_info</item>
+        <item name="colorOnTertiary">@color/white</item>
 
-        <item name="colorError">@color/sf_over_cap</item>
-        <item name="colorOnError">@color/black</item>
+        <item name="colorError">@color/sf_over_cap_text</item>
+        <item name="colorOnError">@color/sf_on_destructive</item>
+        <item name="colorErrorContainer">@color/sf_over_cap</item>
+        <item name="colorOnErrorContainer">@color/sf_ink</item>
 
         <item name="android:colorBackground">@color/sf_page</item>
         <item name="android:windowBackground">@color/sf_page</item>
-        <item name="colorOnBackground">@color/sf_body_text</item>
-        <item name="colorSurface">@color/sf_card_shell</item>
-        <item name="colorOnSurface">@color/sf_body_text</item>
-        <item name="colorSurfaceVariant">@color/sf_inset_card</item>
-        <item name="colorOnSurfaceVariant">@color/sf_body_text</item>
+        <item name="colorOnBackground">@color/sf_text_heading</item>
+        <item name="colorSurface">@color/sf_page</item>
+        <item name="colorOnSurface">@color/sf_text_heading</item>
+        <item name="colorSurfaceVariant">@color/sf_tile</item>
+        <item name="colorOnSurfaceVariant">@color/sf_text_body</item>
         <item name="colorSurfaceDim">@color/sf_page</item>
         <item name="colorSurfaceBright">@color/sf_inset_card</item>
-        <item name="colorSurfaceContainerLowest">@color/sf_page</item>
+        <item name="colorSurfaceContainerLowest">@color/sf_inset_card</item>
         <item name="colorSurfaceContainerLow">@color/sf_card_shell</item>
         <item name="colorSurfaceContainer">@color/sf_card_shell</item>
         <item name="colorSurfaceContainerHigh">@color/sf_inset_card</item>
-        <item name="colorSurfaceContainerHighest">@color/sf_inset_card</item>
+        <item name="colorSurfaceContainerHighest">@color/sf_tile</item>
+        <item name="colorSurfaceInverse">@color/sf_snackbar</item>
+        <item name="colorOnSurfaceInverse">@color/sf_text_on_dark</item>
+        <item name="colorPrimaryInverse">@color/sf_lavender</item>
+        <item name="colorOutline">@color/sf_text_muted</item>
+        <item name="colorOutlineVariant">@color/sf_outline</item>
 
-        <item name="android:textColorPrimary">@color/sf_body_text</item>
-        <item name="android:textColorSecondary">@color/sf_body_text</item>
+        <item name="android:textColorPrimary">@color/sf_text_heading</item>
+        <item name="android:textColorSecondary">@color/sf_text_muted</item>
+        <item name="android:textColorHint">@color/sf_text_muted</item>
+
+        <item name="sfColorViolet">@color/sf_violet</item>
+        <item name="sfColorVioletText">@color/sf_violet_text</item>
+        <item name="sfColorVioletTint">@color/sf_violet_tint</item>
+        <item name="sfColorIncome">@color/sf_income</item>
+        <item name="sfColorIncomeText">@color/sf_income_text</item>
+        <item name="sfColorOverCap">@color/sf_over_cap</item>
+        <item name="sfColorOverCapText">@color/sf_over_cap_text</item>
+        <item name="sfColorWarning">@color/sf_warning</item>
+        <item name="sfColorWarningText">@color/sf_warning_text</item>
+        <item name="sfColorInfo">@color/sf_info</item>
+        <item name="sfColorInfoText">@color/sf_info_text</item>
+        <item name="sfColorDestructive">@color/sf_destructive</item>
+        <item name="sfColorOnDestructive">@color/sf_on_destructive</item>
+        <item name="sfColorCardShell">@color/sf_card_shell</item>
+        <item name="sfColorInsetCard">@color/sf_inset_card</item>
+        <item name="sfColorTile">@color/sf_tile</item>
+        <item name="sfColorHeroStart">@color/sf_hero_start</item>
+        <item name="sfColorHeroEnd">@color/sf_hero_end</item>
+        <item name="sfColorHeroPill">@color/sf_hero_pill</item>
+        <item name="sfColorTextHeading">@color/sf_text_heading</item>
+        <item name="sfColorTextBody">@color/sf_text_body</item>
+        <item name="sfColorTextMuted">@color/sf_text_muted</item>
+        <item name="sfColorTextOnDark">@color/sf_text_on_dark</item>
+        <item name="sfColorTextOnDarkMuted">@color/sf_text_on_dark_muted</item>
+        <item name="sfColorSnackbarAction">@color/sf_snackbar_action</item>
+
+        <item name="materialButtonStyle">@style/Widget.SpendFlow.Button</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.SpendFlow.Button.Outlined</item>
+        <item name="snackbarStyle">@style/Widget.SpendFlow.Snackbar</item>
+        <item name="snackbarTextViewStyle">@style/Widget.SpendFlow.Snackbar.TextView</item>
+        <item name="snackbarButtonStyle">@style/Widget.SpendFlow.Snackbar.Button</item>
+
+        <!-- Default for plain TextViews. Not android:fontFamily: a theme-level font beats every textAppearance. -->
+        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.BodyMedium</item>
+        <item name="textAppearanceDisplaySmall">@style/TextAppearance.SpendFlow.Amount</item>
+        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.SpendFlow.ScreenTitle</item>
+        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.SpendFlow.SectionTitle</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.SpendFlow.DialogTitle</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.SpendFlow.CardTitle</item>
+        <item name="textAppearanceTitleSmall">@style/TextAppearance.SpendFlow.TitleSmall</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.SpendFlow.Body</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.SpendFlow.BodyMedium</item>
+        <item name="textAppearanceBodySmall">@style/TextAppearance.SpendFlow.Caption</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.SpendFlow.Button</item>
+        <item name="textAppearanceLabelMedium">@style/TextAppearance.SpendFlow.Label</item>
+        <item name="textAppearanceLabelSmall">@style/TextAppearance.SpendFlow.Overline</item>
+
+        <item name="shapeAppearanceCornerExtraSmall">@style/ShapeAppearance.SpendFlow.Tile</item>
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.SpendFlow.Tile</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.SpendFlow.InsetCard</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.SpendFlow.CardShell</item>
+        <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.SpendFlow.Sheet</item>
     </style>
 
     <style name="Theme.SpendFlow" parent="Base.Theme.SpendFlow" />

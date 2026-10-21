@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Corner radii measured from the 360dp-wide wireframes -->
+    <style name="ShapeAppearance.SpendFlow.Tile" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/sf_corner_tile</item>
+    </style>
+
+    <style name="ShapeAppearance.SpendFlow.InsetCard" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/sf_corner_inset</item>
+    </style>
+
+    <style name="ShapeAppearance.SpendFlow.CardShell" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/sf_corner_shell</item>
+    </style>
+
+    <style name="ShapeAppearance.SpendFlow.Sheet" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">@dimen/sf_corner_sheet</item>
+    </style>
+
+    <style name="ShapeAppearance.SpendFlow.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

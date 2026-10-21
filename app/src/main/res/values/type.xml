@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Type scale from the design-system slide: Outfit for amounts and headings, DM Sans for UI and body.
+         Each weight points at its own font file because textFontWeight needs API 28. -->
+
+    <!-- Amounts: Outfit 600, -2% tracking, tabular figures -->
+    <style name="TextAppearance.SpendFlow.Amount" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="fontFamily">@font/outfit_semibold</item>
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textSize">40sp</item>
+        <item name="lineHeight">44sp</item>
+        <item name="android:lineHeight">44sp</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:textColor">?attr/sfColorTextHeading</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.Amount.Title">
+        <item name="android:textSize">22sp</item>
+        <item name="lineHeight">28sp</item>
+        <item name="android:lineHeight">28sp</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.Amount.Inline">
+        <item name="android:textSize">17sp</item>
+        <item name="lineHeight">22sp</item>
+        <item name="android:lineHeight">22sp</item>
+    </style>
+
+    <!-- Headings -->
+    <style name="TextAppearance.SpendFlow.ScreenTitle" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="fontFamily">@font/outfit_semibold</item>
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textSize">26sp</item>
+        <item name="lineHeight">32sp</item>
+        <item name="android:lineHeight">32sp</item>
+        <item name="android:letterSpacing">-0.02</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.SectionTitle" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="fontFamily">@font/outfit_semibold</item>
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textSize">20sp</item>
+        <item name="lineHeight">26sp</item>
+        <item name="android:lineHeight">26sp</item>
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.DialogTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">@font/outfit_semibold</item>
+        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="android:textSize">22sp</item>
+        <item name="lineHeight">28sp</item>
+        <item name="android:lineHeight">28sp</item>
+    </style>
+
+    <!-- UI and body: DM Sans -->
+    <style name="TextAppearance.SpendFlow.CardTitle" parent="TextAppearance.Material3.TitleMedium">
+        <item name="fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:textSize">17sp</item>
+        <item name="lineHeight">22sp</item>
+        <item name="android:lineHeight">22sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.TitleSmall" parent="TextAppearance.Material3.TitleSmall">
+        <item name="fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="lineHeight">20sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="fontFamily">@font/dm_sans_regular</item>
+        <item name="android:fontFamily">@font/dm_sans_regular</item>
+        <item name="android:textSize">15sp</item>
+        <item name="lineHeight">22sp</item>
+        <item name="android:lineHeight">22sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.BodyMedium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="fontFamily">@font/dm_sans_regular</item>
+        <item name="android:fontFamily">@font/dm_sans_regular</item>
+        <item name="android:textSize">14sp</item>
+        <item name="lineHeight">20sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="fontFamily">@font/dm_sans_regular</item>
+        <item name="android:fontFamily">@font/dm_sans_regular</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">16sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.Button" parent="TextAppearance.Material3.LabelLarge">
+        <item name="fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:fontFamily">@font/dm_sans_semibold</item>
+        <item name="android:textSize">16sp</item>
+        <item name="lineHeight">20sp</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.SpendFlow.Label" parent="TextAppearance.Material3.LabelMedium">
+        <item name="fontFamily">@font/dm_sans_medium</item>
+        <item name="android:fontFamily">@font/dm_sans_medium</item>
+        <item name="android:textSize">13sp</item>
+        <item name="lineHeight">16sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <!-- "GENERAL", "TODAY · 7 OCT" -->
+    <style name="TextAppearance.SpendFlow.Overline" parent="TextAppearance.Material3.LabelSmall">
+        <item name="fontFamily">@font/dm_sans_medium</item>
+        <item name="android:fontFamily">@font/dm_sans_medium</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">16sp</item>
+        <item name="android:lineHeight">16sp</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">?attr/sfColorTextMuted</item>
+    </style>
+</resources>

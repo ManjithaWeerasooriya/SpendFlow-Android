@@ -5,14 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp"
+    android:padding="@dimen/sf_screen_padding"
     tools:context=".ui.categories.CategoriesFragment">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/categories_title"
-        android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+        android:textAppearance="?attr/textAppearanceHeadlineMedium" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/nameInputLayout"
@@ -90,13 +90,15 @@
             android:layout_gravity="center"
             android:indeterminate="true" />
 
-        <TextView
-            android:id="@+id/emptyText"
-            android:layout_width="wrap_content"
+        <com.example.spendflow.core.ui.components.EmptyStateView
+            android:id="@+id/emptyState"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="@string/categories_empty"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:sfIcon="@drawable/ic_budget"
+            app:sfMessage="@string/categories_empty_message"
+            app:sfTitle="@string/categories_empty_title" />
 
         <LinearLayout
             android:id="@+id/errorGroup"
@@ -112,6 +114,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
+                android:textAppearance="?attr/textAppearanceBodyLarge"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="@string/error_network" />
 
             <Button
