@@ -1,50 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:fillViewport="true"
     android:paddingHorizontal="@dimen/sf_screen_padding"
     android:paddingBottom="@dimen/sf_space_xxxl"
     tools:context=".ui.quickadd.QuickAddBottomSheet">
-
-    <com.google.android.material.bottomsheet.BottomSheetDragHandleView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/quick_add_title"
-            android:textAppearance="?attr/textAppearanceTitleLarge"
-            android:textColor="?attr/sfColorTextHeading" />
-
-        <Button
-            android:id="@+id/closeButton"
-            style="?attr/materialIconButtonFilledTonalStyle"
+        android:orientation="vertical">
+        <com.google.android.material.bottomsheet.BottomSheetDragHandleView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:contentDescription="@string/action_close"
-            app:backgroundTint="?attr/sfColorTile"
-            app:icon="@drawable/ic_close"
-            app:iconTint="?attr/sfColorTextHeading" />
+            android:layout_gravity="center_horizontal" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/quick_add_title"
+                android:textAppearance="?attr/textAppearanceTitleLarge"
+                android:textColor="?attr/sfColorTextHeading" />
+            <Button
+                android:id="@+id/closeButton"
+                style="?attr/materialIconButtonFilledTonalStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/action_close"
+                app:backgroundTint="?attr/sfColorTile"
+                app:icon="@drawable/ic_close"
+                app:iconTint="?attr/sfColorTextHeading" />
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/typeToggle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:checkedButton="@id/typeExpense">
+            <Button
+                android:id="@+id/typeExpense"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/category_type_expense" />
+            <Button
+                android:id="@+id/typeIncome"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/category_type_income" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+        <EditText
+            android:id="@+id/amountInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/quick_amount"
+            android:inputType="numberDecimal"
+            android:textSize="40sp"
+            android:maxLength="18"
+            android:singleLine="true" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/quick_category"
+            android:textAppearance="?attr/textAppearanceTitleMedium" />
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/categories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true" />
+        <TextView
+            android:id="@+id/errorText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:accessibilityLiveRegion="polite"
+            android:visibility="gone" />
+        <Button
+            android:id="@+id/dateButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <Button
+            android:id="@+id/moreButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/quick_more"
+            app:icon="@drawable/ic_chevron_down" />
+        <LinearLayout
+            android:id="@+id/details"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:labelFor="@id/paymentInput"
+                android:text="@string/quick_payment" />
+            <Spinner
+                android:id="@+id/paymentInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+            <EditText
+                android:id="@+id/noteInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/quick_note"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLength="500" />
+        </LinearLayout>
+        <Button
+            android:id="@+id/saveButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/quick_save" />
     </LinearLayout>
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/sf_space_xxl"
-        android:gravity="center"
-        android:text="@string/quick_add_placeholder"
-        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
-        android:textColor="?attr/sfColorTextMuted" />
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

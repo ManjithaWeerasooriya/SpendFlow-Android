@@ -88,4 +88,23 @@
     <string name="placeholder_analytics">Charts of where your money goes will appear here.</string>
     <string name="placeholder_goals">Your savings goals will appear here.</string>
     <string name="placeholder_settings">Currency, reminders and alerts will be set here.</string>
+    <string name="quick_amount">Amount</string>
+    <string name="quick_category">Category</string>
+    <string name="quick_date">Date: %1$s</string>
+    <string name="quick_now">Now</string>
+    <string name="quick_more">More details</string>
+    <string name="quick_payment">Payment method (optional)</string>
+    <string name="quick_note">Note (optional)</string>
+    <string name="quick_save">Save</string>
+    <string name="quick_invalid">Enter a positive amount and choose a category.</string>
+    <string name="quick_empty">Add a category in Budget &amp; categories first.</string>
+    <string name="quick_none">Not specified</string>
+    <string name="quick_cash">Cash</string>
+    <string name="quick_debit">Debit card</string>
+    <string name="quick_credit">Credit card</string>
+    <string name="quick_bank">Bank transfer</string>
+    <string name="quick_wallet">Mobile wallet</string>
+    <string name="quick_other">Other</string>
+    <string name="transactions_empty">No transactions yet.</string>
+    <string name="monthly_totals">This month\nExpense: %1$s\nIncome: %2$s</string>
 </resources>

@@ -1,6 +1,7 @@
 package com.example.spendflow.ui.home
 
-import com.example.spendflow.R
-import com.example.spendflow.core.ui.PlaceholderFragment
+import com.example.spendflow.ui.transactions.TransactionFeedFragment
+import dagger.hilt.android.AndroidEntryPoint
 
-class HomeFragment : PlaceholderFragment(R.string.nav_home, R.string.placeholder_home, R.drawable.ic_home)
+@AndroidEntryPoint
+class HomeFragment : TransactionFeedFragment(true)

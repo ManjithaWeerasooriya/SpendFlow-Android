@@ -32,6 +32,7 @@ rules_version = '2';
 //   - type: 'EXPENSE' | 'INCOME'
 //   - iconName: string | null (<= 64)
 //   - colorArgb: int | null (32-bit signed)
+//   - sortOrder: int (optional; defaults to 0 for existing categories)
 //   - isArchived: bool
 //
 // Collection: users/{uid}/transactions/{transactionId}
@@ -42,7 +43,7 @@ rules_version = '2';
 //   - baseAmount: int (>= 0, <= 1e14), amount converted at rate, in minor units of baseCurrency
 //   - baseCurrency: string (^[A-Z]{3}$); if equal to currency, rate is 1 and baseAmount == amount
 //   - paymentMethod: 'CASH' | 'DEBIT_CARD' | 'CREDIT_CARD' | 'BANK_TRANSFER' | 'MOBILE_WALLET' | 'OTHER'
-//       (required for EXPENSE, null otherwise)
+//       (optional for EXPENSE, null otherwise)
 //   - accountId: string | null (document ID; required for TRANSFER)
 //   - categoryId: string | null (document ID; must be null for TRANSFER)
 //   - transferAccountId: string | null (required and != accountId for TRANSFER, else null)
@@ -196,10 +197,11 @@ service cloud.firestore {
 
     function isValidCategory(data) {
       return hasRequiredFields(data, ['name', 'type', 'isArchived', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'isArchived', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'sortOrder', 'isArchived', 'createdAt', 'updatedAt']) &&
         isValidString(data.name, 1, 100) &&
         data.type in ['EXPENSE', 'INCOME'] &&
         isOptionalString(data, 'iconName', 64) &&
+        (!('sortOrder' in data) || data.sortOrder is int) &&
         (!('colorArgb' in data) || data.colorArgb == null ||
           (data.colorArgb is int && data.colorArgb >= -2147483648 && data.colorArgb <= 2147483647)) &&
         data.isArchived is bool;
@@ -215,7 +217,7 @@ service cloud.firestore {
         isCurrencyCode(data.baseCurrency) &&
         (data.currency != data.baseCurrency || (isRateOne(data.rate) && data.baseAmount == data.amount)) &&
         (data.type == 'EXPENSE'
-          ? data.get('paymentMethod', null) in ['CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'BANK_TRANSFER', 'MOBILE_WALLET', 'OTHER']
+          ? data.get('paymentMethod', null) in [null, 'CASH', 'DEBIT_CARD', 'CREDIT_CARD', 'BANK_TRANSFER', 'MOBILE_WALLET', 'OTHER']
           : data.get('paymentMethod', null) == null) &&
         isOptionalDocId(data, 'accountId') &&
         isOptionalDocId(data, 'categoryId') &&

@@ -12,7 +12,7 @@ import java.time.Instant
  * doesn't move when rates change. Reports and budgets sum [baseAmount]. In the base currency
  * itself, [rate] is 1 and [baseAmount] equals [amount].
  *
- * Expenses need a [paymentMethod]. A TRANSFER moves money from [accountId] to [transferAccountId]
+ * Expenses may include a [paymentMethod]. A TRANSFER moves money from [accountId] to [transferAccountId]
  * and has no category or payment method.
  */
 data class Transaction(
@@ -56,8 +56,8 @@ internal fun requireValidMovement(
             "In the base currency the rate is 1 and the base amount equals the amount"
         }
     }
-    require((type == TransactionType.EXPENSE) == (paymentMethod != null)) {
-        "Expenses need a payment method; income and transfers have none"
+    require(type == TransactionType.EXPENSE || paymentMethod == null) {
+        "Only expenses may have a payment method"
     }
     if (type == TransactionType.TRANSFER) {
         require(accountId != null && transferAccountId != null && transferAccountId != accountId) {

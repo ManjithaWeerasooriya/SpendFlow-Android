@@ -141,8 +141,8 @@ for (const name of ['transactions', 'recurring']) {
       await assertFails(create(name, { type: 'REFUND' }));
     });
 
-    it('rejects an expense without a payment method', async () => {
-      await assertFails(create(name, { paymentMethod: null }));
+    it('accepts an expense without a payment method', async () => {
+      await assertSucceeds(create(name, { paymentMethod: null }));
     });
 
     it('rejects an unknown payment method', async () => {
@@ -267,6 +267,14 @@ describe('account specifics', () => {
 });
 
 describe('category specifics', () => {
+  it('accepts a stored category order', async () => {
+    await assertSucceeds(create('categories', { sortOrder: 3 }));
+  });
+
+  it('rejects a non-integer category order', async () => {
+    await assertFails(create('categories', { sortOrder: 'first' }));
+  });
+
   it('rejects an unknown type', async () => {
     await assertFails(create('categories', { type: 'TRANSFER' }));
   });
