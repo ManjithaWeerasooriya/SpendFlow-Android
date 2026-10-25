@@ -45,9 +45,25 @@ class MapperRoundTripTest {
         // Opaque ARGB colors are negative ints, so this also checks the Long round trip
         val category = Category(
             id = "c1", name = "Food", type = CategoryType.EXPENSE,
-            iconName = "restaurant", colorArgb = 0xFFE91E63.toInt(),
+            iconName = "restaurant", colorArgb = 0xFFE91E63.toInt(), sortOrder = 3,
         )
         assertEquals(category, categoryFromFirestore("c1", category.toFirestore()))
+    }
+
+    @Test
+    fun `legacy category defaults to zero order`() {
+        val category = Category("food", "Food", CategoryType.EXPENSE)
+        assertEquals(category, categoryFromFirestore("food", category.toFirestore() - "sortOrder"))
+    }
+
+    @Test
+    fun `expense without optional details round trips`() {
+        val transaction = Transaction(
+            id = "quick", type = TransactionType.EXPENSE, amount = Money(2500, "LKR"),
+            rate = BigDecimal.ONE, baseAmount = Money(2500, "LKR"),
+            dateTime = Instant.parse("2026-10-22T10:00:00Z"), categoryId = "food", paymentMethod = null,
+        )
+        assertEquals(transaction, transactionFromFirestore("quick", transaction.toFirestore()))
     }
 
     @Test
