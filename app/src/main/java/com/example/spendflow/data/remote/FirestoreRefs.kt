@@ -15,6 +15,7 @@ class FirestoreRefs @Inject constructor(private val provider: FirestoreProvider)
     fun categories(uid: String): CollectionReference = firestore.collection(FirestorePaths.categories(uid))
     fun transactions(uid: String): CollectionReference = firestore.collection(FirestorePaths.transactions(uid))
     fun budgets(uid: String): CollectionReference = firestore.collection(FirestorePaths.budgets(uid))
+    fun goals(uid: String): CollectionReference = firestore.collection(FirestorePaths.goals(uid))
     fun recurring(uid: String): CollectionReference = firestore.collection(FirestorePaths.recurring(uid))
 
     /** A new random document ID, generated locally (works offline). */

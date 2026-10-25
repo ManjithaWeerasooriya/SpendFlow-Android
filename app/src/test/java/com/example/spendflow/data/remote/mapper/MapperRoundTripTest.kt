@@ -26,6 +26,13 @@ class MapperRoundTripTest {
     private val usd = Money(12_345, "USD")
 
     @Test
+    fun `savings goals preserve exact target and saved amounts`() {
+        val goal = com.example.spendflow.domain.model.SavingsGoal("g", "Laptop", Money(15000000, "LKR"), Money(15000000, "LKR"))
+        assertEquals(goal, savingsGoalFromFirestore(goal.id, goal.toFirestore()))
+        assertTrue(savingsGoalFromFirestore(goal.id, goal.toFirestore()).isCompleted)
+    }
+
+    @Test
     fun user() {
         val user = User(id = "u1", displayName = "Sam", email = "sam@example.com", baseCurrency = "LKR")
         assertEquals(user, userFromFirestore("u1", user.toFirestore()))

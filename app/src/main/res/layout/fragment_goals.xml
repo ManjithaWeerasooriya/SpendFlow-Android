@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" style="@style/Widget.SpendFlow.TopBar"
+        android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" app:title="@string/goals_title" />
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="@dimen/sf_screen_padding">
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/goals_description" />
+            <TextView android:id="@+id/notificationStatus" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_l" android:accessibilityLiveRegion="polite" />
+            <Button android:id="@+id/enableNotifications" style="@style/Widget.SpendFlow.Button.Outlined" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/goals_enable_notifications" />
+            <Button android:id="@+id/addGoal" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_l" android:text="@string/goals_add" />
+            <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" />
+            <LinearLayout android:id="@+id/goalsList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

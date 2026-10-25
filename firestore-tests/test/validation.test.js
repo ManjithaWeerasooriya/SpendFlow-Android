@@ -8,6 +8,7 @@ const MAX_AMOUNT = 100000000000000;
 
 const requiredFields = {
   profile: ['baseCurrency'],
+  goals: ['name', 'targetMinor', 'savedMinor', 'currencyCode'],
   accounts: ['name', 'type', 'balanceMinor', 'currencyCode', 'isArchived'],
   categories: ['name', 'type', 'isArchived'],
   transactions: ['type', 'amount', 'currency', 'rate', 'baseAmount', 'baseCurrency', 'dateTime'],
@@ -313,5 +314,23 @@ describe('profile specifics', () => {
     await seed(env, entities.profile.path(ALICE), entities.profile.valid());
     await assertFails(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'USD' }));
     await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { displayName: 'Alice W' }));
+  });
+});
+
+
+describe('savings goal specifics', () => {
+  it('accepts reaching and exceeding the target', async () => {
+    await assertSucceeds(create('goals', { savedMinor: 15000000 }));
+    await assertSucceeds(create('goals', { savedMinor: 16000000 }));
+  });
+  it('rejects invalid target and saved amounts', async () => {
+    for (const changes of [{ targetMinor: 0 }, { savedMinor: -1 }, { savedMinor: 1.5 }, { targetMinor: 100000000000 }, { savedMinor: 100000000000 }]) {
+      await assertFails(create('goals', changes));
+    }
+  });
+  it('rejects changing a goal currency', async () => {
+    const path = entities.goals.path(ALICE, 'fixed-currency');
+    await seed(env, path, entities.goals.valid());
+    await assertFails(updateDoc(db, path, { currencyCode: 'USD' }));
   });
 });

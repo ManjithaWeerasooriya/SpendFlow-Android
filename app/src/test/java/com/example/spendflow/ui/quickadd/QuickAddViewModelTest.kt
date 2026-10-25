@@ -17,8 +17,13 @@ class QuickAddViewModelTest {
     @get:Rule val main = MainDispatcherRule()
     private class Transactions : TransactionRepository {
         val saved = mutableListOf<Transaction>()
+        var createError: com.example.spendflow.core.common.AppError? = null
         override fun newId() = "t1"
-        override suspend fun create(item: Transaction): AppResult<Unit> { saved += item; return AppResult.Success(Unit) }
+        override suspend fun create(item: Transaction): AppResult<Unit> {
+            createError?.let { return AppResult.Error(it) }
+            saved += item
+            return AppResult.Success(Unit)
+        }
         override suspend fun get(id: String) = AppResult.Success(saved.first())
         override suspend fun update(item: Transaction) = AppResult.Success(Unit)
         override suspend fun delete(id: String) = AppResult.Success(Unit)
@@ -100,6 +105,64 @@ class QuickAddViewModelTest {
         assertNull(model.conversion("500", true))
         model.fetchRate()
         assertEquals(Money(15500000, "LKR"), model.conversion("500", true)?.first)
+    }
+
+    @Test fun `save reports all invalid fields and performs no write`() = runTest {
+        val transactions = Transactions()
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("salary", "Salary", CategoryType.INCOME))), users, transactions, SavedStateHandle(), rates)
+        model.selectCurrency("USD")
+        assertFalse(model.save("", null, true, null, ""))
+        assertEquals(com.example.spendflow.R.string.entry_amount_required, model.errors.value.amount)
+        assertEquals(com.example.spendflow.R.string.entry_source_required, model.errors.value.category)
+        assertEquals(com.example.spendflow.R.string.entry_rate_required, model.errors.value.rate)
+        assertTrue(transactions.saved.isEmpty())
+        listOf("0", "-10", "1.234", "1.230", "1000000000", "abc", "1e3").forEach { amount ->
+            assertFalse(model.save(amount, "salary", true, null, ""))
+            assertNotNull(model.errors.value.amount)
+        }
+        model.editRate("300")
+        assertTrue(model.save("500", "salary", true, null, ""))
+        assertFalse(model.errors.value.hasErrors)
+        assertEquals("Salary", model.savedEntry?.categoryName)
+        assertEquals(transactions.saved.single(), model.savedEntry?.transaction)
+    }
+
+    @Test fun `converted amount over limit and archived category are rejected`() = runTest {
+        val transactions = Transactions()
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(
+            Category("salary", "Salary", CategoryType.INCOME),
+            Category("old", "Old", CategoryType.EXPENSE, isArchived = true)
+        )), users, transactions, SavedStateHandle(), rates)
+        assertFalse(model.save("10", "old", false, null, ""))
+        assertNotNull(model.errors.value.category)
+        model.selectCurrency("USD")
+        model.editRate("999999999999")
+        assertFalse(model.save("10", "salary", true, null, ""))
+        assertNotNull(model.errors.value.amount)
+        assertTrue(transactions.saved.isEmpty())
+    }
+
+    @Test fun `amount validation gives specific precision and size errors`() {
+        assertEquals(com.example.spendflow.R.string.entry_amount_precision, EntryValidation.amountError("1.001", "USD"))
+        assertEquals(com.example.spendflow.R.string.entry_amount_precision, EntryValidation.amountError("1.1", "JPY"))
+        assertEquals(com.example.spendflow.R.string.entry_amount_large, EntryValidation.amountError("1000000000", "LKR"))
+        assertNull(EntryValidation.amountError("999999999.99", "LKR"))
+        assertNull(EntryValidation.amountError("2450.50", "LKR"))
+    }
+
+    @Test fun `failed save has no confirmation and can be retried`() = runTest {
+        val transactions = Transactions().apply { createError = com.example.spendflow.core.common.AppError.Network }
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("food", "Groceries", CategoryType.EXPENSE))), users, transactions, SavedStateHandle(), rates)
+        assertTrue(model.save("2450", "food", false, null, ""))
+        assertFalse(model.completed)
+        assertFalse(model.saving.value)
+        assertNull(model.savedEntry)
+        assertTrue(transactions.saved.isEmpty())
+        transactions.createError = null
+        assertTrue(model.save("2450", "food", false, null, ""))
+        assertTrue(model.completed)
+        assertEquals("Groceries", model.takeSavedEntry()?.categoryName)
+        assertNull(model.takeSavedEntry())
     }
 
 }
