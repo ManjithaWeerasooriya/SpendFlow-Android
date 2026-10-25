@@ -153,7 +153,7 @@ class MainActivity : AppCompatActivity() {
 
     /** Keeps screen content clear of the bottom bar, or of the system bars and keyboard when it's hidden. */
     private fun applyContentInset() {
-        val bottom = if (binding.bottomBar.isVisible) binding.bottomBar.barHeight else bottomInset
+        val bottom = if (binding.bottomBar.isVisible) binding.bottomBar.height else bottomInset
         if (binding.navHost.paddingBottom != bottom) binding.navHost.updatePadding(bottom = bottom)
     }
 }

@@ -108,8 +108,9 @@ class QuickAddSaveFlowTest {
         main { activity.findViewById<android.view.View>(R.id.transactionsFragment).performClick() }
         eventually { main {
             val list = activity.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
-            assertTrue(list.children.filterIsInstance<TextView>().any {
-                it.text.contains("SF08 Food") && it.text.contains("LKR 25.50")
+            assertTrue(list.children.any {
+                it.findViewById<TextView>(R.id.transactionTitle)?.text?.contains("SF08 Food") == true &&
+                    it.findViewById<TextView>(R.id.transactionAmount)?.text?.contains("LKR 25.50") == true
             })
         } }
         println("SF08_SAVE_FLOW_MS=$elapsed; TEST_UID=${user.uid}; amount=2550; optional details=null")

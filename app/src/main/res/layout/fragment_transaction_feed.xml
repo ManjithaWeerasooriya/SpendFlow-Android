@@ -1,22 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
+    android:fillViewport="true"
     android:paddingHorizontal="@dimen/sf_screen_padding">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingBottom="@dimen/sf_space_xxxl">
     <TextView
         android:id="@+id/screenTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="@dimen/sf_space_xxl"
         android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+    <TextView android:id="@+id/monthSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/sfColorTextMuted" android:layout_marginTop="@dimen/sf_space_xs" android:layout_marginBottom="@dimen/sf_space_l" />
+    <com.example.spendflow.core.ui.components.SummaryCardView android:id="@+id/summary" android:layout_width="match_parent" android:layout_height="wrap_content" />
     <TextView
         android:id="@+id/totals"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingVertical="@dimen/sf_space_xl"
         android:textAppearance="?attr/textAppearanceTitleMedium" />
+    <com.google.android.material.button.MaterialButtonToggleGroup xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/feedFilter" android:layout_width="match_parent" android:layout_height="wrap_content" app:singleSelection="true" app:selectionRequired="true" app:checkedButton="@id/filterAll">
+        <Button android:id="@+id/filterAll" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="@string/ui_all" />
+        <Button android:id="@+id/filterExpense" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="@string/category_type_expense" />
+        <Button android:id="@+id/filterIncome" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="@string/category_type_income" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+    <LinearLayout android:id="@+id/recentHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="@dimen/sf_space_l">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/ui_recent_transactions" android:textAppearance="?attr/textAppearanceTitleMedium" />
+        <Button android:id="@+id/seeAll" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/ui_see_all" />
+    </LinearLayout>
     <TextView
         android:id="@+id/status"
         android:layout_width="match_parent"
@@ -25,6 +37,13 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-</LinearLayout>
+        android:layout_height="wrap_content"
+        android:nestedScrollingEnabled="false" />
+    <com.example.spendflow.core.ui.components.EmptyStateView xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/emptyState" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" app:sfTitle="@string/transactions_empty" app:sfMessage="@string/ui_empty_hint" app:sfIcon="@drawable/ic_transactions" />
+    <LinearLayout android:id="@+id/goalsHeader" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="@dimen/sf_space_l">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/ui_savings_goals" android:textAppearance="?attr/textAppearanceTitleMedium" />
+        <Button android:id="@+id/viewGoals" style="@style/Widget.Material3.Button.TextButton" android:layout_width="wrap_content" android:layout_height="48dp" android:text="@string/ui_view_goals" />
+    </LinearLayout>
+    <com.example.spendflow.core.ui.components.LabeledProgressView android:id="@+id/goalPreview" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

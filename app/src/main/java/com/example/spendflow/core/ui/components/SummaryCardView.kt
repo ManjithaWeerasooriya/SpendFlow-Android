@@ -28,6 +28,9 @@ class SummaryCardView @JvmOverloads constructor(
         val savedRatePercent: Int?,
     )
 
+    var compact = false
+    var showSavingsRate = true
+
     private val binding = ViewSummaryCardBinding.inflate(LayoutInflater.from(context), this)
 
     init {
@@ -56,12 +59,24 @@ class SummaryCardView @JvmOverloads constructor(
     }
 
     fun setSummary(summary: Summary) = with(binding) {
+        incomeAmount.size = AmountView.Size.INLINE
+        expensesAmount.size = AmountView.Size.INLINE
+        netAmount.size = if (compact) AmountView.Size.TITLE else AmountView.Size.DISPLAY
+        listOf(incomeAmount, expensesAmount, netAmount).forEach { it.maxLines = 2; it.showDecimals = true }
+        if (compact) {
+            androidx.core.widget.TextViewCompat.setTextAppearance(savedRate, R.style.TextAppearance_SpendFlow_Caption)
+            val padding = resources.getDimensionPixelSize(R.dimen.sf_space_s)
+            savedRate.setPadding(padding, padding / 2, padding, padding / 2)
+            savedRate.setTextColor(MaterialColors.getColor(this@SummaryCardView, R.attr.sfColorTextOnDark))
+        }
+        incomeCaption.isVisible = !compact
+        expensesCaption.isVisible = !compact
         incomeAmount.amount = summary.income
         incomeCaption.text = summary.incomeCaption
         expensesAmount.amount = summary.expenses
         expensesCaption.text = summary.expensesCaption
         netAmount.amount = summary.net
-        savedRate.isVisible = summary.savedRatePercent != null
+        savedRate.isVisible = summary.savedRatePercent != null && showSavingsRate
         summary.savedRatePercent?.let { savedRate.text = resources.getString(R.string.summary_saved_rate, it) }
     }
 }
