@@ -104,3 +104,9 @@ every pull request.
 ## License
 
 [MIT](LICENSE)
+
+### Income in multiple currencies (SF-09)
+
+Income Quick Add supports original currency, a manual exchange rate (base currency per unit), and a live approximate base amount. With an LKR profile, USD 500 at 300 saves USD 50,000 minor units and LKR 15,000,000 minor units. Existing transaction fields `amount`, `currency`, `rate`, `baseAmount`, and `baseCurrency` preserve this snapshot; historical records are never repriced. The last successfully saved rate for each currency pair is remembered on this device. Income sources created in Categories can specify a default currency. Deploy the updated `firestore.rules` to allow that optional field.
+
+?Use latest rate? calls [ExchangeRate-API's open endpoint](https://www.exchangerate-api.com/docs/free), with no API key. Rates update daily, are indicative, and are cached in memory until the provider's next update. All supported provider currencies can be converted to LKR; unsupported currencies or network errors leave manual entry available. The currency selector lists spendable ISO currencies, so provider coverage may be narrower. Provider attribution is shown beside the rate. Conversion follows the profile base currency (normally LKR).

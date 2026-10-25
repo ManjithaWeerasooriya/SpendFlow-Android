@@ -9,6 +9,7 @@ data class Category(
     val colorArgb: Int? = null,
     val isArchived: Boolean = false,
     val sortOrder: Long = 0,
+    val defaultCurrency: String? = null,
 ) {
     init {
         require(name.isNotBlank()) { "Category name must not be blank" }

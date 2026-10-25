@@ -74,14 +74,14 @@ class CategoriesViewModel @Inject constructor(
         retries.tryEmit(Unit)
     }
 
-    fun addCategory(name: String, type: CategoryType) {
+    fun addCategory(name: String, type: CategoryType, defaultCurrency: String? = null) {
         val trimmed = name.trim()
         if (trimmed.isEmpty()) {
             _events.trySend(CategoriesEvent.ShowMessage(R.string.categories_error_name_required))
             return
         }
         viewModelScope.launch {
-            categories.create(Category(id = categories.newId(), name = trimmed, type = type))
+            categories.create(Category(id = categories.newId(), name = trimmed, type = type, defaultCurrency = if (type == CategoryType.INCOME) defaultCurrency else null))
                 .onSuccess { _events.send(CategoriesEvent.CategoryAdded) }
                 .onError { _events.send(CategoriesEvent.ShowError(it)) }
         }

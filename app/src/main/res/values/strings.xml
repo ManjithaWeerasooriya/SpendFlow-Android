@@ -107,4 +107,13 @@
     <string name="quick_other">Other</string>
     <string name="transactions_empty">No transactions yet.</string>
     <string name="monthly_totals">This month\nExpense: %1$s\nIncome: %2$s</string>
+    <string name="income_currency">Income currency</string>
+    <string name="income_source">Income source</string>
+    <string name="income_rate">Exchange rate (base currency per 1 unit)</string>
+    <string name="income_latest_rate">Use latest rate</string>
+    <string name="income_rate_error">Could not fetch a rate. Try again or enter your rate manually.</string>
+    <string name="income_rate_attribution">Daily indicative rates by ExchangeRate-API: https://www.exchangerate-api.com</string>
+    <string name="income_preview">Approx. %1$s %2$s</string>
+    <string name="income_preview_pending">Enter an amount and a positive exchange rate to see the base amount.</string>
+    <string name="income_default_currency">Default currency for this income source</string>
 </resources>

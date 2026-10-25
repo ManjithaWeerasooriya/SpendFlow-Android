@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.children
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.viewModels
+import com.example.spendflow.core.ui.CurrencyOptions
 import com.example.spendflow.R
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.ui.collectWithLifecycle
@@ -51,6 +52,53 @@ class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) 
             b.details.isVisible = !b.details.isVisible
             model.draft["details"] = b.details.isVisible
         }
+        val currencies = CurrencyOptions.codes
+        b.currencyInput.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, CurrencyOptions.labels)
+        var renderingRate = false
+        fun renderConversion() {
+            val income = b.typeToggle.checkedButtonId == R.id.typeIncome
+            val base = (model.profile.value as? AppResult.Success)?.data?.baseCurrency ?: "LKR"
+            val currency = model.draft.get<String>("currency") ?: base
+            b.currencyControls.isVisible = income
+            b.rateControls.isVisible = currency != base
+            b.categoryLabel.setText(if (income) R.string.income_source else R.string.quick_category)
+            val position = currencies.indexOf(currency)
+            if (position >= 0 && b.currencyInput.selectedItemPosition != position) b.currencyInput.setSelection(position)
+            val rate = model.draft.get<String>("rate").orEmpty()
+            if (b.rateInput.text.toString() != rate) {
+                renderingRate = true
+                b.rateInput.setText(rate)
+                renderingRate = false
+            }
+            val converted = model.conversion(b.amountInput.text.toString(), income)?.first
+            b.basePreview.text = if (converted == null) getString(R.string.income_preview_pending) else {
+                val digits = java.util.Currency.getInstance(converted.currencyCode).defaultFractionDigits
+                val value = java.math.BigDecimal.valueOf(converted.amountMinor).movePointLeft(digits)
+                getString(R.string.income_preview, converted.currencyCode, java.text.NumberFormat.getNumberInstance().format(value))
+            }
+        }
+        b.currencyInput.setSelection(currencies.indexOf(model.draft.get<String>("currency") ?: (model.profile.value as? AppResult.Success)?.data?.baseCurrency ?: "LKR").coerceAtLeast(0))
+        b.currencyInput.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) = Unit
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, item: View?, position: Int, id: Long) {
+                val base = (model.profile.value as? AppResult.Success)?.data?.baseCurrency ?: return
+                val selected = currencies[position]
+                if (selected != (model.draft.get<String>("currency") ?: base)) model.selectCurrency(selected)
+                renderConversion()
+            }
+        }
+        b.rateInput.doAfterTextChanged { if (!renderingRate) { model.editRate(it.toString()); renderConversion() } }
+        b.amountInput.doAfterTextChanged { renderConversion() }
+        b.latestRateButton.setOnClickListener {
+            if (model.draft.get<String>("currency") == null) {
+                model.selectCurrency((model.profile.value as? AppResult.Success)?.data?.baseCurrency ?: "LKR")
+            }
+            model.fetchRate()
+        }
+        model.profile.collectWithLifecycle(viewLifecycleOwner) { renderConversion() }
+        model.draft.getStateFlow("rate", "").collectWithLifecycle(viewLifecycleOwner) { renderConversion() }
+        model.rateLoading.collectWithLifecycle(viewLifecycleOwner) { b.latestRateButton.isEnabled = !it }
+        model.rateError.collectWithLifecycle(viewLifecycleOwner) { b.rateError.isVisible = it }
         fun renderCategories() {
             val result = model.categories.value
             val income = b.typeToggle.checkedButtonId == R.id.typeIncome
@@ -63,7 +111,8 @@ class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) 
                     setIcon(if (income) R.drawable.ic_badge_income else R.drawable.ic_badge_expense)
                     isChecked = model.draft.get<String>("category") == category.id
                     setOnClickListener {
-                        model.draft["category"] = category.id
+                        model.selectSource(category)
+                        renderConversion()
                         b.categories.children.forEach { child -> (child as? CategoryChip)?.isChecked = child === this }
                     }
                 })
@@ -76,6 +125,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) 
             model.draft["category"] = null
             b.paymentInput.isEnabled = b.typeToggle.checkedButtonId != R.id.typeIncome
             renderCategories()
+            renderConversion()
         } }
         model.categories.collectWithLifecycle(viewLifecycleOwner) { renderCategories() }
         fun renderDate() {

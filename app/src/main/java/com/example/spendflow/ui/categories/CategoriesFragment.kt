@@ -7,6 +7,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import com.example.spendflow.core.ui.CurrencyOptions
 import com.example.spendflow.R
 import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.core.ui.collectWithLifecycle
@@ -27,6 +28,13 @@ class CategoriesFragment : Fragment(R.layout.fragment_categories) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val binding = FragmentCategoriesBinding.bind(view)
+        val currencies = CurrencyOptions.codes
+        binding.defaultCurrencyInput.adapter = android.widget.ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, CurrencyOptions.labels)
+        binding.defaultCurrencyInput.setSelection(currencies.indexOf("LKR"))
+        binding.defaultCurrencyControls.isVisible = binding.typeToggle.checkedButtonId == R.id.typeIncome
+        binding.typeToggle.addOnButtonCheckedListener { _, _, checked ->
+            if (checked) binding.defaultCurrencyControls.isVisible = binding.typeToggle.checkedButtonId == R.id.typeIncome
+        }
         val adapter = CategoryAdapter()
         binding.list.adapter = adapter
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
@@ -54,7 +62,7 @@ class CategoriesFragment : Fragment(R.layout.fragment_categories) {
             R.id.typeIncome -> CategoryType.INCOME
             else -> CategoryType.EXPENSE
         }
-        viewModel.addCategory(binding.nameInput.text?.toString().orEmpty(), type)
+        viewModel.addCategory(binding.nameInput.text?.toString().orEmpty(), type, if (type == CategoryType.INCOME) CurrencyOptions.codes.getOrNull(binding.defaultCurrencyInput.selectedItemPosition) else null)
     }
 
     private fun render(binding: FragmentCategoriesBinding, adapter: CategoryAdapter, state: UiState<List<Category>>) {

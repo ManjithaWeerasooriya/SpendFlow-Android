@@ -27,7 +27,7 @@ class ThemeOnlyColorsTest {
     @Test
     fun `kotlin code resolves colours from the theme`() {
         val offenders = File("src").walkTopDown()
-            .filter { it.extension == "kt" && "/test/" !in it.path && "/androidTest/" !in it.path }
+            .filter { it.extension == "kt" && "/test/" !in it.invariantSeparatorsPath && "/androidTest/" !in it.invariantSeparatorsPath }
             .flatMap { file ->
                 file.readLines().withIndex()
                     .filter { (_, line) -> codeColor.containsMatchIn(line) }

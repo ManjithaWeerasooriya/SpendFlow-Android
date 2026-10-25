@@ -267,6 +267,18 @@ describe('account specifics', () => {
 });
 
 describe('category specifics', () => {
+  it('accepts an income source default currency', async () => {
+    await assertSucceeds(create('categories', { type: 'INCOME', defaultCurrency: 'USD' }));
+  });
+
+  it('rejects a malformed source currency', async () => {
+    await assertFails(create('categories', { type: 'INCOME', defaultCurrency: 'usd' }));
+  });
+
+  it('accepts a source without a default currency', async () => {
+    await assertSucceeds(create('categories', { type: 'INCOME', defaultCurrency: null }));
+  });
+
   it('accepts a stored category order', async () => {
     await assertSucceeds(create('categories', { sortOrder: 3 }));
   });

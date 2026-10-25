@@ -26,6 +26,7 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds abstract fun bindExchangeRates(impl: com.example.spendflow.data.repository.ApiExchangeRates): com.example.spendflow.data.repository.ExchangeRates
     @Binds abstract fun bindUserSession(impl: FirebaseUserSession): UserSession
     @Binds abstract fun bindAuthRepository(impl: FirebaseAuthRepository): AuthRepository
     @Binds abstract fun bindWriteFailures(impl: WriteFailureReporter): WriteFailures
