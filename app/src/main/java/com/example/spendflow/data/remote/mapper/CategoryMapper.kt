@@ -11,6 +11,7 @@ private const val COLOR_ARGB = "colorArgb"
 
 fun Category.toFirestore(): Map<String, Any?> = mapOf(
     NAME to name,
+    "defaultCurrency" to defaultCurrency,
     "sortOrder" to sortOrder,
     TYPE to type.name,
     ICON_NAME to iconName,
@@ -22,6 +23,7 @@ fun categoryFromFirestore(id: String, data: Map<String, Any?>): Category = Fires
     Category(
         id = id,
         name = string(NAME),
+        defaultCurrency = optString("defaultCurrency"),
         sortOrder = optLong("sortOrder") ?: 0,
         type = enum<CategoryType>(TYPE),
         iconName = optString(ICON_NAME),

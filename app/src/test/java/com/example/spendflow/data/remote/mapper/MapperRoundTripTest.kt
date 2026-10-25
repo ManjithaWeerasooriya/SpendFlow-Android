@@ -32,6 +32,13 @@ class MapperRoundTripTest {
     }
 
     @Test
+    fun `income source preserves default currency and legacy sources have none`() {
+        val source = Category("salary", "Salary", CategoryType.INCOME, defaultCurrency = "USD")
+        assertEquals(source, categoryFromFirestore(source.id, source.toFirestore()))
+        assertEquals(null, categoryFromFirestore(source.id, source.toFirestore() - "defaultCurrency").defaultCurrency)
+    }
+
+    @Test
     fun account() {
         val account = Account(
             id = "a1", name = "Visa", type = AccountType.CREDIT_CARD,

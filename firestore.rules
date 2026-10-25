@@ -197,11 +197,12 @@ service cloud.firestore {
 
     function isValidCategory(data) {
       return hasRequiredFields(data, ['name', 'type', 'isArchived', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'sortOrder', 'isArchived', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'defaultCurrency', 'sortOrder', 'isArchived', 'createdAt', 'updatedAt']) &&
         isValidString(data.name, 1, 100) &&
         data.type in ['EXPENSE', 'INCOME'] &&
         isOptionalString(data, 'iconName', 64) &&
         (!('sortOrder' in data) || data.sortOrder is int) &&
+        (data.get('defaultCurrency', null) == null || isCurrencyCode(data.defaultCurrency)) &&
         (!('colorArgb' in data) || data.colorArgb == null ||
           (data.colorArgb is int && data.colorArgb >= -2147483648 && data.colorArgb <= 2147483647)) &&
         data.isArchived is bool;

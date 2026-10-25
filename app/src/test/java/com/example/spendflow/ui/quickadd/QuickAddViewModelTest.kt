@@ -25,6 +25,12 @@ class QuickAddViewModelTest {
         override fun observeTransactions(from: Instant, until: Instant) = flowOf(AppResult.Success(saved.toList()))
         override fun observeRecent(limit: Int) = flowOf(AppResult.Success(saved.take(limit)))
     }
+    private val rates = object : ExchangeRates {
+        val remembered = mutableMapOf<String, java.math.BigDecimal>()
+        override fun lastRate(currency: String, base: String) = remembered[currency]
+        override fun remember(currency: String, base: String, rate: java.math.BigDecimal) { remembered[currency] = rate }
+        override suspend fun latest(currency: String, base: String) = java.math.BigDecimal("310")
+    }
     private val users = object : UserRepository {
         override fun observeProfile() = flowOf(AppResult.Success(User("u1", null, null, "LKR")))
         override suspend fun createProfile(user: User) = AppResult.Success(Unit)
@@ -40,7 +46,7 @@ class QuickAddViewModelTest {
     }
     @Test fun `expense needs only amount and category and defaults to now`() = runTest {
         val transactions = Transactions()
-        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("food", "Food", CategoryType.EXPENSE))), users, transactions, SavedStateHandle())
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("food", "Food", CategoryType.EXPENSE))), users, transactions, SavedStateHandle(), rates)
         val before = Instant.now()
         assertTrue(model.save("25.50", "food", false, null, ""))
         val item = transactions.saved.single()
@@ -56,7 +62,7 @@ class QuickAddViewModelTest {
     @Test fun `invalid category does not write and edited date is retained`() = runTest {
         val transactions = Transactions()
         val date = "2026-10-01T08:15:00Z"
-        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("food", "Food", CategoryType.EXPENSE))), users, transactions, SavedStateHandle(mapOf("date" to date)))
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("food", "Food", CategoryType.EXPENSE))), users, transactions, SavedStateHandle(mapOf("date" to date)), rates)
         assertFalse(model.save("10", null, false, null, ""))
         assertFalse(model.save("10", "food", true, null, ""))
         assertTrue(transactions.saved.isEmpty())
@@ -64,4 +70,36 @@ class QuickAddViewModelTest {
         assertEquals(Instant.parse(date), transactions.saved.single().dateTime)
         assertEquals("Lunch", transactions.saved.single().note)
     }
+    @Test fun `foreign income saves original amount and immutable converted snapshot`() = runTest {
+        val transactions = Transactions()
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("salary", "Salary", CategoryType.INCOME, defaultCurrency = "USD"))), users, transactions, SavedStateHandle(), rates)
+        model.selectSource(Category("salary", "Salary", CategoryType.INCOME, defaultCurrency = "USD"))
+        assertEquals("USD", model.draft.get<String>("currency"))
+        model.editRate("300")
+        assertTrue(model.save("500", "salary", true, PaymentMethod.CASH, ""))
+        val saved = transactions.saved.single()
+        assertEquals(Money(50000, "USD"), saved.amount)
+        assertEquals(java.math.BigDecimal("300"), saved.rate)
+        assertEquals(Money(15000000, "LKR"), saved.baseAmount)
+        assertNull(saved.paymentMethod)
+        model.fetchRate()
+        assertEquals(java.math.BigDecimal("300"), saved.rate)
+        assertEquals(Money(15000000, "LKR"), saved.baseAmount)
+        model.selectCurrency("LKR")
+        assertEquals(java.math.BigDecimal.ONE, model.conversion("500", true)?.second)
+        model.selectCurrency("USD")
+        assertEquals("300", model.draft.get<String>("rate"))
+    }
+
+    @Test fun `foreign income requires valid rate and fetch updates preview`() = runTest {
+        val transactions = Transactions()
+        val model = QuickAddViewModel(FakeCategoryRepository(listOf(Category("salary", "Salary", CategoryType.INCOME))), users, transactions, SavedStateHandle(), rates)
+        model.selectCurrency("EUR")
+        assertFalse(model.save("500", "salary", true, null, ""))
+        model.editRate("-1")
+        assertNull(model.conversion("500", true))
+        model.fetchRate()
+        assertEquals(Money(15500000, "LKR"), model.conversion("500", true)?.first)
+    }
+
 }
