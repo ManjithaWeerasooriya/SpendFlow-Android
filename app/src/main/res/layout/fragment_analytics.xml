@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/analyticsScroll" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:clipToPadding="false">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="@dimen/sf_screen_padding" android:paddingTop="@dimen/sf_space_xxl" android:paddingBottom="@dimen/sf_space_xxxl">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/nav_analytics" android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_subtitle" android:textColor="?attr/sfColorTextMuted" android:layout_marginTop="@dimen/sf_space_xs" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginVertical="@dimen/sf_space_l">
+            <Button android:id="@+id/previousMonth" style="?attr/materialIconButtonFilledTonalStyle" android:layout_width="48dp" android:layout_height="48dp" android:contentDescription="@string/analytics_previous_month" app:icon="@drawable/ic_chevron_left" />
+            <TextView android:id="@+id/monthLabel" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:textAppearance="?attr/textAppearanceTitleMedium" android:accessibilityLiveRegion="polite" />
+            <Button android:id="@+id/nextMonth" style="?attr/materialIconButtonFilledTonalStyle" android:layout_width="48dp" android:layout_height="48dp" android:contentDescription="@string/analytics_next_month" app:icon="@drawable/ic_chevron_right" />
+        </LinearLayout>
+        <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" />
+        <LinearLayout android:id="@+id/reportContent" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+            <com.example.spendflow.core.ui.components.SummaryCardView android:id="@+id/summary" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <TextView android:id="@+id/comparison" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginVertical="@dimen/sf_space_l" android:textColor="?attr/sfColorTextMuted" />
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SpendFlow.InsetCard" android:layout_width="match_parent" android:layout_height="wrap_content">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:id="@+id/breakdownTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_breakdown" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    <com.google.android.material.button.MaterialButtonToggleGroup android:id="@+id/breakdownToggle" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_m" app:singleSelection="true" app:selectionRequired="true" app:checkedButton="@id/breakdownExpenses">
+                        <Button android:id="@+id/breakdownExpenses" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="@string/summary_expenses" />
+                        <Button android:id="@+id/breakdownIncome" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:text="@string/summary_income" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+                    <FrameLayout android:layout_width="match_parent" android:layout_height="240dp" android:layout_marginVertical="@dimen/sf_space_s">
+                        <com.example.spendflow.ui.analytics.AnalyticsChartView android:id="@+id/categoryChart" android:layout_width="match_parent" android:layout_height="match_parent" android:importantForAccessibility="no" />
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center" android:gravity="center" android:orientation="vertical" android:paddingHorizontal="@dimen/sf_space_xxl">
+                            <TextView android:id="@+id/breakdownAmount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textAppearance="?attr/textAppearanceTitleLarge" android:gravity="center" />
+                            <TextView android:id="@+id/breakdownCaption" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="?attr/sfColorTextMuted" android:gravity="center" />
+                        </LinearLayout>
+                    </FrameLayout>
+                    <TextView android:id="@+id/breakdownEmpty" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_no_breakdown" android:gravity="center" android:visibility="gone" />
+                    <LinearLayout android:id="@+id/categoryRows" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_s" android:text="@string/analytics_category_hint" android:textColor="?attr/sfColorTextMuted" android:textAppearance="?attr/textAppearanceBodySmall" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SpendFlow.InsetCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_l">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_cashflow" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_chart_legend" android:textColor="?attr/sfColorTextMuted" android:layout_marginTop="@dimen/sf_space_s" />
+                    <com.example.spendflow.ui.analytics.AnalyticsChartView android:id="@+id/cashflowChart" android:layout_width="match_parent" android:layout_height="160dp" android:layout_marginTop="@dimen/sf_space_l" />
+                    <TextView android:id="@+id/dayAxis" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/sfColorTextMuted" android:gravity="center" />
+                    <Button android:id="@+id/dailyDetails" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="48dp" android:text="@string/analytics_daily_details" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.SpendFlow.InsetCard" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_l">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_insights" android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    <TextView android:id="@+id/dailyAverage" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_l" />
+                    <TextView android:id="@+id/busiestDay" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_m" />
+                    <TextView android:id="@+id/entryCount" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="@dimen/sf_space_m" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/analytics_currency_note" android:textAppearance="?attr/textAppearanceBodySmall" android:textColor="?attr/sfColorTextMuted" android:layout_marginTop="@dimen/sf_space_l" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

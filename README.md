@@ -126,3 +126,11 @@ More > Goals lets a signed-in user create a savings target and update the total 
 Enable goal notifications on the Goals screen; Android 13+ asks for permission, and disabled channels can be restored in system notification settings. Completion history is stored per user and goal on this device, so repeated snapshots, edits, and app restarts do not repeat an alert. A denied notification is retried when permission is enabled. Clearing app data or reinstalling resets this local history.
 
 Goal monitoring runs while the app process is alive and checks saved completions again on the next launch. This does not include server push delivery while the app is fully stopped. Deploy the updated `firestore.rules` before using goals against production Firebase; goal documents live at `users/{uid}/goals/{id}`.
+
+### Refined dashboard and Analytics
+
+Home uses the dark monthly summary, rounded transaction rows, and a live savings-goal preview. Transactions supports All / Expense / Income filters. Both keep the original transaction currency visible; summary totals use stored base amounts.
+
+Analytics adds previous/next month navigation, income and expense category rings, ranked category shares, transaction detail dialogs, daily cash-flow bars and exact daily totals, average daily spending, highest-spending day, savings/net totals, and a spending comparison with the prior month. Reports exclude transfers and never reprice historical entries. The daily average uses elapsed calendar days in the current month and all calendar days in a past month. All screens follow the existing light/dark theme.
+
+The visual direction follows the published SpendFlow prototype (https://shade-garnet-72361972.figma.site/) and the category/cash-flow presentation on Spendee (https://www.spendee.com/). Charts are native Android views; the app does not embed reference-site screenshots or use an external chart service.
