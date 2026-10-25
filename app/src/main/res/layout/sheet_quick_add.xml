@@ -64,15 +64,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/quick_amount"
-            android:inputType="numberDecimal"
+            android:inputType="numberDecimal|numberSigned"
             android:textSize="40sp"
-            android:maxLength="18"
+            android:maxLength="40"
             android:singleLine="true" />
+        <TextView android:id="@+id/amountError" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/colorError" android:accessibilityLiveRegion="polite" android:visibility="gone" />
         <LinearLayout android:id="@+id/currencyControls" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/income_currency" android:labelFor="@id/currencyInput" />
             <Spinner android:id="@+id/currencyInput" android:layout_width="match_parent" android:layout_height="48dp" />
             <LinearLayout android:id="@+id/rateControls" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                 <EditText android:id="@+id/rateInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/income_rate" android:inputType="numberDecimal" android:maxLength="24" android:singleLine="true" />
+                <TextView android:id="@+id/rateValidationError" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/colorError" android:accessibilityLiveRegion="polite" android:visibility="gone" />
                 <Button android:id="@+id/latestRateButton" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/income_latest_rate" />
                 <TextView android:id="@+id/rateError" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/income_rate_error" android:accessibilityLiveRegion="polite" android:visibility="gone" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/income_rate_attribution" android:autoLink="web" />
@@ -91,6 +93,7 @@
             android:layout_height="wrap_content"
             app:singleSelection="true"
             app:selectionRequired="true" />
+        <TextView android:id="@+id/categoryError" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="?attr/colorError" android:accessibilityLiveRegion="polite" android:visibility="gone" />
         <TextView
             android:id="@+id/errorText"
             android:layout_width="match_parent"

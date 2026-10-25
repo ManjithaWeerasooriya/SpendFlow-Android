@@ -195,6 +195,14 @@ service cloud.firestore {
         data.isArchived is bool;
     }
 
+    function isValidGoal(data) {
+      return hasRequiredFields(data, ['name', 'targetMinor', 'savedMinor', 'currencyCode', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'targetMinor', 'savedMinor', 'currencyCode', 'createdAt', 'updatedAt']) &&
+        isValidString(data.name, 1, 100) && isCurrencyCode(data.currencyCode) &&
+        data.targetMinor is int && data.targetMinor > 0 && data.targetMinor <= 99999999999 &&
+        data.savedMinor is int && data.savedMinor >= 0 && data.savedMinor <= 99999999999;
+    }
+
     function isValidCategory(data) {
       return hasRequiredFields(data, ['name', 'type', 'isArchived', 'createdAt', 'updatedAt']) &&
         hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'defaultCurrency', 'sortOrder', 'isArchived', 'createdAt', 'updatedAt']) &&
@@ -303,6 +311,13 @@ service cloud.firestore {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId) && isDocId(budgetId) &&
           isValidWrite(isValidBudget(request.resource.data), request.resource.data);
+      }
+
+      match /goals/{goalId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isDocId(goalId) &&
+          isValidWrite(isValidGoal(request.resource.data), request.resource.data) &&
+          (request.method == 'create' || request.resource.data.currencyCode == resource.data.currencyCode);
       }
 
       match /recurring/{recurringId} {

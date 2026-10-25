@@ -30,8 +30,13 @@ class QuickAddViewModel @Inject constructor(
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
     val events = results.receiveAsFlow()
     val saving = MutableStateFlow(false)
+    val errors = MutableStateFlow(EntryErrors())
+    var savedEntry: SavedEntry? = null
+        private set
     var completed = false
         private set
+
+    fun takeSavedEntry(): SavedEntry? = savedEntry.also { savedEntry = null }
 
     val rateLoading = MutableStateFlow(false)
     val rateError = MutableStateFlow(false)
@@ -92,13 +97,32 @@ class QuickAddViewModel @Inject constructor(
 
     fun save(amount: String, categoryId: String?, income: Boolean, payment: PaymentMethod?, note: String): Boolean {
         if (saving.value || completed) return false
-        val user = (profile.value as? AppResult.Success)?.data ?: return false
+        val user = (profile.value as? AppResult.Success)?.data
         val category = ((categories.value as? AppResult.Success)?.data ?: emptyList()).find {
-            it.id == categoryId && it.type == if (income) CategoryType.INCOME else CategoryType.EXPENSE
-        } ?: return false
-        val currency = if (income) draft.get<String>("currency") ?: user.baseCurrency else user.baseCurrency
+            it.id == categoryId && !it.isArchived && it.type == if (income) CategoryType.INCOME else CategoryType.EXPENSE
+        }
+        val currency = if (income) draft.get<String>("currency") ?: user?.baseCurrency ?: "LKR" else user?.baseCurrency ?: "LKR"
+        val rateMissing = currency != (user?.baseCurrency ?: "LKR") &&
+            (draft.get<String>("rate")?.trim()?.replace(',', '.')?.toBigDecimalOrNull()?.signum() ?: 0) <= 0
+        errors.value = EntryErrors(
+            amount = EntryValidation.amountError(amount, currency),
+            category = if (category == null) if (income) com.example.spendflow.R.string.entry_source_required else com.example.spendflow.R.string.entry_category_required else null,
+            rate = if (rateMissing) com.example.spendflow.R.string.entry_rate_required else null,
+            general = if (user == null) com.example.spendflow.R.string.entry_not_ready else null,
+        )
+        if (errors.value.hasErrors || user == null || category == null) return false
         val money = parseAmount(amount, currency) ?: return false
-        val (baseAmount, rate) = conversion(amount, income) ?: return false
+        val converted = conversion(amount, income)
+        if (converted == null) {
+            errors.value = errors.value.copy(rate = com.example.spendflow.R.string.entry_rate_invalid)
+            return false
+        }
+        val (baseAmount, rate) = converted
+        val baseDigits = Currency.getInstance(user.baseCurrency).defaultFractionDigits
+        if (BigDecimal.valueOf(baseAmount.amountMinor).movePointLeft(baseDigits) > EntryValidation.maximumAmount) {
+            errors.value = errors.value.copy(amount = com.example.spendflow.R.string.entry_amount_large)
+            return false
+        }
         val transaction = Transaction(
             id = transactions.newId(), type = if (income) TransactionType.INCOME else TransactionType.EXPENSE,
             amount = money, rate = rate, baseAmount = baseAmount,
@@ -110,7 +134,10 @@ class QuickAddViewModel @Inject constructor(
         viewModelScope.launch {
             val result = transactions.create(transaction)
             completed = result is AppResult.Success
-            if (completed && income) exchangeRates.remember(currency, user.baseCurrency, rate)
+            if (completed) {
+                savedEntry = SavedEntry(transaction, category.name)
+                if (income) exchangeRates.remember(currency, user.baseCurrency, rate)
+            }
             saving.value = false
             results.send(result)
         }
@@ -119,6 +146,7 @@ class QuickAddViewModel @Inject constructor(
 
     companion object {
         fun parseAmount(text: String, currency: String): Money? = runCatching {
+            require(EntryValidation.amountError(text, currency) == null)
             val digits = Currency.getInstance(currency).defaultFractionDigits.coerceAtLeast(0)
             val minor = BigDecimal(text.trim().replace(',', '.')).movePointRight(digits).longValueExact()
             require(minor in 1..100_000_000_000_000L)

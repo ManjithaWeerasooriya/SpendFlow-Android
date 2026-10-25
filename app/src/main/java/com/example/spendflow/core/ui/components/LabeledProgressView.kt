@@ -67,10 +67,10 @@ class LabeledProgressView @JvmOverloads constructor(
         }
     }
 
-    fun bind(current: Money, target: Money, label: CharSequence?, status: CharSequence? = null) = with(binding) {
+    fun bind(current: Money, target: Money, label: CharSequence?, status: CharSequence? = null, showDecimals: Boolean = false) = with(binding) {
         val percent = progressPercent(current, target)
-        this@with.current.text = AmountFormatter.format(current)
-        this@with.target.text = AmountFormatter.format(target)
+        this@with.current.text = AmountFormatter.format(current, showDecimals = showDecimals)
+        this@with.target.text = AmountFormatter.format(target, showDecimals = showDecimals)
         this@with.label.text = label
         this@with.percent.text = resources.getString(R.string.percent, percent)
         bar.progress = percent.coerceIn(0, 100)

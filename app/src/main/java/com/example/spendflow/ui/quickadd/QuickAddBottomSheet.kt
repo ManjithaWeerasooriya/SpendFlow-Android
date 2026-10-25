@@ -8,6 +8,7 @@ import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import androidx.core.view.children
 import androidx.core.widget.doAfterTextChanged
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import com.example.spendflow.core.ui.CurrencyOptions
 import com.example.spendflow.R
@@ -27,6 +28,7 @@ import java.time.format.DateTimeFormatter
 @AndroidEntryPoint
 class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) {
     private val model: QuickAddViewModel by viewModels()
+    private val feedback: EntryFeedbackViewModel by activityViewModels()
 
     override fun onStart() {
         super.onStart()
@@ -37,7 +39,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val b = SheetQuickAddBinding.bind(view)
-        if (model.completed) { dismiss(); return }
+        if (model.completed) { model.takeSavedEntry()?.let(feedback::saved); dismiss(); return }
         b.closeButton.setOnClickListener { dismiss() }
         b.amountInput.setText(model.draft.get<String>("amount").orEmpty())
         b.noteInput.setText(model.draft.get<String>("note").orEmpty())
@@ -144,15 +146,32 @@ class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) 
         }
         b.saveButton.setOnClickListener {
             val payment = PaymentMethod.entries.getOrNull(b.paymentInput.selectedItemPosition - 1)
-            if (!model.save(b.amountInput.text.toString(), model.draft["category"], b.typeToggle.checkedButtonId == R.id.typeIncome, payment, b.noteInput.text.toString())) {
-                b.errorText.setText(R.string.quick_invalid)
-                b.errorText.isVisible = true
+            b.errorText.isVisible = false
+            model.save(b.amountInput.text.toString(), model.draft["category"], b.typeToggle.checkedButtonId == R.id.typeIncome, payment, b.noteInput.text.toString())
+            val errors = model.errors.value
+            when {
+                errors.amount != null -> b.amountInput.requestFocus()
+                errors.rate != null -> b.rateInput.requestFocus()
+                errors.category != null -> b.categoryLabel.requestFocus()
             }
+        }
+        model.errors.collectWithLifecycle(viewLifecycleOwner) { errors ->
+            fun show(label: android.widget.TextView, message: Int?) {
+                label.isVisible = message != null
+                if (message != null) label.setText(message)
+            }
+            show(b.amountError, errors.amount)
+            show(b.categoryError, errors.category)
+            show(b.rateValidationError, errors.rate)
+            if (errors.general != null) show(b.errorText, errors.general)
         }
         model.saving.collectWithLifecycle(viewLifecycleOwner) { b.saveButton.isEnabled = !it }
         model.events.collectWithLifecycle(viewLifecycleOwner) { result ->
             when (result) {
-                is AppResult.Success -> dismiss()
+                is AppResult.Success -> {
+                    model.takeSavedEntry()?.let(feedback::saved)
+                    dismiss()
+                }
                 is AppResult.Error -> { b.errorText.setText(result.error.messageRes); b.errorText.isVisible = true }
             }
         }
