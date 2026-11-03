@@ -1,5 +1,6 @@
 package com.example.spendflow.ui.analytics
 
+import com.example.spendflow.core.time.MonthBounds
 import com.example.spendflow.domain.model.*
 import java.time.LocalDate
 import java.time.YearMonth
@@ -28,9 +29,11 @@ data class AnalyticsReport(
     companion object {
         fun build(month: YearMonth, currency: String, items: List<Transaction>, categories: List<Category>,
                   today: LocalDate = LocalDate.now(), zone: ZoneId = ZoneId.systemDefault()): AnalyticsReport {
+            val selectedBounds = MonthBounds(month, zone)
+            val previousBounds = MonthBounds(month.minusMonths(1), zone)
             val eligible = items.filter { it.type != TransactionType.TRANSFER && it.baseAmount.currencyCode == currency }
             fun Transaction.date() = dateTime.atZone(zone).toLocalDate()
-            val current = eligible.filter { YearMonth.from(it.date()) == month }
+            val current = eligible.filter { it.dateTime in selectedBounds }
             val income = current.filter { it.type == TransactionType.INCOME }
             val expense = current.filter { it.type == TransactionType.EXPENSE }
             val incomeTotal = income.sumOf { it.baseAmount.amountMinor }
@@ -44,7 +47,7 @@ data class AnalyticsReport(
             }
             val elapsedDays = if (YearMonth.from(today) == month) today.dayOfMonth else month.lengthOfMonth()
             return AnalyticsReport(month, currency, incomeTotal, expenseTotal,
-                eligible.filter { it.type == TransactionType.EXPENSE && YearMonth.from(it.date()) == month.minusMonths(1) }.sumOf { it.baseAmount.amountMinor },
+                eligible.filter { it.type == TransactionType.EXPENSE && it.dateTime in previousBounds }.sumOf { it.baseAmount.amountMinor },
                 current.size, income.map { it.categoryId }.distinct().size, expenseTotal / elapsedDays,
                 days.maxByOrNull { it.expenseMinor }?.takeIf { it.expenseMinor > 0 }?.day,
                 breakdown(expense), breakdown(income), days, current.sortedByDescending { it.dateTime })

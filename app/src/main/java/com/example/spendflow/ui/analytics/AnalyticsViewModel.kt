@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.time.MonthBounds
 import com.example.spendflow.data.repository.CategoryRepository
 import com.example.spendflow.data.repository.TransactionRepository
 import com.example.spendflow.data.repository.UserRepository
@@ -35,13 +36,17 @@ class AnalyticsViewModel @Inject constructor(
                 val user = (profile as AppResult.Success).data ?: return@flatMapLatest flowOf<AppResult<AnalyticsReport>?>(null)
                 val selected = YearMonth.parse(value)
                 val zone = ZoneId.systemDefault()
+                val selectedBounds = MonthBounds(selected, zone)
+                val previousBounds = MonthBounds(selected.minusMonths(1), zone)
                 combine(
-                    transactions.observeTransactions(selected.minusMonths(1).atDay(1).atStartOfDay(zone).toInstant(), selected.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant()),
+                    transactions.observeTransactions(previousBounds.startInclusive, selectedBounds.endExclusive),
                     categories.observeCategories(includeArchived = true),
                 ) { rows, cats ->
                     when (rows) {
                         is AppResult.Error -> rows
-                        is AppResult.Success -> AppResult.Success(AnalyticsReport.build(selected, user.baseCurrency, rows.data, (cats as? AppResult.Success)?.data.orEmpty()))
+                        is AppResult.Success -> AppResult.Success(
+                            AnalyticsReport.build(selected, user.baseCurrency, rows.data, (cats as? AppResult.Success)?.data.orEmpty(), zone = zone),
+                        )
                     } as AppResult<AnalyticsReport>?
                 }.onStart { emit(null) }
             }
