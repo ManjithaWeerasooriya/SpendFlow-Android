@@ -1,5 +1,7 @@
 package com.example.spendflow.domain.model
 
+import java.math.BigDecimal
+import java.math.MathContext
 import java.time.YearMonth
 
 /**
@@ -19,4 +21,19 @@ data class MonthlySummary(
     val totalsByClassification: Map<TransactionType, Money> = emptyMap(),
 ) {
     val netSavings: Money = totalIncome - totalExpenses
+
+    /** Net savings divided by income as a fraction (0.39 means 39%), or null when income is zero. */
+    val savingsRate: BigDecimal?
+        get() = fractionOfIncome(netSavings.amountMinor)
+
+    /** Expenses divided by income as a fraction (1.2 means 120%), or null when income is zero. */
+    val expenseToIncomeRatio: BigDecimal?
+        get() = fractionOfIncome(totalExpenses.amountMinor)
+
+    private fun fractionOfIncome(numeratorMinor: Long): BigDecimal? {
+        val incomeMinor = totalIncome.amountMinor
+        if (incomeMinor == 0L) return null
+        // Keep 34 significant digits for repeating decimals; percent rounding belongs to display.
+        return BigDecimal.valueOf(numeratorMinor).divide(BigDecimal.valueOf(incomeMinor), MathContext.DECIMAL128)
+    }
 }
