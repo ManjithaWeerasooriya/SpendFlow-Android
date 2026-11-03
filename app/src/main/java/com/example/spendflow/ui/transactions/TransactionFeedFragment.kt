@@ -19,7 +19,6 @@ import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.ui.collectWithLifecycle
 import com.example.spendflow.core.ui.components.AmountFormatter
 import com.example.spendflow.core.ui.components.AmountView
-import com.example.spendflow.core.ui.components.SummaryCardView
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.databinding.FragmentTransactionFeedBinding
 import com.example.spendflow.databinding.ItemTransactionRefinedBinding
@@ -27,7 +26,6 @@ import com.example.spendflow.domain.model.*
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.shape.MaterialShapeDrawable
 import com.google.android.material.shape.ShapeAppearanceModel
-import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -37,8 +35,8 @@ abstract class TransactionFeedFragment(private val home: Boolean) : Fragment(R.l
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val b = FragmentTransactionFeedBinding.bind(view)
         b.screenTitle.setText(if (home) R.string.nav_home else R.string.nav_transactions)
-        b.monthSubtitle.text = if (home) YearMonth.now().format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())) else getString(R.string.ui_all_history)
-        b.summary.isVisible = home
+        b.monthSubtitle.text = if (home) model.currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault())) else getString(R.string.ui_all_history)
+        b.summary.isVisible = false
         b.summary.compact = true
         b.recentHeader.isVisible = home
         b.feedFilter.isVisible = !home
@@ -71,16 +69,19 @@ abstract class TransactionFeedFragment(private val home: Boolean) : Fragment(R.l
             b.emptyState.isVisible = result is AppResult.Success && items.isEmpty()
             b.list.isVisible = items.isNotEmpty()
             val monthly = model.monthly.value
+            b.summary.isVisible = home && monthly is AppResult.Success
             b.totals.isVisible = !home && monthly is AppResult.Success
             if (monthly is AppResult.Success) {
-                val currency = (model.profile.value as? AppResult.Success)?.data?.baseCurrency ?: monthly.data.firstOrNull()?.baseAmount?.currencyCode ?: User.DEFAULT_BASE_CURRENCY
-                val rows = monthly.data.filter { it.baseAmount.currencyCode == currency }
-                val income = rows.filter { it.type == TransactionType.INCOME }.sumOf { it.baseAmount.amountMinor }
-                val expense = rows.filter { it.type == TransactionType.EXPENSE }.sumOf { it.baseAmount.amountMinor }
-                fun amount(value: Long) = Money(value, currency)
-                b.totals.text = getString(R.string.monthly_totals, AmountFormatter.format(amount(expense), true), AmountFormatter.format(amount(income), true))
-                b.summary.setSummary(SummaryCardView.Summary(amount(income), getString(R.string.analytics_sources, rows.filter { it.type == TransactionType.INCOME }.map { it.categoryId }.distinct().size),
-                    amount(expense), getString(R.string.analytics_entries, rows.count { it.type == TransactionType.EXPENSE }), amount(income - expense), if (income > 0) ((income - expense).toDouble() / income * 100).toInt() else null))
+                val summary = monthly.data
+                if (home) {
+                    b.summary.setMonthlySummary(summary)
+                } else {
+                    b.totals.text = getString(
+                        R.string.monthly_totals,
+                        AmountFormatter.format(summary.totalExpenses, showDecimals = true),
+                        AmountFormatter.format(summary.totalIncome, showDecimals = true),
+                    )
+                }
             }
             val goal = (model.goals.value as? AppResult.Success)?.data?.sortedBy { it.isCompleted }?.firstOrNull()
             b.goalPreview.isVisible = home && goal != null
@@ -89,7 +90,6 @@ abstract class TransactionFeedFragment(private val home: Boolean) : Fragment(R.l
         (if (home) model.recent else model.history).collectWithLifecycle(viewLifecycleOwner) { render() }
         model.monthly.collectWithLifecycle(viewLifecycleOwner) { render() }
         model.categories.collectWithLifecycle(viewLifecycleOwner) { render() }
-        model.profile.collectWithLifecycle(viewLifecycleOwner) { render() }
         model.filter.collectWithLifecycle(viewLifecycleOwner) { render() }
         if (home) model.goals.collectWithLifecycle(viewLifecycleOwner) { render() }
     }

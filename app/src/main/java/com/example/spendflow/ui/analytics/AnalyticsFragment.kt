@@ -10,7 +10,6 @@ import com.example.spendflow.R
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.ui.collectWithLifecycle
 import com.example.spendflow.core.ui.components.AmountFormatter
-import com.example.spendflow.core.ui.components.SummaryCardView
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.databinding.FragmentAnalyticsBinding
 import com.example.spendflow.databinding.ItemAnalyticsCategoryBinding
@@ -21,7 +20,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
 import java.time.YearMonth
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
@@ -33,7 +31,6 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val b = FragmentAnalyticsBinding.bind(view)
         b.summary.compact = true
-        b.summary.showSavingsRate = false
         b.previousMonth.setOnClickListener { model.moveMonth(-1) }
         b.nextMonth.setOnClickListener { model.moveMonth(1) }
         b.breakdownToggle.check(if (model.incomeMode.value) R.id.breakdownIncome else R.id.breakdownExpenses)
@@ -41,17 +38,16 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         fun render() {
             val month = YearMonth.parse(model.month.value)
             b.monthLabel.text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-            b.nextMonth.isEnabled = month < YearMonth.now()
+            b.nextMonth.isEnabled = month < YearMonth.now(model.zone)
             val result = model.report.value
-            b.reportContent.isVisible = result is AppResult.Success
-            b.status.isVisible = result !is AppResult.Success
+            val report = (result as? AppResult.Success)?.data?.takeIf { it.month == month }
+            b.reportContent.isVisible = report != null
+            b.status.isVisible = report == null
             b.status.setText(if (result is AppResult.Error) result.error.messageRes else R.string.analytics_loading)
-            if (result !is AppResult.Success) return
-            val report = result.data
+            if (report == null) return
             fun money(minor: Long) = Money(minor, report.currency)
             fun formatted(minor: Long) = AmountFormatter.format(money(minor), showDecimals = true)
-            b.summary.setSummary(SummaryCardView.Summary(money(report.incomeMinor), resources.getQuantityString(R.plurals.analytics_source_count, report.incomeSources, report.incomeSources),
-                money(report.expenseMinor), resources.getQuantityString(R.plurals.analytics_entry_count, report.entries.count { it.type == TransactionType.EXPENSE }, report.entries.count { it.type == TransactionType.EXPENSE }), money(report.netMinor), report.savingsRate))
+            b.summary.setMonthlySummary(report.summary)
             b.comparison.text = if (report.previousExpenseMinor == 0L) getString(R.string.analytics_no_comparison) else {
                 val change = (report.expenseMinor - report.previousExpenseMinor).toDouble() / report.previousExpenseMinor
                 val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }.format(abs(change))
@@ -84,7 +80,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
                     b.categoryChart.selectedSlice = index
                     val entries = report.entries.filter { it.categoryId == category.categoryId && it.type == if (income) TransactionType.INCOME else TransactionType.EXPENSE }
                     val details = entries.map { entry ->
-                        val date = entry.dateTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("dd MMM, HH:mm"))
+                        val date = entry.dateTime.atZone(model.zone).format(DateTimeFormatter.ofPattern("dd MMM, HH:mm"))
                         val original = AmountFormatter.format(entry.amount, true)
                         val converted = if (entry.amount.currencyCode != report.currency) " (${formatted(entry.baseAmount.amountMinor)})" else ""
                         "$date\n${entry.note?.takeIf { it.isNotBlank() } ?: name}\n$original$converted"

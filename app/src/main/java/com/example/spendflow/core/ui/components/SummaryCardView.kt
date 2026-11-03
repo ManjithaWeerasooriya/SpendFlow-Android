@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import com.example.spendflow.R
 import com.example.spendflow.databinding.ViewSummaryCardBinding
 import com.example.spendflow.domain.model.Money
+import com.example.spendflow.domain.model.MonthlySummary
 import com.google.android.material.color.MaterialColors
 
 /** Home hero card: income, expenses, net savings and the savings-rate pill. */
@@ -58,7 +59,31 @@ class SummaryCardView @JvmOverloads constructor(
         }
     }
 
-    fun setSummary(summary: Summary) = with(binding) {
+    fun setSummary(summary: Summary) = render(
+        summary,
+        summary.savedRatePercent?.let { resources.getString(R.string.summary_saved_rate, it) },
+    )
+
+    fun setMonthlySummary(summary: MonthlySummary) {
+        val unavailable = resources.getString(R.string.summary_ratio_unavailable)
+        val saved = summary.savingsRate?.let { PercentFormatter.formatFraction(it) } ?: unavailable
+        val spent = summary.expenseToIncomeRatio?.let { PercentFormatter.formatFraction(it) } ?: unavailable
+        val sources = summary.incomeBySource.size
+        render(
+            Summary(
+                income = summary.totalIncome,
+                incomeCaption = resources.getQuantityString(R.plurals.analytics_source_count, sources, sources),
+                expenses = summary.totalExpenses,
+                expensesCaption = resources.getString(R.string.summary_spent_ratio, spent),
+                net = summary.netSavings,
+                savedRatePercent = null,
+            ),
+            resources.getString(R.string.summary_saved_ratio, saved),
+            showCompactExpenseCaption = true,
+        )
+    }
+
+    private fun render(summary: Summary, savingsLabel: String?, showCompactExpenseCaption: Boolean = false) = with(binding) {
         incomeAmount.size = AmountView.Size.INLINE
         expensesAmount.size = AmountView.Size.INLINE
         netAmount.size = if (compact) AmountView.Size.TITLE else AmountView.Size.DISPLAY
@@ -70,13 +95,13 @@ class SummaryCardView @JvmOverloads constructor(
             savedRate.setTextColor(MaterialColors.getColor(this@SummaryCardView, R.attr.sfColorTextOnDark))
         }
         incomeCaption.isVisible = !compact
-        expensesCaption.isVisible = !compact
+        expensesCaption.isVisible = !compact || showCompactExpenseCaption
         incomeAmount.amount = summary.income
         incomeCaption.text = summary.incomeCaption
         expensesAmount.amount = summary.expenses
         expensesCaption.text = summary.expensesCaption
         netAmount.amount = summary.net
-        savedRate.isVisible = summary.savedRatePercent != null && showSavingsRate
-        summary.savedRatePercent?.let { savedRate.text = resources.getString(R.string.summary_saved_rate, it) }
+        savedRate.isVisible = savingsLabel != null && showSavingsRate
+        savedRate.text = savingsLabel
     }
 }

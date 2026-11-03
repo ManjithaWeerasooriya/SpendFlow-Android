@@ -16,6 +16,9 @@
     <string name="summary_expenses">Expenses</string>
     <string name="summary_net_savings">Net savings</string>
     <string name="summary_saved_rate">%1$d%% saved</string>
+    <string name="summary_saved_ratio">%1$s saved</string>
+    <string name="summary_spent_ratio">%1$s of income</string>
+    <string name="summary_ratio_unavailable">—</string>
 
     <string name="categories_name_hint">Category name</string>
     <string name="categories_add">Add</string>
