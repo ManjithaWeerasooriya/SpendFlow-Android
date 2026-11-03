@@ -5,6 +5,8 @@ import com.example.spendflow.core.common.AppError
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.data.repository.TransactionRepository
 import com.example.spendflow.data.repository.UserRepository
+import com.example.spendflow.domain.model.Category
+import com.example.spendflow.domain.model.CategoryType
 import com.example.spendflow.domain.model.Money
 import com.example.spendflow.domain.model.MonthlySummary
 import com.example.spendflow.domain.model.Transaction
@@ -56,16 +58,78 @@ class GetMonthlySummaryTest {
     }
 
     @Test
-    fun `recalculates on live transaction updates and preserves repository errors`() = runTest {
-        val expense = transaction("expense", TransactionType.EXPENSE, 500)
+    fun `breakdowns retain historical IDs and reconcile with totals in the profile currency`() = runTest {
+        val archived = Category("archived-food", "Food", CategoryType.EXPENSE, isArchived = true)
+        val deletedSourceId = "deleted-freelance"
+        // Deliberately differs from a fresh conversion using amount and rate.
+        val foreignIncome = transaction("foreign", TransactionType.INCOME, 28_750, deletedSourceId).copy(
+            amount = Money(100, "USD"),
+            rate = BigDecimal("300"),
+        )
+        val wrongBaseCurrency = transaction("wrong", TransactionType.EXPENSE, 100, "wrong-currency").copy(
+            amount = Money(100, "USD"),
+            baseAmount = Money(100, "USD"),
+        )
+        transactions.rows.value = AppResult.Success(
+            listOf(
+                transaction("meal", TransactionType.EXPENSE, 500, archived.id),
+                transaction("snack", TransactionType.EXPENSE, 300, archived.id),
+                transaction("bus", TransactionType.EXPENSE, 200, "transport"),
+                transaction("misc", TransactionType.EXPENSE, 100),
+                transaction("pay", TransactionType.INCOME, 50_000, "salary"),
+                transaction("bonus", TransactionType.INCOME, 10_000, "salary"),
+                foreignIncome,
+                transaction("gift", TransactionType.INCOME, 750),
+                transaction("move", TransactionType.TRANSFER, 500_000),
+                wrongBaseCurrency,
+            ),
+        )
+
         useCase(month, zone).test {
-            assertEquals(AppResult.Success(MonthlySummary(month, Money.zero("LKR"), Money.zero("LKR"))), awaitItem())
+            val summary = (awaitItem() as AppResult.Success).data
+            assertEquals(
+                mapOf(archived.id to Money(800, "LKR"), "transport" to Money(200, "LKR"), null to Money(100, "LKR")),
+                summary.expensesByCategory,
+            )
+            assertEquals(
+                mapOf("salary" to Money(60_000, "LKR"), deletedSourceId to Money(28_750, "LKR"), null to Money(750, "LKR")),
+                summary.incomeBySource,
+            )
+            assertEquals(
+                mapOf(
+                    TransactionType.INCOME to Money(89_500, "LKR"),
+                    TransactionType.EXPENSE to Money(1_100, "LKR"),
+                    TransactionType.TRANSFER to Money(500_000, "LKR"),
+                ),
+                summary.totalsByClassification,
+            )
+            assertEquals(summary.totalExpenses.amountMinor, summary.expensesByCategory.values.sumOf { it.amountMinor })
+            assertEquals(summary.totalIncome.amountMinor, summary.incomeBySource.values.sumOf { it.amountMinor })
+            assertEquals(Money(88_400, "LKR"), summary.netSavings)
+        }
+    }
+
+    @Test
+    fun `recalculates breakdowns after add edit and delete and preserves repository errors`() = runTest {
+        val expense = transaction("expense", TransactionType.EXPENSE, 500, "food")
+        useCase(month, zone).test {
+            val empty = MonthlySummary(month, Money.zero("LKR"), Money.zero("LKR"))
+            assertEquals(AppResult.Success(empty), awaitItem())
 
             transactions.rows.value = AppResult.Success(listOf(expense))
-            assertEquals(Money(-500, "LKR"), (awaitItem() as AppResult.Success).data.netSavings)
+            val added = (awaitItem() as AppResult.Success).data
+            assertEquals(Money(-500, "LKR"), added.netSavings)
+            assertEquals(mapOf("food" to Money(500, "LKR")), added.expensesByCategory)
+
+            val editedExpense = transaction(expense.id, TransactionType.EXPENSE, 700, "transport")
+            transactions.rows.value = AppResult.Success(listOf(editedExpense))
+            val edited = (awaitItem() as AppResult.Success).data
+            assertEquals(Money(700, "LKR"), edited.totalExpenses)
+            assertEquals(mapOf("transport" to Money(700, "LKR")), edited.expensesByCategory)
+            assertEquals(mapOf(TransactionType.EXPENSE to Money(700, "LKR")), edited.totalsByClassification)
 
             transactions.rows.value = AppResult.Success(emptyList())
-            assertEquals(Money.zero("LKR"), (awaitItem() as AppResult.Success).data.netSavings)
+            assertEquals(AppResult.Success(empty), awaitItem())
 
             transactions.rows.value = AppResult.Error(AppError.Network)
             assertEquals(AppResult.Error(AppError.Network), awaitItem())
@@ -88,14 +152,14 @@ class GetMonthlySummaryTest {
         }
     }
 
-    private fun transaction(id: String, type: TransactionType, minor: Long) = Transaction(
+    private fun transaction(id: String, type: TransactionType, minor: Long, categoryId: String? = null) = Transaction(
         id = id,
         type = type,
         amount = Money(minor, "LKR"),
         rate = BigDecimal.ONE,
         baseAmount = Money(minor, "LKR"),
         dateTime = Instant.parse("2026-10-15T12:00:00Z"),
-        categoryId = null,
+        categoryId = categoryId,
         paymentMethod = null,
         accountId = if (type == TransactionType.TRANSFER) "source" else null,
         transferAccountId = if (type == TransactionType.TRANSFER) "destination" else null,

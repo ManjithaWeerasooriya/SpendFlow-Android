@@ -48,18 +48,34 @@ class GetMonthlySummary @Inject constructor(
     }
 
     private fun summarize(month: YearMonth, currency: String, rows: List<Transaction>): MonthlySummary {
-        var income = 0L
-        var expenses = 0L
+        val expensesByCategory = mutableMapOf<String?, Long>()
+        val incomeBySource = mutableMapOf<String?, Long>()
+        val totalsByClassification = mutableMapOf<TransactionType, Long>()
         for (transaction in rows) {
             val amount = transaction.baseAmount
             // Like the existing Analytics report, never sum different base currencies.
             if (amount.currencyCode != currency) continue
+            totalsByClassification.addAmount(transaction.type, amount.amountMinor)
             when (transaction.type) {
-                TransactionType.INCOME -> income = Math.addExact(income, amount.amountMinor)
-                TransactionType.EXPENSE -> expenses = Math.addExact(expenses, amount.amountMinor)
+                TransactionType.INCOME -> incomeBySource.addAmount(transaction.categoryId, amount.amountMinor)
+                TransactionType.EXPENSE -> expensesByCategory.addAmount(transaction.categoryId, amount.amountMinor)
                 TransactionType.TRANSFER -> Unit
             }
         }
-        return MonthlySummary(month, Money(income, currency), Money(expenses, currency))
+
+        val classificationAmounts = totalsByClassification.mapValues { Money(it.value, currency) }
+        val zero = Money.zero(currency)
+        return MonthlySummary(
+            month = month,
+            totalIncome = classificationAmounts[TransactionType.INCOME] ?: zero,
+            totalExpenses = classificationAmounts[TransactionType.EXPENSE] ?: zero,
+            expensesByCategory = expensesByCategory.mapValues { Money(it.value, currency) },
+            incomeBySource = incomeBySource.mapValues { Money(it.value, currency) },
+            totalsByClassification = classificationAmounts,
+        )
+    }
+
+    private fun <K> MutableMap<K, Long>.addAmount(key: K, amount: Long) {
+        this[key] = Math.addExact(this[key] ?: 0L, amount)
     }
 }
