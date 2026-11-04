@@ -151,7 +151,7 @@ class CategoriesViewModelTest {
         )
         assertEquals(
             IncomeSourceFormErrors(R.string.income_sources_name_too_long, R.string.income_sources_currency_required),
-            model.saveIncomeSource(null, "x".repeat(101), "unsupported"),
+            model.saveIncomeSource(null, "x".repeat(101), "ZZZ"),
         )
         assertEquals(2, repository.categories.size)
         assertEquals(false, model.incomeSourceSaving.value)
@@ -206,8 +206,12 @@ class CategoriesViewModelTest {
             val states = model.uiState.testIn(backgroundScope)
             val events = model.events.testIn(backgroundScope)
             states.awaitSettled()
+            val expense = repository.categories.single { it.id == "1" }
+            model.saveIncomeSource(expense.id, "Renamed expense", null)
+            assertEquals(CategoriesEvent.IncomeSourceWriteFailed(AppError.NotFound), events.awaitItem())
             model.archiveIncomeSource("1")
             assertEquals(CategoriesEvent.IncomeSourceWriteFailed(AppError.NotFound), events.awaitItem())
+            assertEquals(expense, repository.categories.single { it.id == expense.id })
 
             model.saveIncomeSource(null, "Salary", "USD")
             assertEquals(CategoriesEvent.IncomeSourceWriteFailed(AppError.PermissionDenied), events.awaitItem())
