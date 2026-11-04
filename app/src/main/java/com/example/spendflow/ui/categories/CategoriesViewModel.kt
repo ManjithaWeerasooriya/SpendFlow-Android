@@ -1,6 +1,7 @@
 package com.example.spendflow.ui.categories
 
 import androidx.annotation.StringRes
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -38,6 +40,13 @@ sealed interface CategoriesEvent {
     data class ShowError(val error: AppError) : CategoriesEvent
 }
 
+internal enum class CategoriesTab { CATEGORIES, INCOME_SOURCES }
+
+internal data class CategoriesScreenState(
+    val tab: CategoriesTab,
+    val content: UiState<List<Category>>,
+)
+
 /**
  * Reference screen for the UI -> ViewModel -> Repository structure. The Fragment only renders
  * [uiState], forwards user input to the public functions and reacts to [events].
@@ -46,6 +55,7 @@ sealed interface CategoriesEvent {
 class CategoriesViewModel @Inject constructor(
     private val categories: CategoryRepository,
     writeFailures: WriteFailures,
+    private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
     // One-shot effects: delivered once, not replayed to a recreated view like state would be
@@ -63,6 +73,20 @@ class CategoriesViewModel @Inject constructor(
         }
         // Keeps the subscription through configuration changes, stops it 5 s after the UI goes away
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UiState.Loading)
+
+    internal val selectedTab = savedState.getStateFlow("categories_tab", CategoriesTab.CATEGORIES)
+    internal val screenState: Flow<CategoriesScreenState> = combine(selectedTab, uiState) { tab, state ->
+        val content = if (tab == CategoriesTab.INCOME_SOURCES && state is UiState.Success) {
+            UiState.Success(state.data.filter { it.type == CategoryType.INCOME })
+        } else {
+            state
+        }
+        CategoriesScreenState(tab, content)
+    }
+
+    internal fun selectTab(tab: CategoriesTab) {
+        savedState["categories_tab"] = tab
+    }
 
     init {
         viewModelScope.launch {

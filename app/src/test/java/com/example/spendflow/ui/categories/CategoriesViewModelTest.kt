@@ -1,5 +1,6 @@
 package com.example.spendflow.ui.categories
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import app.cash.turbine.turbineScope
@@ -11,6 +12,7 @@ import com.example.spendflow.domain.model.CategoryType
 import com.example.spendflow.testing.FakeCategoryRepository
 import com.example.spendflow.testing.FakeWriteFailures
 import com.example.spendflow.testing.MainDispatcherRule
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,7 +38,8 @@ class CategoriesViewModelTest {
 
     private val writeFailures = FakeWriteFailures()
 
-    private fun viewModel() = CategoriesViewModel(repository, writeFailures)
+    private fun viewModel(state: SavedStateHandle = SavedStateHandle()) =
+        CategoriesViewModel(repository, writeFailures, state)
 
     /**
      * Skips Loading. With the unconfined dispatcher, StateFlow often settles before Turbine reads it,
@@ -72,6 +75,57 @@ class CategoriesViewModelTest {
 
         viewModel().uiState.test {
             assertEquals(UiState.Error(AppError.PermissionDenied), awaitSettled())
+        }
+    }
+
+    @Test
+    fun `income tab shows only active income sources and reacts to default currency changes`() = runTest {
+        val salary = Category("salary", "Salary", CategoryType.INCOME, defaultCurrency = "USD")
+        val freelance = Category("freelance", "Freelance", CategoryType.INCOME)
+        repository.create(salary)
+        repository.create(freelance)
+        repository.create(Category("old", "Old job", CategoryType.INCOME, isArchived = true))
+        val handle = SavedStateHandle()
+        val model = viewModel(handle)
+
+        model.screenState.filter { it.content != UiState.Loading }.test {
+            val categories = awaitItem()
+            assertEquals(CategoriesTab.CATEGORIES, categories.tab)
+            val categoryRows = (categories.content as UiState.Success).data
+            assertEquals(listOf("Food", "Freelance", "rent", "Salary"), categoryRows.map { it.name })
+
+            model.selectTab(CategoriesTab.INCOME_SOURCES)
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Success(listOf(freelance, salary))), awaitItem())
+            assertEquals(CategoriesTab.INCOME_SOURCES, viewModel(handle).selectedTab.value)
+
+            val updatedSalary = salary.copy(defaultCurrency = "EUR")
+            repository.update(updatedSalary)
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Success(listOf(freelance, updatedSalary))), awaitItem())
+
+            model.selectTab(CategoriesTab.CATEGORIES)
+            val restored = awaitItem()
+            assertEquals(CategoriesTab.CATEGORIES, restored.tab)
+            assertEquals(categoryRows.map { it.id }, (restored.content as UiState.Success).data.map { it.id })
+        }
+    }
+
+    @Test
+    fun `income tab distinguishes loading empty and errors and recovers live`() = runTest {
+        val model = viewModel()
+        model.selectTab(CategoriesTab.INCOME_SOURCES)
+        assertEquals(UiState.Loading, model.uiState.value)
+        model.screenState.filter { it.content != UiState.Loading }.test {
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Success(emptyList())), awaitItem())
+            repository.observeError = AppError.Network
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Error(AppError.Network)), awaitItem())
+            repository.observeError = null
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Success(emptyList())), awaitItem())
+
+            val source = Category("gift", "Gifts", CategoryType.INCOME)
+            repository.create(source)
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Success(listOf(source))), awaitItem())
+            repository.delete(source.id)
+            assertEquals(CategoriesScreenState(CategoriesTab.INCOME_SOURCES, UiState.Success(emptyList())), awaitItem())
         }
     }
 
