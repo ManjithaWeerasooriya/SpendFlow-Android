@@ -47,7 +47,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             if (report == null) return
             fun money(minor: Long) = Money(minor, report.currency)
             fun formatted(minor: Long) = AmountFormatter.format(money(minor), showDecimals = true)
-            b.summary.setMonthlySummary(report.summary)
+            b.summary.setMonthlySummary(report.summary, showExpenseRatioBar = true)
             b.comparison.text = if (report.previousExpenseMinor == 0L) getString(R.string.analytics_no_comparison) else {
                 val change = (report.expenseMinor - report.previousExpenseMinor).toDouble() / report.previousExpenseMinor
                 val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }.format(abs(change))

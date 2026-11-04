@@ -19,6 +19,11 @@
     <string name="summary_saved_ratio">%1$s saved</string>
     <string name="summary_spent_ratio">%1$s of income</string>
     <string name="summary_ratio_unavailable">—</string>
+    <string name="summary_metric_value">%1$s: %2$s</string>
+    <string name="summary_savings_rate_value">Savings rate: %1$s</string>
+    <string name="summary_savings_rate_unavailable">Savings rate unavailable</string>
+    <string name="summary_expense_to_income_value">Expense-to-income ratio: %1$s</string>
+    <string name="summary_expense_to_income_unavailable">Expense-to-income ratio unavailable</string>
 
     <string name="categories_name_hint">Category name</string>
     <string name="categories_add">Add</string>

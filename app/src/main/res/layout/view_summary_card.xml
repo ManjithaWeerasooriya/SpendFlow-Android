@@ -22,6 +22,7 @@
                 android:layout_height="wrap_content"
                 android:drawablePadding="@dimen/sf_space_m"
                 android:gravity="center_vertical"
+                android:importantForAccessibility="no"
                 android:text="@string/summary_income"
                 android:textAppearance="@style/TextAppearance.SpendFlow.Body"
                 android:textColor="?attr/sfColorTextOnDarkMuted"
@@ -62,6 +63,7 @@
                 android:layout_height="wrap_content"
                 android:drawablePadding="@dimen/sf_space_m"
                 android:gravity="center_vertical"
+                android:importantForAccessibility="no"
                 android:text="@string/summary_expenses"
                 android:textAppearance="@style/TextAppearance.SpendFlow.Body"
                 android:textColor="?attr/sfColorTextOnDarkMuted"
@@ -95,6 +97,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:importantForAccessibility="no"
         android:text="@string/summary_net_savings"
         android:textAppearance="@style/TextAppearance.SpendFlow.Body"
         android:textColor="?attr/sfColorTextOnDarkMuted" />
@@ -126,5 +129,40 @@
             android:textColor="?attr/sfColorTextOnDark"
             app:drawableStartCompat="@drawable/dot_income"
             tools:text="39% saved" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/expenseRatio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/sf_space_l"
+        android:importantForAccessibility="yes"
+        android:orientation="vertical"
+        android:screenReaderFocusable="true"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/expenseRatioLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:importantForAccessibility="no"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/sfColorTextOnDark"
+            tools:text="Expense-to-income ratio: 61%" />
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/expenseRatioBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_s"
+            android:importantForAccessibility="no"
+            android:max="100"
+            app:indicatorColor="?attr/sfColorTextOnDark"
+            app:indicatorTrackGapSize="0dp"
+            app:trackColor="?attr/sfColorHeroPill"
+            app:trackCornerRadius="4dp"
+            app:trackStopIndicatorSize="0dp"
+            app:trackThickness="@dimen/sf_progress_track"
+            tools:progress="61" />
     </LinearLayout>
 </merge>
