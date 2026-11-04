@@ -68,6 +68,7 @@ class GetMonthlySummary @Inject constructor(
         val current: MonthlySummary,
         val previous: MonthlySummary,
         val currentEntries: List<Transaction>,
+        val hasCurrentTransactions: Boolean,
     )
 
     internal companion object {
@@ -82,6 +83,7 @@ class GetMonthlySummary @Inject constructor(
                 currentEntries = currentRows.filter {
                     it.type != TransactionType.TRANSFER && it.baseAmount.currencyCode == currency
                 },
+                hasCurrentTransactions = currentRows.isNotEmpty(),
             )
         }
 

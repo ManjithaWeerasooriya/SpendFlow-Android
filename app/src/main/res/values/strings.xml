@@ -164,6 +164,9 @@
     <string name="analytics_previous_month">Previous month</string>
     <string name="analytics_next_month">Next month</string>
     <string name="analytics_loading">Loading your insights...</string>
+    <string name="analytics_empty_month_title">No transactions this month</string>
+    <string name="analytics_empty_month_message">No transactions were recorded for %1$s. Add a transaction dated in this month to see it here.</string>
+    <string name="analytics_income_required">Savings and expense-to-income percentages require recorded income for this month.</string>
     <string name="analytics_breakdown">Where your money goes</string>
     <string name="analytics_cashflow">Daily cash flow</string>
     <string name="analytics_chart_legend">Green: income   Violet: expenses</string>

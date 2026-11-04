@@ -10,8 +10,25 @@
             <Button android:id="@+id/nextMonth" style="?attr/materialIconButtonFilledTonalStyle" android:layout_width="48dp" android:layout_height="48dp" android:contentDescription="@string/analytics_next_month" app:icon="@drawable/ic_chevron_right" />
         </LinearLayout>
         <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:accessibilityLiveRegion="polite" />
+        <com.example.spendflow.core.ui.components.EmptyStateView
+            android:id="@+id/analyticsEmptyState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:sfActionText="@string/nav_add_transaction"
+            app:sfIcon="@drawable/ic_transactions"
+            app:sfTitle="@string/analytics_empty_month_title" />
         <LinearLayout android:id="@+id/reportContent" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
             <com.example.spendflow.core.ui.components.SummaryCardView android:id="@+id/summary" android:layout_width="match_parent" android:layout_height="wrap_content" />
+            <TextView
+                android:id="@+id/incomeRequiredNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/sf_space_m"
+                android:text="@string/analytics_income_required"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/sfColorTextMuted"
+                android:visibility="gone" />
             <TextView android:id="@+id/comparison" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginVertical="@dimen/sf_space_l" android:textColor="?attr/sfColorTextMuted" />
             <com.google.android.material.card.MaterialCardView style="@style/Widget.SpendFlow.InsetCard" android:layout_width="match_parent" android:layout_height="wrap_content">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">

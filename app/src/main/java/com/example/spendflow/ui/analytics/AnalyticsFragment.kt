@@ -6,8 +6,8 @@ import android.view.View
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.example.spendflow.R
-import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.ui.collectWithLifecycle
 import com.example.spendflow.core.ui.components.AmountFormatter
 import com.example.spendflow.core.ui.messageRes
@@ -15,6 +15,7 @@ import com.example.spendflow.databinding.FragmentAnalyticsBinding
 import com.example.spendflow.databinding.ItemAnalyticsCategoryBinding
 import com.example.spendflow.domain.model.Money
 import com.example.spendflow.domain.model.TransactionType
+import com.example.spendflow.ui.main.openQuickAdd
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -33,18 +34,36 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         b.summary.compact = true
         b.previousMonth.setOnClickListener { model.moveMonth(-1) }
         b.nextMonth.setOnClickListener { model.moveMonth(1) }
+        b.analyticsEmptyState.setOnActionClickListener { findNavController().openQuickAdd() }
         b.breakdownToggle.check(if (model.incomeMode.value) R.id.breakdownIncome else R.id.breakdownExpenses)
         b.breakdownToggle.addOnButtonCheckedListener { _, id, checked -> if (checked) model.setIncomeMode(id == R.id.breakdownIncome) }
         fun render() {
             val month = YearMonth.parse(model.month.value)
-            b.monthLabel.text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+            val monthLabel = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+            b.monthLabel.text = monthLabel
             b.nextMonth.isEnabled = model.canMoveNext()
-            val result = model.report.value?.forMonth(month)
-            val report = (result as? AppResult.Success)?.data
-            b.reportContent.isVisible = report != null
-            b.status.isVisible = report == null
-            b.status.setText(if (result is AppResult.Error) result.error.messageRes else R.string.analytics_loading)
-            if (report == null) return
+            val content = model.report.value.contentFor(month)
+            b.reportContent.isVisible = content is AnalyticsContent.Populated
+            b.analyticsEmptyState.isVisible = content == AnalyticsContent.Empty
+            b.status.isVisible = content == AnalyticsContent.Loading || content is AnalyticsContent.Error
+            val report = when (content) {
+                AnalyticsContent.Loading -> {
+                    b.status.setText(R.string.analytics_loading)
+                    return
+                }
+                is AnalyticsContent.Error -> {
+                    b.status.setText(content.error.messageRes)
+                    return
+                }
+                AnalyticsContent.Empty -> {
+                    b.analyticsEmptyState.message = getString(R.string.analytics_empty_month_message, monthLabel)
+                    return
+                }
+                is AnalyticsContent.Populated -> {
+                    b.incomeRequiredNote.isVisible = content.showIncomeRequired
+                    content.report
+                }
+            }
             fun money(minor: Long) = Money(minor, report.currency)
             fun formatted(minor: Long) = AmountFormatter.format(money(minor), showDecimals = true)
             b.summary.setMonthlySummary(report.summary, showExpenseRatioBar = true)

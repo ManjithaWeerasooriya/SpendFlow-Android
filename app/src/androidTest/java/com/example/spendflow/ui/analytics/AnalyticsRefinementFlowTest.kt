@@ -21,6 +21,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import org.junit.Assert.*
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -117,7 +118,34 @@ class AnalyticsRefinementFlowTest {
         onView(withText(R.string.action_close)).inRoot(androidx.test.espresso.matcher.RootMatchers.isDialog()).perform(click())
         eventually { main { assertTrue(activity.hasWindowFocus()) } }
         main { activity.findViewById<android.view.View>(R.id.previousMonth).performClick() }
-        eventually { main { assertEquals("0.00", activity.findViewById<TextView>(R.id.breakdownAmount)?.text?.toString()) } }
+        eventually { main {
+            assertTrue(activity.findViewById<android.view.View>(R.id.analyticsEmptyState)?.isShown == true)
+            assertFalse(activity.findViewById<android.view.View>(R.id.reportContent)?.isShown == true)
+        } }
+        onView(withText(R.string.nav_add_transaction)).perform(click())
+        eventually { main {
+            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
+            assertEquals(R.id.quickAddSheet, host.navController.currentDestination?.id)
+        } }
+        pressBack()
+        val previousExpense = tx("previous-expense", "food", 5_000, 4).copy(
+            dateTime = month.minusMonths(1).atDay(4).atStartOfDay(zone).toInstant(),
+        )
+        val previousExpenseDoc = profile.collection("transactions").document(previousExpense.id)
+        previousExpenseDoc.set(previousExpense.toFirestore().withCreateTimestamps()).await()
+        eventually { main {
+            assertTrue(activity.findViewById<android.view.View>(R.id.reportContent)?.isShown == true)
+            assertTrue(activity.findViewById<android.view.View>(R.id.incomeRequiredNote)?.isShown == true)
+            assertFalse(activity.findViewById<android.view.View>(R.id.expenseRatioBar)?.isShown == true)
+            assertEquals(
+                activity.getString(R.string.summary_saved_ratio, activity.getString(R.string.summary_ratio_unavailable)),
+                activity.findViewById<TextView>(R.id.savedRate)?.text?.toString(),
+            )
+        } }
+        previousExpenseDoc.delete().await()
+        eventually { main {
+            assertTrue(activity.findViewById<android.view.View>(R.id.analyticsEmptyState)?.isShown == true)
+        } }
         main { activity.findViewById<android.view.View>(R.id.nextMonth).performClick() }
         eventually { main { assertEquals("150,000.00", activity.findViewById<TextView>(R.id.breakdownAmount)?.text?.toString()) } }
         main { activity.findViewById<android.view.View>(R.id.breakdownExpenses).performClick() }

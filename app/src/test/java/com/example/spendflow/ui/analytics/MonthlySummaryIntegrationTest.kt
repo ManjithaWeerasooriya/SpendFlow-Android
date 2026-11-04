@@ -65,12 +65,16 @@ class MonthlySummaryIntegrationTest {
             val homeStates = feed.monthly.filterNotNull().testIn(backgroundScope)
             val analyticsStates = analytics.report.filterNotNull().testIn(backgroundScope)
             val empty = (homeStates.awaitItem() as AppResult.Success).data
-            assertEquals(empty, (analyticsStates.awaitItem().result as AppResult.Success).data.summary)
+            val emptyReport = analyticsStates.awaitItem()
+            assertEquals(empty, (emptyReport.result as AppResult.Success).data.summary)
+            assertEquals(AnalyticsContent.Empty, emptyReport.contentFor(feed.currentMonth))
             assertEquals(Money.zero("LKR"), empty.totalIncome)
 
             transactions.rows.value = listOf(income, expense, prior)
             val initial = (homeStates.awaitItem() as AppResult.Success).data
-            val initialReport = (analyticsStates.awaitItem().result as AppResult.Success).data
+            val initialContent = analyticsStates.awaitItem().contentFor(feed.currentMonth) as AnalyticsContent.Populated
+            val initialReport = initialContent.report
+            assertFalse(initialContent.showIncomeRequired)
             assertEquals(initial, initialReport.summary)
             assertEquals(Money(7_260_000, "LKR"), initial.netSavings)
             assertEquals("39%", PercentFormatter.formatFraction(checkNotNull(initial.savingsRate), Locale.US))
@@ -88,9 +92,16 @@ class MonthlySummaryIntegrationTest {
 
             transactions.rows.value = listOf(expense, prior)
             val deleted = (homeStates.awaitItem() as AppResult.Success).data
-            assertEquals(deleted, (analyticsStates.awaitItem().result as AppResult.Success).data.summary)
+            val expenseOnly = analyticsStates.awaitItem().contentFor(feed.currentMonth) as AnalyticsContent.Populated
+            assertTrue(expenseOnly.showIncomeRequired)
+            assertEquals(deleted, expenseOnly.report.summary)
+            assertEquals(11_240_000L, expenseOnly.report.days[14].expenseMinor)
             assertNull(deleted.savingsRate)
             assertNull(deleted.expenseToIncomeRatio)
+
+            transactions.rows.value = listOf(prior)
+            assertEquals(empty, (homeStates.awaitItem() as AppResult.Success).data)
+            assertEquals(AnalyticsContent.Empty, analyticsStates.awaitItem().contentFor(feed.currentMonth))
 
             analytics.moveMonth(-1)
             val previous = (analyticsStates.awaitItem().result as AppResult.Success).data

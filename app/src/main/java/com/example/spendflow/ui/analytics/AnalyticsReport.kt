@@ -23,6 +23,7 @@ data class AnalyticsReport(
     val days: List<DailyCashFlow>,
     val entries: List<Transaction>,
     val summary: MonthlySummary = MonthlySummary(month, Money(incomeMinor, currency), Money(expenseMinor, currency)),
+    val hasTransactions: Boolean = transactionCount > 0,
 ) {
     val netMinor get() = summary.netSavings.amountMinor
     val savingsRate get() = summary.savingsRate?.movePointRight(2)?.toDouble()?.toInt()
@@ -72,6 +73,7 @@ data class AnalyticsReport(
                 days = days,
                 entries = current.sortedByDescending { it.dateTime },
                 summary = summary,
+                hasTransactions = comparison.hasCurrentTransactions,
             )
         }
     }
