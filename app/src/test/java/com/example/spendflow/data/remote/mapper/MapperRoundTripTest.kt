@@ -41,8 +41,21 @@ class MapperRoundTripTest {
     @Test
     fun `income source preserves default currency and legacy sources have none`() {
         val source = Category("salary", "Salary", CategoryType.INCOME, defaultCurrency = "USD")
-        assertEquals(source, categoryFromFirestore(source.id, source.toFirestore()))
-        assertEquals(null, categoryFromFirestore(source.id, source.toFirestore() - "defaultCurrency").defaultCurrency)
+        val payload = source.toFirestore()
+        assertEquals("Salary", payload["name"])
+        assertEquals("INCOME", payload["type"])
+        assertEquals(false, payload[FirestoreFields.IS_ARCHIVED])
+        assertEquals("USD", payload["defaultCurrency"])
+        assertEquals(source, categoryFromFirestore(source.id, payload))
+        assertEquals(null, categoryFromFirestore(source.id, payload - "defaultCurrency").defaultCurrency)
+
+        val archived = source.copy(name = "Day job", isArchived = true)
+        val update = archived.toFirestore()
+        assertEquals(
+            payload + mapOf("name" to "Day job", FirestoreFields.IS_ARCHIVED to true),
+            update,
+        )
+        assertEquals(archived, categoryFromFirestore(source.id, update))
     }
 
     @Test
