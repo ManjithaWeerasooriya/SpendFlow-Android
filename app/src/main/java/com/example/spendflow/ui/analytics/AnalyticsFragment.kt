@@ -20,7 +20,6 @@ import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
@@ -35,14 +34,21 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         b.previousMonth.setOnClickListener { model.moveMonth(-1) }
         b.nextMonth.setOnClickListener { model.moveMonth(1) }
         b.analyticsEmptyState.setOnActionClickListener { findNavController().openQuickAdd() }
-        b.breakdownToggle.check(if (model.incomeMode.value) R.id.breakdownIncome else R.id.breakdownExpenses)
-        b.breakdownToggle.addOnButtonCheckedListener { _, id, checked -> if (checked) model.setIncomeMode(id == R.id.breakdownIncome) }
-        fun render() {
-            val month = YearMonth.parse(model.month.value)
-            val monthLabel = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+        var bindingBreakdown = false
+        b.breakdownToggle.addOnButtonCheckedListener { _, id, checked ->
+            if (checked && !bindingBreakdown) model.setIncomeMode(id == R.id.breakdownIncome)
+        }
+        fun render(state: AnalyticsUiState) {
+            val monthLabel = state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
             b.monthLabel.text = monthLabel
-            b.nextMonth.isEnabled = model.canMoveNext()
-            val content = model.report.value.contentFor(month)
+            b.nextMonth.isEnabled = state.canMoveNext
+            val checkedId = if (state.incomeMode) R.id.breakdownIncome else R.id.breakdownExpenses
+            if (b.breakdownToggle.checkedButtonId != checkedId) {
+                bindingBreakdown = true
+                b.breakdownToggle.check(checkedId)
+                bindingBreakdown = false
+            }
+            val content = state.content
             b.reportContent.isVisible = content is AnalyticsContent.Populated
             b.analyticsEmptyState.isVisible = content == AnalyticsContent.Empty
             b.status.isVisible = content == AnalyticsContent.Loading || content is AnalyticsContent.Error
@@ -72,7 +78,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
                 val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }.format(abs(change))
                 getString(if (change > 0) R.string.analytics_spending_up else R.string.analytics_spending_down, percent)
             }
-            val income = model.incomeMode.value
+            val income = state.incomeMode
             val categories = if (income) report.incomeBySource else report.expensesByCategory
             b.breakdownTitle.setText(if (income) R.string.analytics_income_breakdown else R.string.analytics_breakdown)
             val total = if (income) report.incomeMinor else report.expenseMinor
@@ -125,8 +131,6 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             } ?: getString(R.string.analytics_no_expenses)
             b.entryCount.text = getString(R.string.analytics_recorded, report.transactionCount)
         }
-        model.month.collectWithLifecycle(viewLifecycleOwner) { render() }
-        model.report.collectWithLifecycle(viewLifecycleOwner) { render() }
-        model.incomeMode.collectWithLifecycle(viewLifecycleOwner) { render() }
+        model.uiState.collectWithLifecycle(viewLifecycleOwner, action = ::render)
     }
 }

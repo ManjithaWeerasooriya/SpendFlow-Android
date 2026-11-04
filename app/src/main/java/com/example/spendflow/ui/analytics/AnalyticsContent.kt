@@ -14,9 +14,15 @@ internal sealed interface AnalyticsContent {
     }
 }
 
-internal fun AnalyticsViewModel.MonthReport?.contentFor(month: YearMonth): AnalyticsContent =
-    when (val result = this?.forMonth(month)) {
-        null -> AnalyticsContent.Loading
-        is AppResult.Error -> AnalyticsContent.Error(result.error)
-        is AppResult.Success -> if (result.data.hasTransactions) AnalyticsContent.Populated(result.data) else AnalyticsContent.Empty
+internal data class AnalyticsUiState(
+    val month: YearMonth,
+    val canMoveNext: Boolean,
+    val incomeMode: Boolean,
+    val content: AnalyticsContent,
+)
+
+internal fun AppResult<AnalyticsReport>.toAnalyticsContent(): AnalyticsContent =
+    when (this) {
+        is AppResult.Error -> AnalyticsContent.Error(error)
+        is AppResult.Success -> if (data.hasTransactions) AnalyticsContent.Populated(data) else AnalyticsContent.Empty
     }

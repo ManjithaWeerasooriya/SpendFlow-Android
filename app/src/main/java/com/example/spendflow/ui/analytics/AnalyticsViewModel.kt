@@ -23,36 +23,43 @@ class AnalyticsViewModel @Inject constructor(
 ) : ViewModel() {
     internal val zone: ZoneId = ZoneId.systemDefault()
     private fun currentMonth(): YearMonth = YearMonth.now(zone)
-    val month = state.getStateFlow("analytics_month", currentMonth().toString())
-    val incomeMode = state.getStateFlow("analytics_income", false)
+    private val month = state.getStateFlow("analytics_month", currentMonth().toString())
+    private val incomeMode = state.getStateFlow("analytics_income", false)
     fun setIncomeMode(income: Boolean) { state["analytics_income"] = income }
-
-    internal fun canMoveNext(): Boolean = YearMonth.parse(month.value) < currentMonth()
 
     fun moveMonth(delta: Long) {
         val next = YearMonth.parse(month.value).plusMonths(delta)
         if (next <= currentMonth()) state["analytics_month"] = next.toString()
     }
 
-    internal data class MonthReport(val month: YearMonth, val result: AppResult<AnalyticsReport>) {
-        fun forMonth(selected: YearMonth): AppResult<AnalyticsReport>? = result.takeIf { month == selected }
-    }
-
-    internal val report: StateFlow<MonthReport?> = month
+    internal val uiState: StateFlow<AnalyticsUiState> = month
         .flatMapLatest { value ->
             val selected = YearMonth.parse(value)
-            combine(
+            val content = combine(
                 summaries.observeComparison(selected, zone),
-                categories.observeCategories(includeArchived = true),
+                categories.observeCategories(includeArchived = true)
+                    .map { (it as? AppResult.Success)?.data.orEmpty() }
+                    .onStart { emit(emptyList()) },
             ) { comparison, cats ->
-                val result = when (comparison) {
+                val result: AppResult<AnalyticsReport> = when (comparison) {
                     is AppResult.Error -> comparison
                     is AppResult.Success -> AppResult.Success(
-                        AnalyticsReport.build(comparison.data, (cats as? AppResult.Success)?.data.orEmpty(), LocalDate.now(zone), zone),
+                        AnalyticsReport.build(comparison.data, cats, LocalDate.now(zone), zone),
                     )
                 }
-                val monthReport: MonthReport? = MonthReport(selected, result)
-                monthReport
-            }.onStart { emit(null) }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+                result.toAnalyticsContent()
+            }
+            combine(content.onStart { emit(AnalyticsContent.Loading) }, incomeMode) { report, income ->
+                AnalyticsUiState(selected, selected < currentMonth(), income, report)
+            }
+        }
+        // Drop the previous month's in-flight work when the selection changes.
+        .buffer(0)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            YearMonth.parse(month.value).let { selected ->
+                AnalyticsUiState(selected, selected < currentMonth(), incomeMode.value, AnalyticsContent.Loading)
+            },
+        )
 }
