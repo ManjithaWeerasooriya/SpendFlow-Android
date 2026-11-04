@@ -22,27 +22,37 @@ class AnalyticsViewModel @Inject constructor(
     private val state: SavedStateHandle,
 ) : ViewModel() {
     internal val zone: ZoneId = ZoneId.systemDefault()
-    val month = state.getStateFlow("analytics_month", YearMonth.now(zone).toString())
+    private fun currentMonth(): YearMonth = YearMonth.now(zone)
+    val month = state.getStateFlow("analytics_month", currentMonth().toString())
     val incomeMode = state.getStateFlow("analytics_income", false)
     fun setIncomeMode(income: Boolean) { state["analytics_income"] = income }
+
+    internal fun canMoveNext(): Boolean = YearMonth.parse(month.value) < currentMonth()
+
     fun moveMonth(delta: Long) {
         val next = YearMonth.parse(month.value).plusMonths(delta)
-        if (next <= YearMonth.now(zone)) state["analytics_month"] = next.toString()
+        if (next <= currentMonth()) state["analytics_month"] = next.toString()
     }
 
-    val report: StateFlow<AppResult<AnalyticsReport>?> = month
+    internal data class MonthReport(val month: YearMonth, val result: AppResult<AnalyticsReport>) {
+        fun forMonth(selected: YearMonth): AppResult<AnalyticsReport>? = result.takeIf { month == selected }
+    }
+
+    internal val report: StateFlow<MonthReport?> = month
         .flatMapLatest { value ->
+            val selected = YearMonth.parse(value)
             combine(
-                summaries.observeComparison(YearMonth.parse(value), zone),
+                summaries.observeComparison(selected, zone),
                 categories.observeCategories(includeArchived = true),
             ) { comparison, cats ->
-                val result: AppResult<AnalyticsReport>? = when (comparison) {
+                val result = when (comparison) {
                     is AppResult.Error -> comparison
                     is AppResult.Success -> AppResult.Success(
                         AnalyticsReport.build(comparison.data, (cats as? AppResult.Success)?.data.orEmpty(), LocalDate.now(zone), zone),
                     )
                 }
-                result
+                val monthReport: MonthReport? = MonthReport(selected, result)
+                monthReport
             }.onStart { emit(null) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 }

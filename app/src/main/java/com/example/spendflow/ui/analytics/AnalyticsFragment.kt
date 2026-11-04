@@ -38,9 +38,9 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
         fun render() {
             val month = YearMonth.parse(model.month.value)
             b.monthLabel.text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-            b.nextMonth.isEnabled = month < YearMonth.now(model.zone)
-            val result = model.report.value
-            val report = (result as? AppResult.Success)?.data?.takeIf { it.month == month }
+            b.nextMonth.isEnabled = model.canMoveNext()
+            val result = model.report.value?.forMonth(month)
+            val report = (result as? AppResult.Success)?.data
             b.reportContent.isVisible = report != null
             b.status.isVisible = report == null
             b.status.setText(if (result is AppResult.Error) result.error.messageRes else R.string.analytics_loading)
