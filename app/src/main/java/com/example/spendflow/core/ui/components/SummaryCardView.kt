@@ -9,9 +9,10 @@ import androidx.core.view.isVisible
 import com.example.spendflow.R
 import com.example.spendflow.databinding.ViewSummaryCardBinding
 import com.example.spendflow.domain.model.Money
+import com.example.spendflow.domain.model.MonthlySummary
 import com.google.android.material.color.MaterialColors
 
-/** Home hero card: income, expenses, net savings and the savings-rate pill. */
+/** Monthly totals and savings rate, with an optional expense-to-income bar. */
 class SummaryCardView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -58,7 +59,54 @@ class SummaryCardView @JvmOverloads constructor(
         }
     }
 
-    fun setSummary(summary: Summary) = with(binding) {
+    fun setSummary(summary: Summary) {
+        render(summary, summary.savedRatePercent?.let { resources.getString(R.string.summary_saved_rate, it) })
+        binding.expenseRatio.isVisible = false
+    }
+
+    fun setMonthlySummary(summary: MonthlySummary, showExpenseRatioBar: Boolean = false) {
+        val unavailable = resources.getString(R.string.summary_ratio_unavailable)
+        val saved = summary.savingsRate?.let { PercentFormatter.formatFraction(it) }
+        val expenseRatio = summary.expenseToIncomeRatio
+        val expenseCaption = if (showExpenseRatioBar) "" else resources.getString(
+            R.string.summary_spent_ratio,
+            expenseRatio?.let { PercentFormatter.formatFraction(it) } ?: unavailable,
+        )
+        val sources = summary.incomeBySource.size
+        render(
+            Summary(
+                income = summary.totalIncome,
+                incomeCaption = resources.getQuantityString(R.plurals.analytics_source_count, sources, sources),
+                expenses = summary.totalExpenses,
+                expensesCaption = expenseCaption,
+                net = summary.netSavings,
+                savedRatePercent = null,
+            ),
+            resources.getString(R.string.summary_saved_ratio, saved ?: unavailable),
+            showCompactExpenseCaption = true,
+        )
+        binding.savedRate.contentDescription = if (saved == null) {
+            resources.getString(R.string.summary_savings_rate_unavailable)
+        } else {
+            resources.getString(R.string.summary_savings_rate_value, saved)
+        }
+        binding.expenseRatio.isVisible = showExpenseRatioBar
+        if (showExpenseRatioBar) bindExpenseRatio(ExpenseRatioDisplay.from(expenseRatio), unavailable)
+    }
+
+    private fun bindExpenseRatio(display: ExpenseRatioDisplay?, unavailable: String) = with(binding) {
+        val label = resources.getString(R.string.summary_expense_to_income_value, display?.percent ?: unavailable)
+        expenseRatioLabel.text = label
+        // The container announces the real value, not the capped percentage of the visual bar.
+        expenseRatio.contentDescription =
+            if (display == null) resources.getString(R.string.summary_expense_to_income_unavailable) else label
+        expenseRatioBar.isVisible = display != null
+        expenseRatioBar.progress = display?.progress ?: 0
+        val color = if (display?.overIncome == true) R.attr.sfColorOverCap else R.attr.sfColorTextOnDark
+        expenseRatioBar.setIndicatorColor(MaterialColors.getColor(expenseRatioBar, color))
+    }
+
+    private fun render(summary: Summary, savingsLabel: String?, showCompactExpenseCaption: Boolean = false) = with(binding) {
         incomeAmount.size = AmountView.Size.INLINE
         expensesAmount.size = AmountView.Size.INLINE
         netAmount.size = if (compact) AmountView.Size.TITLE else AmountView.Size.DISPLAY
@@ -70,13 +118,20 @@ class SummaryCardView @JvmOverloads constructor(
             savedRate.setTextColor(MaterialColors.getColor(this@SummaryCardView, R.attr.sfColorTextOnDark))
         }
         incomeCaption.isVisible = !compact
-        expensesCaption.isVisible = !compact
+        expensesCaption.isVisible = summary.expensesCaption.isNotEmpty() && (!compact || showCompactExpenseCaption)
         incomeAmount.amount = summary.income
+        incomeAmount.contentDescription = metricDescription(R.string.summary_income, incomeAmount.text)
         incomeCaption.text = summary.incomeCaption
         expensesAmount.amount = summary.expenses
+        expensesAmount.contentDescription = metricDescription(R.string.summary_expenses, expensesAmount.text)
         expensesCaption.text = summary.expensesCaption
         netAmount.amount = summary.net
-        savedRate.isVisible = summary.savedRatePercent != null && showSavingsRate
-        summary.savedRatePercent?.let { savedRate.text = resources.getString(R.string.summary_saved_rate, it) }
+        netAmount.contentDescription = metricDescription(R.string.summary_net_savings, netAmount.text)
+        savedRate.isVisible = savingsLabel != null && showSavingsRate
+        savedRate.text = savingsLabel
+        savedRate.contentDescription = null
     }
+
+    private fun metricDescription(label: Int, amount: CharSequence): String =
+        resources.getString(R.string.summary_metric_value, resources.getString(label), amount)
 }

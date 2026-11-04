@@ -6,22 +6,20 @@ import android.view.View
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import com.example.spendflow.R
-import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.ui.collectWithLifecycle
 import com.example.spendflow.core.ui.components.AmountFormatter
-import com.example.spendflow.core.ui.components.SummaryCardView
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.databinding.FragmentAnalyticsBinding
 import com.example.spendflow.databinding.ItemAnalyticsCategoryBinding
 import com.example.spendflow.domain.model.Money
 import com.example.spendflow.domain.model.TransactionType
+import com.example.spendflow.ui.main.openQuickAdd
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import java.text.NumberFormat
-import java.time.YearMonth
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.abs
@@ -33,31 +31,54 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val b = FragmentAnalyticsBinding.bind(view)
         b.summary.compact = true
-        b.summary.showSavingsRate = false
         b.previousMonth.setOnClickListener { model.moveMonth(-1) }
         b.nextMonth.setOnClickListener { model.moveMonth(1) }
-        b.breakdownToggle.check(if (model.incomeMode.value) R.id.breakdownIncome else R.id.breakdownExpenses)
-        b.breakdownToggle.addOnButtonCheckedListener { _, id, checked -> if (checked) model.setIncomeMode(id == R.id.breakdownIncome) }
-        fun render() {
-            val month = YearMonth.parse(model.month.value)
-            b.monthLabel.text = month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-            b.nextMonth.isEnabled = month < YearMonth.now()
-            val result = model.report.value
-            b.reportContent.isVisible = result is AppResult.Success
-            b.status.isVisible = result !is AppResult.Success
-            b.status.setText(if (result is AppResult.Error) result.error.messageRes else R.string.analytics_loading)
-            if (result !is AppResult.Success) return
-            val report = result.data
+        b.analyticsEmptyState.setOnActionClickListener { findNavController().openQuickAdd() }
+        var bindingBreakdown = false
+        b.breakdownToggle.addOnButtonCheckedListener { _, id, checked ->
+            if (checked && !bindingBreakdown) model.setIncomeMode(id == R.id.breakdownIncome)
+        }
+        fun render(state: AnalyticsUiState) {
+            val monthLabel = state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+            b.monthLabel.text = monthLabel
+            b.nextMonth.isEnabled = state.canMoveNext
+            val checkedId = if (state.incomeMode) R.id.breakdownIncome else R.id.breakdownExpenses
+            if (b.breakdownToggle.checkedButtonId != checkedId) {
+                bindingBreakdown = true
+                b.breakdownToggle.check(checkedId)
+                bindingBreakdown = false
+            }
+            val content = state.content
+            b.reportContent.isVisible = content is AnalyticsContent.Populated
+            b.analyticsEmptyState.isVisible = content == AnalyticsContent.Empty
+            b.status.isVisible = content == AnalyticsContent.Loading || content is AnalyticsContent.Error
+            val report = when (content) {
+                AnalyticsContent.Loading -> {
+                    b.status.setText(R.string.analytics_loading)
+                    return
+                }
+                is AnalyticsContent.Error -> {
+                    b.status.setText(content.error.messageRes)
+                    return
+                }
+                AnalyticsContent.Empty -> {
+                    b.analyticsEmptyState.message = getString(R.string.analytics_empty_month_message, monthLabel)
+                    return
+                }
+                is AnalyticsContent.Populated -> {
+                    b.incomeRequiredNote.isVisible = content.showIncomeRequired
+                    content.report
+                }
+            }
             fun money(minor: Long) = Money(minor, report.currency)
             fun formatted(minor: Long) = AmountFormatter.format(money(minor), showDecimals = true)
-            b.summary.setSummary(SummaryCardView.Summary(money(report.incomeMinor), resources.getQuantityString(R.plurals.analytics_source_count, report.incomeSources, report.incomeSources),
-                money(report.expenseMinor), resources.getQuantityString(R.plurals.analytics_entry_count, report.entries.count { it.type == TransactionType.EXPENSE }, report.entries.count { it.type == TransactionType.EXPENSE }), money(report.netMinor), report.savingsRate))
+            b.summary.setMonthlySummary(report.summary, showExpenseRatioBar = true)
             b.comparison.text = if (report.previousExpenseMinor == 0L) getString(R.string.analytics_no_comparison) else {
                 val change = (report.expenseMinor - report.previousExpenseMinor).toDouble() / report.previousExpenseMinor
                 val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }.format(abs(change))
                 getString(if (change > 0) R.string.analytics_spending_up else R.string.analytics_spending_down, percent)
             }
-            val income = model.incomeMode.value
+            val income = state.incomeMode
             val categories = if (income) report.incomeBySource else report.expensesByCategory
             b.breakdownTitle.setText(if (income) R.string.analytics_income_breakdown else R.string.analytics_breakdown)
             val total = if (income) report.incomeMinor else report.expenseMinor
@@ -84,7 +105,7 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
                     b.categoryChart.selectedSlice = index
                     val entries = report.entries.filter { it.categoryId == category.categoryId && it.type == if (income) TransactionType.INCOME else TransactionType.EXPENSE }
                     val details = entries.map { entry ->
-                        val date = entry.dateTime.atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("dd MMM, HH:mm"))
+                        val date = entry.dateTime.atZone(model.zone).format(DateTimeFormatter.ofPattern("dd MMM, HH:mm"))
                         val original = AmountFormatter.format(entry.amount, true)
                         val converted = if (entry.amount.currencyCode != report.currency) " (${formatted(entry.baseAmount.amountMinor)})" else ""
                         "$date\n${entry.note?.takeIf { it.isNotBlank() } ?: name}\n$original$converted"
@@ -110,8 +131,6 @@ class AnalyticsFragment : Fragment(R.layout.fragment_analytics) {
             } ?: getString(R.string.analytics_no_expenses)
             b.entryCount.text = getString(R.string.analytics_recorded, report.transactionCount)
         }
-        model.month.collectWithLifecycle(viewLifecycleOwner) { render() }
-        model.report.collectWithLifecycle(viewLifecycleOwner) { render() }
-        model.incomeMode.collectWithLifecycle(viewLifecycleOwner) { render() }
+        model.uiState.collectWithLifecycle(viewLifecycleOwner, action = ::render)
     }
 }
