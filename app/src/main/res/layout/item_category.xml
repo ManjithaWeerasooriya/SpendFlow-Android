@@ -23,4 +23,16 @@
         android:textAppearance="?attr/textAppearanceLabelMedium"
         android:textColor="?android:attr/textColorSecondary"
         tools:text="@string/category_type_expense" />
+
+    <ImageButton
+        android:id="@+id/incomeSourceActions"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_more_mono"
+        android:tint="?attr/colorOnSurface"
+        android:visibility="gone"
+        tools:ignore="ContentDescription" />
 </LinearLayout>

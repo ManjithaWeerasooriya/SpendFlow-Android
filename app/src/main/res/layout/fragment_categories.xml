@@ -39,6 +39,16 @@
             android:text="@string/income_sources_tab" />
     </com.google.android.material.tabs.TabLayout>
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/addIncomeSourceButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="@dimen/sf_space_m"
+        android:text="@string/income_sources_add"
+        android:visibility="gone"
+        app:icon="@drawable/ic_plus" />
+
     <LinearLayout
         android:id="@+id/categoryForm"
         android:layout_width="match_parent"

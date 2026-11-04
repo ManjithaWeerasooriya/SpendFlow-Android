@@ -142,6 +142,82 @@ class CategoriesViewModelTest {
     }
 
     @Test
+    fun `income source form rejects blank oversized and unsupported input before writing`() {
+        val model = viewModel()
+
+        assertEquals(
+            IncomeSourceFormErrors(R.string.income_sources_name_required, R.string.income_sources_currency_required),
+            model.saveIncomeSource(null, "  ", null),
+        )
+        assertEquals(
+            IncomeSourceFormErrors(R.string.income_sources_name_too_long, R.string.income_sources_currency_required),
+            model.saveIncomeSource(null, "x".repeat(101), "unsupported"),
+        )
+        assertEquals(2, repository.categories.size)
+        assertEquals(false, model.incomeSourceSaving.value)
+    }
+
+    @Test
+    fun `adding a source keeps the selected currency and follows the category duplicate convention`() = runTest {
+        repository.create(Category("existing", "Salary", CategoryType.INCOME, defaultCurrency = "LKR"))
+        val model = viewModel()
+
+        model.events.test {
+            assertEquals(IncomeSourceFormErrors(), model.saveIncomeSource(null, "  Salary  ", "USD"))
+            assertEquals(CategoriesEvent.IncomeSourceSaved, awaitItem())
+        }
+        val added = repository.categories.single { it.defaultCurrency == "USD" }
+        assertEquals("Salary", added.name)
+        assertEquals(CategoryType.INCOME, added.type)
+        assertEquals(2, repository.categories.count { it.name == "Salary" })
+    }
+
+    @Test
+    fun `rename and archive retain the original ID and currency and remove the source only from the active list`() = runTest {
+        val original = Category("salary", "Salary", CategoryType.INCOME, sortOrder = 2, defaultCurrency = "EUR")
+        repository.create(original)
+        val model = viewModel()
+        model.selectTab(CategoriesTab.INCOME_SOURCES)
+
+        turbineScope {
+            val states = model.screenState.filter { it.content != UiState.Loading }.testIn(backgroundScope)
+            val events = model.events.testIn(backgroundScope)
+            assertEquals(UiState.Success(listOf(original)), states.awaitItem().content)
+
+            assertEquals(IncomeSourceFormErrors(), model.saveIncomeSource(original.id, "  Day job ", null))
+            assertEquals(CategoriesEvent.IncomeSourceSaved, events.awaitItem())
+            val renamed = original.copy(name = "Day job")
+            assertEquals(UiState.Success(listOf(renamed)), states.awaitItem().content)
+
+            model.archiveIncomeSource(original.id)
+            assertEquals(CategoriesEvent.IncomeSourceSaved, events.awaitItem())
+            assertEquals(UiState.Success(emptyList<Category>()), states.awaitItem().content)
+            assertEquals(renamed.copy(isArchived = true), repository.categories.single { it.id == original.id })
+            assertEquals(3, repository.categories.size)
+        }
+    }
+
+    @Test
+    fun `income source actions reject expense records and report repository write failures`() = runTest {
+        val model = viewModel()
+        repository.writeError = AppError.PermissionDenied
+
+        turbineScope {
+            val states = model.uiState.testIn(backgroundScope)
+            val events = model.events.testIn(backgroundScope)
+            states.awaitSettled()
+            model.archiveIncomeSource("1")
+            assertEquals(CategoriesEvent.IncomeSourceWriteFailed(AppError.NotFound), events.awaitItem())
+
+            model.saveIncomeSource(null, "Salary", "USD")
+            assertEquals(CategoriesEvent.IncomeSourceWriteFailed(AppError.PermissionDenied), events.awaitItem())
+            assertEquals(false, model.incomeSourceSaving.value)
+            assertEquals(2, repository.categories.size)
+            states.expectNoEvents()
+        }
+    }
+
+    @Test
     fun `blank name is rejected without saving`() = runTest {
         val viewModel = viewModel()
 
