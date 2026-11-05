@@ -31,7 +31,7 @@
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/categories_tab" />
+            android:text="@string/category_expense_tab" />
 
         <com.google.android.material.tabs.TabItem
             android:layout_width="wrap_content"
@@ -49,6 +49,9 @@
         android:visibility="gone"
         app:icon="@drawable/ic_plus" />
 
+    <Button android:id="@+id/addExpenseCategory" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/category_add_title" />
+    <Button android:id="@+id/archivedCategories" style="?attr/materialButtonOutlinedStyle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/category_active" />
+    <TextView android:id="@+id/reorderHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/category_reorder" android:textAppearance="?attr/textAppearanceBodySmall" />
     <LinearLayout
         android:id="@+id/categoryForm"
         android:layout_width="match_parent"

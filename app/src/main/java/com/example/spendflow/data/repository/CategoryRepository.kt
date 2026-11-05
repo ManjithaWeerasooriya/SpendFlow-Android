@@ -6,7 +6,7 @@ import com.example.spendflow.domain.model.CategoryType
 import kotlinx.coroutines.flow.Flow
 
 interface CategoryRepository : UserOwnedRepository<Category> {
-    /** Sorted by name, optionally only one [type]. Archived categories are left out unless [includeArchived]. */
+    /** Sorted by saved order, then name, optionally only one [type]. Archived categories are left out unless [includeArchived]. */
     fun observeCategories(
         type: CategoryType? = null,
         includeArchived: Boolean = false,

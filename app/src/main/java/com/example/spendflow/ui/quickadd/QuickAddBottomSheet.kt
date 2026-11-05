@@ -110,7 +110,7 @@ class QuickAddBottomSheet : BottomSheetDialogFragment(R.layout.sheet_quick_add) 
                 b.categories.addView(CategoryChip(requireContext()).apply {
                     id = View.generateViewId()
                     label = category.name
-                    setIcon(if (income) R.drawable.ic_badge_income else R.drawable.ic_badge_expense)
+                    setIcon(if (income) R.drawable.ic_badge_income else com.example.spendflow.ui.categories.CategoryAppearance.icon(category.iconName))
                     isChecked = model.draft.get<String>("category") == category.id
                     setOnClickListener {
                         model.selectSource(category)
