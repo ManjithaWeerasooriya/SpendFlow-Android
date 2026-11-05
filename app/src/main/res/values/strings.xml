@@ -191,4 +191,6 @@ Expenses: %3$s</string>
     <plurals name="analytics_source_count"><item quantity="one">%1$d income source</item><item quantity="other">%1$d income sources</item></plurals>
     <plurals name="analytics_entry_count"><item quantity="one">%1$d transaction</item><item quantity="other">%1$d transactions</item></plurals>
     <string name="ui_all_history">All your transactions</string>
+    <string name="feed_today">TODAY &#183; %1$s</string>
+    <string name="feed_choose_month">Choose transaction month</string>
 </resources>
