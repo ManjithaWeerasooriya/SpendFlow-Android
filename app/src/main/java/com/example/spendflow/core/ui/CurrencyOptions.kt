@@ -24,7 +24,9 @@ object CurrencyOptions {
         .filter { it.defaultFractionDigits >= 0 && it.currencyCode !in common }
         .map { it.currencyCode }.sorted()
 
-    val labels: List<String> = codes.map { code ->
-        "$code — ${common[code] ?: Currency.getInstance(code).getDisplayName(Locale.getDefault())}"
+    val labels: List<String> get() = labels(Locale.getDefault())
+
+    fun labels(locale: Locale): List<String> = codes.map { code ->
+        "$code — ${common[code] ?: Currency.getInstance(code).getDisplayName(locale)}"
     }
 }

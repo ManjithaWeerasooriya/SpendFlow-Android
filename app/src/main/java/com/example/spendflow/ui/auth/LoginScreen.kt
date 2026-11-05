@@ -43,7 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -73,15 +73,15 @@ internal fun LoginRoute(viewModel: LoginViewModel) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val resources = LocalResources.current
     EventEffect(viewModel.events) { event ->
         val visuals = when (event) {
             is LoginEvent.ResetEmailSent -> SpendFlowSnackbarVisuals(
-                context.getString(R.string.auth_reset_sent, event.email), SpendFlowSnackbar.Tone.SUCCESS,
+                resources.getString(R.string.auth_reset_sent, event.email), SpendFlowSnackbar.Tone.SUCCESS,
                 duration = SnackbarDuration.Long,
             )
             is LoginEvent.ShowError -> SpendFlowSnackbarVisuals(
-                context.getString(event.error.messageRes), SpendFlowSnackbar.Tone.ERROR,
+                resources.getString(event.error.messageRes), SpendFlowSnackbar.Tone.ERROR,
                 duration = SnackbarDuration.Long,
             )
         }

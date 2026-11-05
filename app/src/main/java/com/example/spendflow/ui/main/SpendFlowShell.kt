@@ -16,14 +16,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -56,6 +59,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 import java.util.Currency
+import java.util.Locale
 
 private val TABS = listOf(
     BottomBarTab(Routes.HOME, R.string.nav_home, R.drawable.ic_home_mono),
@@ -157,7 +161,7 @@ private fun Destination(
         Routes.SETTINGS -> SettingsRoute(onBack = { nav.navigateUp() })
         Routes.QUICK_ADD -> {
             val model = hiltViewModel<QuickAddViewModel>()
-            QuickAddSheet(onDismissed = { nav.popBackStack() }) { close ->
+            QuickAddSheet(onDismissed = nav::dismissQuickAdd) { close ->
                 // Saved just before a recreation: hand the entry to the undo snackbar and close
                 LaunchedEffect(Unit) {
                     if (model.completed) {
@@ -182,41 +186,56 @@ private fun QuickAddSheet(onDismissed: () -> Unit, content: @Composable (close: 
     SideEffect { window?.setDimAmount(0f) }
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val close: () -> Unit = { scope.launch { state.hide() }.invokeOnCompletion { onDismissed() } }
+    var closing by remember { mutableStateOf(false) }
+    val close: () -> Unit = {
+        if (!closing) {
+            closing = true
+            scope.launch {
+                // A cancelled animation must never pop a different destination.
+                try {
+                    state.hide()
+                    if (!state.isVisible) onDismissed()
+                } finally {
+                    closing = false
+                }
+            }
+        }
+    }
     ModalBottomSheet(onDismissRequest = onDismissed, sheetState = state) { content(close) }
 }
 
 /** "Saved · Groceries LKR 2,450 [Undo]" for 5 s after a save, plus undo results and rejected writes. */
 @Composable
 private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackbar: SnackbarHostState) {
-    val context = LocalContext.current
+    val resources = LocalResources.current
+    val locale = LocalLocale.current.platformLocale
     val scope = rememberCoroutineScope()
     val confirmation by entryFeedback.confirmation.collectAsStateWithLifecycle()
     // Restarting on a new or cleared confirmation cancels showSnackbar, which removes the old snackbar
-    LaunchedEffect(confirmation) {
+    LaunchedEffect(confirmation, resources, locale) {
         val current = confirmation ?: return@LaunchedEffect
         val remaining = current.expiresAt - System.currentTimeMillis()
         if (remaining <= 0) return@LaunchedEffect
         val visuals = SpendFlowSnackbarVisuals(
-            context.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current)),
+            resources.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current, locale)),
             SpendFlowSnackbar.Tone.SUCCESS,
-            actionLabel = context.getString(R.string.entry_undo),
+            actionLabel = resources.getString(R.string.entry_undo),
             duration = SnackbarDuration.Indefinite,
         )
         val result = withTimeoutOrNull(remaining.coerceAtMost(5000)) { snackbar.showSnackbar(visuals) }
         if (result == SnackbarResult.ActionPerformed) entryFeedback.undo(current)
     }
     EventEffect(entryFeedback.rejectedWrites) { error ->
-        val message = context.getString(R.string.entry_sync_failed, context.getString(error.messageRes))
+        val message = resources.getString(R.string.entry_sync_failed, resources.getString(error.messageRes))
         scope.launch {
             snackbar.showSnackbar(SpendFlowSnackbarVisuals(message, SpendFlowSnackbar.Tone.ERROR, duration = SnackbarDuration.Long))
         }
     }
     EventEffect(entryFeedback.events) { result ->
         val visuals = when (result) {
-            is AppResult.Success -> SpendFlowSnackbarVisuals(context.getString(R.string.entry_undone), SpendFlowSnackbar.Tone.SUCCESS)
+            is AppResult.Success -> SpendFlowSnackbarVisuals(resources.getString(R.string.entry_undone), SpendFlowSnackbar.Tone.SUCCESS)
             is AppResult.Error -> SpendFlowSnackbarVisuals(
-                context.getString(R.string.entry_undo_failed, context.getString(result.error.messageRes)),
+                resources.getString(R.string.entry_undo_failed, resources.getString(result.error.messageRes)),
                 SpendFlowSnackbar.Tone.ERROR,
             )
         }
@@ -225,9 +244,9 @@ private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackb
 }
 
 /** Whole amounts without decimals ("LKR 2,450"), fractional ones with them. */
-private fun savedAmount(confirmation: EntryConfirmation): String {
+private fun savedAmount(confirmation: EntryConfirmation, locale: Locale): String {
     val money = confirmation.entry.transaction.amount
     val digits = Currency.getInstance(money.currencyCode).defaultFractionDigits
     val hasFraction = BigDecimal.valueOf(money.amountMinor).movePointLeft(digits).stripTrailingZeros().scale() > 0
-    return AmountFormatter.format(money, showDecimals = hasFraction)
+    return AmountFormatter.format(money, showDecimals = hasFraction, locale = locale)
 }

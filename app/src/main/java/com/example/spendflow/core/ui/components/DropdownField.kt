@@ -18,6 +18,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.dimensionResource
 import com.example.spendflow.R
 import com.example.spendflow.ui.theme.SpendFlowTheme
@@ -45,7 +47,7 @@ fun DropdownField(
             OutlinedTextField(
                 value = options.getOrElse(selectedIndex) { "" },
                 onValueChange = {},
-                modifier = fieldModifier
+                modifier = fieldModifier.semantics { contentDescription = label }
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
                     .padding(top = dimensionResource(R.dimen.sf_space_s))
                     .fillMaxWidth(),

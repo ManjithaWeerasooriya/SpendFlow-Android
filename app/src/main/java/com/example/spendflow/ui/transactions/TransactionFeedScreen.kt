@@ -58,7 +58,7 @@ import com.example.spendflow.ui.theme.SpendFlowTheme
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
 
 /** Test tags for the instrumented flow tests, which drive these screens through MainActivity. */
 internal object FeedTags {
@@ -107,7 +107,8 @@ internal fun TransactionFeedRoute(
     val incomeLabel = stringResource(R.string.category_type_income)
     val expenseLabel = stringResource(R.string.category_type_expense)
     val names = (categories as? AppResult.Success)?.data.orEmpty().associate { it.id to it.name }
-    val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm")
+    val locale = LocalLocale.current.platformLocale
+    val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm", locale)
     val rows = when (val current = result) {
         null -> UiState.Loading
         is AppResult.Error -> UiState.Error(current.error)
@@ -118,7 +119,7 @@ internal fun TransactionFeedRoute(
                     val category = names[item.categoryId] ?: if (item.type == TransactionType.INCOME) incomeLabel else expenseLabel
                     FeedRow(
                         id = item.id,
-                        initial = category.take(1).uppercase(Locale.getDefault()),
+                        initial = category.take(1).uppercase(locale),
                         title = item.note?.takeIf { it.isNotBlank() } ?: category,
                         subtitle = category + " - " + item.dateTime.atZone(ZoneId.systemDefault()).format(dateFormat),
                         amount = if (item.type == TransactionType.EXPENSE) -item.amount else item.amount,
@@ -156,6 +157,7 @@ internal fun TransactionFeedScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = SpendFlowTheme.colors
+    val locale = LocalLocale.current.platformLocale
     val screenPadding = dimensionResource(R.dimen.sf_screen_padding)
     val rows = (state.rows as? UiState.Success)?.data.orEmpty()
     // The app shell already pads the NavHost for system bars and the bottom bar.
@@ -181,7 +183,7 @@ internal fun TransactionFeedScreen(
                     style = MaterialTheme.typography.headlineMedium,
                 )
                 Text(
-                    if (home) state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+                    if (home) state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
                     else stringResource(R.string.ui_all_history),
                     Modifier.padding(top = dimensionResource(R.dimen.sf_space_xs), bottom = dimensionResource(R.dimen.sf_space_l)),
                     color = colors.textMuted,
@@ -195,8 +197,8 @@ internal fun TransactionFeedScreen(
                         Text(
                             stringResource(
                                 R.string.monthly_totals,
-                                AmountFormatter.format(it.totalExpenses, showDecimals = true),
-                                AmountFormatter.format(it.totalIncome, showDecimals = true),
+                                AmountFormatter.format(it.totalExpenses, showDecimals = true, locale = locale),
+                                AmountFormatter.format(it.totalIncome, showDecimals = true, locale = locale),
                             ),
                             Modifier
                                 .padding(vertical = dimensionResource(R.dimen.sf_space_xl))

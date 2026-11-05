@@ -17,6 +17,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.text.input.VisualTransformation
 import com.example.spendflow.R
@@ -49,7 +51,7 @@ fun LabeledTextField(
         OutlinedTextField(
             value = value,
             onValueChange = { if (maxLength == null || it.length <= maxLength) onValueChange(it) },
-            modifier = fieldModifier
+            modifier = fieldModifier.semantics { contentDescription = label }
                 .padding(top = dimensionResource(R.dimen.sf_space_s))
                 .fillMaxWidth(),
             enabled = enabled,

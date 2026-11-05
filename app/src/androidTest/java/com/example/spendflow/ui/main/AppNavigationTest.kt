@@ -132,6 +132,29 @@ class AppNavigationTest {
     }
 
     @Test
+    fun duplicateQuickAddDismissalsKeepTheUnderlyingTab() {
+        start(AppGraph.MAIN)
+        onMain { nav.navigateToTab(Routes.ANALYTICS); nav.openQuickAdd() }
+        onMain { nav.dismissQuickAdd(); nav.dismissQuickAdd() }
+        onMain {
+            assertEquals(Routes.ANALYTICS, currentRoute)
+            assertEquals(Routes.HOME, nav.previousBackStackEntry?.destination?.route)
+        }
+    }
+
+    @Test
+    fun lateQuickAddDismissalCannotPopLoginAfterTheSessionEnds() {
+        start(AppGraph.MAIN)
+        onMain { nav.openQuickAdd() }
+        onMain { nav.showGraph(AppGraph.AUTH) }
+        onMain { nav.dismissQuickAdd() }
+        onMain {
+            assertEquals(Routes.LOGIN, currentRoute)
+            assertNull(nav.previousBackStackEntry)
+        }
+    }
+
+    @Test
     fun tabsKeepOneEntryEachAboveHome() {
         start(AppGraph.MAIN)
         onMain {

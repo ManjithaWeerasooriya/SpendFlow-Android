@@ -66,7 +66,8 @@ import java.text.NumberFormat
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
+import java.io.Serializable
 import kotlin.math.abs
 
 /** Test tags for the instrumented flow test, which drives Analytics through MainActivity. */
@@ -96,7 +97,7 @@ internal fun AnalyticsRoute(model: AnalyticsViewModel, onAddTransaction: () -> U
 
 /**
  * One month's report: summary, category breakdown with drill-down, daily cash flow and insights.
- * The open dialog (a category index, or the daily totals) is saved so it survives recreation.
+ * The open dialog (a stable category ID, or the daily totals) is saved so it survives recreation.
  */
 @Composable
 internal fun AnalyticsScreen(
@@ -109,7 +110,8 @@ internal fun AnalyticsScreen(
     modifier: Modifier = Modifier,
 ) {
     val colors = SpendFlowTheme.colors
-    val monthLabel = state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
+    val locale = LocalLocale.current.platformLocale
+    val monthLabel = state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
     // The app shell already pads the NavHost for system bars and the bottom bar.
     Column(
         modifier
@@ -186,14 +188,18 @@ private fun StatusText(text: String) {
     )
 }
 
+/** Null is a valid historical category ID, so selection needs its own presence marker. */
+private data class CategorySelection(val categoryId: String?) : Serializable
+
 @Composable
 private fun Report(content: AnalyticsContent.Populated, income: Boolean, zone: ZoneId, onIncomeMode: (Boolean) -> Unit) {
     val report = content.report
     val colors = SpendFlowTheme.colors
-    var drillDown by rememberSaveable { mutableStateOf<Int?>(null) }
-    var showDaily by rememberSaveable { mutableStateOf(false) }
-    fun formatted(minor: Long) = AmountFormatter.format(Money(minor, report.currency), showDecimals = true)
-    val percent = NumberFormat.getPercentInstance().apply { maximumFractionDigits = 1 }
+    val locale = LocalLocale.current.platformLocale
+    var drillDown by rememberSaveable(report.month, income) { mutableStateOf<CategorySelection?>(null) }
+    var showDaily by rememberSaveable(report.month) { mutableStateOf(false) }
+    fun formatted(minor: Long) = AmountFormatter.format(Money(minor, report.currency), showDecimals = true, locale = locale)
+    val percent = NumberFormat.getPercentInstance(locale).apply { maximumFractionDigits = 1 }
     val categories = if (income) report.incomeBySource else report.expensesByCategory
     val total = if (income) report.incomeMinor else report.expenseMinor
     val uncategorized = stringResource(R.string.analytics_uncategorized)
@@ -231,13 +237,14 @@ private fun Report(content: AnalyticsContent.Populated, income: Boolean, zone: Z
                     .height(240.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                DonutChart(categories, drillDown, Modifier.fillMaxSize())
+                val selectedIndex = drillDown?.let { selection -> categories.indexOfFirst { it.categoryId == selection.categoryId }.takeIf { it >= 0 } }
+                DonutChart(categories, selectedIndex, Modifier.fillMaxSize())
                 Column(
                     Modifier.padding(horizontal = dimensionResource(R.dimen.sf_space_xxl)),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        AmountFormatter.parts(Money(total, report.currency), showDecimals = true, signed = false).number,
+                        AmountFormatter.parts(Money(total, report.currency), showDecimals = true, signed = false, locale = locale).number,
                         Modifier.testTag(AnalyticsTags.BREAKDOWN_AMOUNT),
                         color = colors.textHeading,
                         style = MaterialTheme.typography.titleLarge,
@@ -269,7 +276,7 @@ private fun Report(content: AnalyticsContent.Populated, income: Boolean, zone: Z
                     share = if (total > 0) category.amountMinor.toDouble() / total else 0.0,
                     color = palette[index % palette.size],
                     percent = percent,
-                    onClick = { drillDown = index },
+                    onClick = { drillDown = CategorySelection(category.categoryId) },
                 )
             }
             Text(
@@ -319,7 +326,7 @@ private fun Report(content: AnalyticsContent.Populated, income: Boolean, zone: Z
                 report.biggestSpendingDay?.let { day ->
                     stringResource(
                         R.string.analytics_biggest_day,
-                        report.month.atDay(day).format(DateTimeFormatter.ofPattern("EEE, dd MMM")),
+                        report.month.atDay(day).format(DateTimeFormatter.ofPattern("EEE, dd MMM", locale)),
                         formatted(report.days[day - 1].expenseMinor),
                     )
                 } ?: stringResource(R.string.analytics_no_expenses),
@@ -335,14 +342,14 @@ private fun Report(content: AnalyticsContent.Populated, income: Boolean, zone: Z
         )
     }
 
-    drillDown?.let { categories.getOrNull(it) }?.let { category ->
+    drillDown?.let { selection -> categories.firstOrNull { it.categoryId == selection.categoryId } }?.let { category ->
         val name = category.name ?: uncategorized
         val type = if (income) TransactionType.INCOME else TransactionType.EXPENSE
-        val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm")
+        val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm", locale)
         ListDialog(
             title = name,
             items = report.entries.filter { it.categoryId == category.categoryId && it.type == type }.map { entry ->
-                val original = AmountFormatter.format(entry.amount, true)
+                val original = AmountFormatter.format(entry.amount, true, locale = locale)
                 val converted = if (entry.amount.currencyCode != report.currency) " (${formatted(entry.baseAmount.amountMinor)})" else ""
                 "${entry.dateTime.atZone(zone).format(dateFormat)}\n${entry.note?.takeIf { it.isNotBlank() } ?: name}\n$original$converted"
             },

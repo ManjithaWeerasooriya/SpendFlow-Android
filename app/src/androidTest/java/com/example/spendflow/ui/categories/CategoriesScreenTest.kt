@@ -19,6 +19,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.R
 import com.example.spendflow.core.common.AppError
+import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.domain.model.Budget
+import com.example.spendflow.domain.model.BudgetPeriod
+import com.example.spendflow.domain.model.Money
+import java.time.LocalDate
 import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
@@ -144,6 +149,30 @@ class CategoriesScreenTest {
         assertEquals(1, retries)
         compose.onNodeWithText(text(R.string.income_sources_tab)).performClick()
         compose.onNodeWithText(text(R.string.income_sources_empty_title)).assertExists()
+    }
+
+    @Test
+    fun capEditorWaitsForDataAndPreservesTheDraftAcrossObserverErrors() {
+        val cap = Budget("cap", "Food cap", Money(20_000_00, "LKR"), BudgetPeriod.MONTHLY, LocalDate.of(2026, 10, 1), groceries.id)
+        var caps by mutableStateOf<AppResult<List<Budget>>?>(null)
+        var saved: String? = null
+        compose.setContent {
+            SpendFlowTheme {
+                ObservedCategoryCapDialog(groceries, caps, false, null, onSave = { saved = it }, onDismiss = {})
+            }
+        }
+        compose.onNodeWithText(text(R.string.category_cap_loading)).assertExists()
+        compose.onNode(hasSetTextAction()).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.quick_save)).assertDoesNotExist()
+        compose.runOnIdle { caps = AppResult.Success(listOf(cap)) }
+        compose.onNode(hasSetTextAction() and hasText("20000.00")).performTextReplacement("25000")
+        compose.runOnIdle { caps = AppResult.Error(AppError.Network) }
+        compose.onNodeWithText(text(R.string.error_network)).assertExists()
+        compose.onNodeWithText(text(R.string.quick_save)).assertDoesNotExist()
+        compose.runOnIdle { caps = AppResult.Success(listOf(cap)) }
+        compose.onNode(hasSetTextAction() and hasText("25000")).assertExists()
+        compose.onNodeWithText(text(R.string.quick_save)).performClick()
+        assertEquals("25000", saved)
     }
 
     @Test
