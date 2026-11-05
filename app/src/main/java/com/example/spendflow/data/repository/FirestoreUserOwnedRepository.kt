@@ -12,6 +12,7 @@ import com.example.spendflow.data.session.UserSession
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentReference
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.snapshots
@@ -52,6 +53,15 @@ abstract class FirestoreUserOwnedRepository<T>(
                     .catch { emit(AppResult.Error(it.toAppError())) }
             }
         }.flowOn(dispatchers.io)
+
+    // shortcut: pending deletes are not counted because the document is gone from the snapshot
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observePendingIds(): Flow<Set<String>> = session.uid.flatMapLatest { uid ->
+        if (uid == null) flowOf(emptySet())
+        else collection(uid).snapshots(MetadataChanges.INCLUDE)
+            .map { s -> s.documents.filter { it.metadata.hasPendingWrites() }.map { it.id }.toSet() }
+            .catch { emit(emptySet()) }
+    }.flowOn(dispatchers.io)
 
     override fun newId(): String = refs.newId()
 
