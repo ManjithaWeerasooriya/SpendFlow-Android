@@ -134,3 +134,7 @@ Home uses the dark monthly summary, rounded transaction rows, and a live savings
 Analytics adds previous/next month navigation, income and expense category rings, ranked category shares, transaction detail dialogs, daily cash-flow bars and exact daily totals, average daily spending, highest-spending day, savings/net totals, and a spending comparison with the prior month. Reports exclude transfers and never reprice historical entries. The daily average uses elapsed calendar days in the current month and all calendar days in a past month. All screens follow the existing light/dark theme.
 
 The visual direction follows the published SpendFlow prototype (https://shade-garnet-72361972.figma.site/) and the category/cash-flow presentation on Spendee (https://www.spendee.com/). Charts are native Android views; the app does not embed reference-site screenshots or use an external chart service.
+
+## Offline behaviour
+
+Firestore persistent cache is on, so writes made offline appear at once in lists and totals and are queued by the SDK; nothing custom syncs them. Rows with unsynced local writes show a "Pending" tag, and a banner ("You're offline - N changes pending sync") shows while the device has no network. The tag clears when Firestore confirms the write, including after an app restart. Pending deletes are not counted because the document is gone from the snapshot.
