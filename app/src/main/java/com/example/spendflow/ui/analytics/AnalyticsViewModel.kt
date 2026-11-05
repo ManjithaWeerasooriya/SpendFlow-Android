@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.common.catchAsError
 import com.example.spendflow.data.repository.CategoryRepository
 import com.example.spendflow.domain.usecase.GetMonthlySummary
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -32,12 +33,15 @@ class AnalyticsViewModel @Inject constructor(
         if (next <= currentMonth()) state["analytics_month"] = next.toString()
     }
 
-    internal val uiState: StateFlow<AnalyticsUiState> = month
+    private val refresh = MutableStateFlow(0)
+    fun retry() { refresh.value++ }
+
+    internal val uiState: StateFlow<AnalyticsUiState> = combine(month, refresh) { value, _ -> value }
         .flatMapLatest { value ->
             val selected = YearMonth.parse(value)
             val content = combine(
-                summaries.observeComparison(selected, zone),
-                categories.observeCategories(includeArchived = true)
+                summaries.observeComparison(selected, zone).catchAsError(),
+                categories.observeCategories(includeArchived = true).catchAsError()
                     .map { (it as? AppResult.Success)?.data.orEmpty() }
                     .onStart { emit(emptyList()) },
             ) { comparison, cats ->

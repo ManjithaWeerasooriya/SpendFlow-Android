@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
 import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.common.catchAsError
 import com.example.spendflow.data.repository.GoalRepository
 import com.example.spendflow.data.repository.UserRepository
 import com.example.spendflow.data.repository.WriteFailures
@@ -22,10 +23,13 @@ data class GoalFormErrors(val name: Int? = null, val target: Int? = null, val sa
     val hasErrors get() = name != null || target != null || saved != null || general != null
 }
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GoalsViewModel @Inject constructor(private val repository: GoalRepository, users: UserRepository, failures: WriteFailures) : ViewModel() {
-    val goals = repository.observeGoals().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    private val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val refresh = MutableStateFlow(0)
+    fun retry() { refresh.value++ }
+    val goals = refresh.flatMapLatest { repository.observeGoals().catchAsError() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private val profile = users.observeProfile().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val saving = MutableStateFlow(false)
     val errors = MutableStateFlow(GoalFormErrors())
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
@@ -70,7 +74,13 @@ class GoalsViewModel @Inject constructor(private val repository: GoalRepository,
         val goal = SavingsGoal(existing?.id ?: repository.newId(), name.trim(), target, saved)
         saving.value = true
         viewModelScope.launch {
-            val result = if (existing == null) repository.create(goal) else repository.update(goal)
+            val result = try {
+                if (existing == null) repository.create(goal) else repository.update(goal)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppResult.Error(com.example.spendflow.core.common.AppError.Unknown(e))
+            }
             saving.value = false
             results.send(result)
         }

@@ -50,6 +50,8 @@ import com.example.spendflow.core.notifications.AndroidGoalNotifications
 import com.example.spendflow.core.notifications.GoalNotificationMonitor
 import com.example.spendflow.core.ui.EventEffect
 import com.example.spendflow.core.ui.UiState
+import com.example.spendflow.core.ui.components.EmptyState
+import com.example.spendflow.core.ui.components.ErrorState
 import com.example.spendflow.core.ui.components.FormDialog
 import com.example.spendflow.core.ui.components.LabeledProgress
 import com.example.spendflow.core.ui.components.LabeledTextField
@@ -135,6 +137,7 @@ internal fun GoalsRoute(
     }
     GoalsScreen(
         goals = goals,
+        onRetry = model::retry,
         notificationsOn = notificationsOn,
         permissionAsked = permissionAsked,
         snackbar = snackbar,
@@ -197,6 +200,7 @@ internal fun GoalsScreen(
     onAddGoal: () -> Unit,
     onUpdateGoal: (SavingsGoal) -> Unit,
     modifier: Modifier = Modifier,
+    onRetry: () -> Unit = {},
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val colors = SpendFlowTheme.colors
@@ -241,8 +245,18 @@ internal fun GoalsScreen(
             )
             val status = when (goals) {
                 UiState.Loading -> R.string.goals_loading
-                is UiState.Error -> goals.error.messageRes
-                is UiState.Success -> if (goals.data.isEmpty()) R.string.goals_empty else null
+                is UiState.Error -> null
+                is UiState.Success -> null
+            }
+            if (goals is UiState.Error) {
+                ErrorState(stringResource(goals.error.messageRes), onRetry, Modifier.fillMaxWidth())
+            } else if (goals is UiState.Success && goals.data.isEmpty()) {
+                EmptyState(
+                    title = stringResource(R.string.goals_empty),
+                    modifier = Modifier.fillMaxWidth(),
+                    actionText = stringResource(R.string.goals_add),
+                    onAction = onAddGoal,
+                )
             }
             if (status != null) {
                 Text(

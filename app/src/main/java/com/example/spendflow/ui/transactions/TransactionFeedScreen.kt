@@ -50,6 +50,7 @@ import com.example.spendflow.core.ui.components.AmountSize
 import com.example.spendflow.core.ui.components.AmountText
 import com.example.spendflow.core.ui.components.AmountTone
 import com.example.spendflow.core.ui.components.EmptyState
+import com.example.spendflow.core.ui.components.ErrorState
 import com.example.spendflow.core.ui.components.CapProgressBar
 import com.example.spendflow.core.ui.components.CapWarningBanner
 import com.example.spendflow.core.ui.components.OverCapLine
@@ -114,6 +115,7 @@ internal fun TransactionFeedRoute(
     onSeeAll: () -> Unit,
     onViewGoals: () -> Unit,
     onManageCaps: () -> Unit = {},
+    onAddTransaction: () -> Unit = {},
 ) {
     val result by (if (home) model.recent else model.history).collectAsStateWithLifecycle()
     val monthly by model.monthly.collectAsStateWithLifecycle()
@@ -173,6 +175,8 @@ internal fun TransactionFeedRoute(
         onSeeAll = onSeeAll,
         onViewGoals = onViewGoals,
         onManageCaps = onManageCaps,
+        onAddTransaction = onAddTransaction,
+        onRetry = model::retry,
         onDismissWarning = { warning?.let(model::dismissWarning) },
     )
 }
@@ -191,6 +195,8 @@ internal fun TransactionFeedScreen(
     modifier: Modifier = Modifier,
     onManageCaps: () -> Unit = {},
     onDismissWarning: () -> Unit = {},
+    onAddTransaction: () -> Unit = {},
+    onRetry: () -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
@@ -250,13 +256,15 @@ internal fun TransactionFeedScreen(
                 }
                 when (val status = state.rows) {
                     UiState.Loading -> StatusText(stringResource(R.string.analytics_loading))
-                    is UiState.Error -> StatusText(stringResource(status.error.messageRes))
+                    is UiState.Error -> ErrorState(stringResource(status.error.messageRes), onRetry, Modifier.fillMaxWidth())
                     is UiState.Success -> if (status.data.isEmpty()) {
                         EmptyState(
                             title = stringResource(R.string.transactions_empty),
                             modifier = Modifier.fillMaxWidth(),
                             icon = R.drawable.ic_transactions,
                             message = stringResource(R.string.ui_empty_hint),
+                            actionText = stringResource(R.string.nav_add_transaction),
+                            onAction = onAddTransaction,
                         )
                     }
                 }
@@ -285,7 +293,7 @@ internal fun TransactionFeedScreen(
                     SectionHeader(R.string.ui_savings_goals, R.string.ui_view_goals, onViewGoals)
                     state.goal?.let { goal ->
                         LabeledProgress(goal.saved, goal.target, goal.name, Modifier.fillMaxWidth(), showDecimals = true)
-                    }
+                    } ?: StatusText(stringResource(R.string.goals_empty))
                 }
             }
             item(key = "caps") {
