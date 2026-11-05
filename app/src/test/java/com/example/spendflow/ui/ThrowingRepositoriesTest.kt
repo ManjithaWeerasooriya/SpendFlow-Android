@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
 import org.junit.Rule
@@ -72,9 +73,11 @@ class ThrowingRepositoriesTest {
         val repo = Goals()
         val model = GoalsViewModel(repo, Users(), FakeWriteFailures())
         model.goals.launchIn(backgroundScope)
+        advanceUntilIdle()
         assertTrue(model.goals.value is AppResult.Error)
         repo.failing = false
         model.retry()
+        advanceUntilIdle()
         assertTrue(model.goals.value is AppResult.Success)
     }
 
@@ -87,6 +90,7 @@ class ThrowingRepositoriesTest {
     @Test fun `categories flow that throws shows an error state`() = runTest {
         val model = CategoriesViewModel(Categories(), FakeWriteFailures(), SavedStateHandle())
         model.uiState.launchIn(backgroundScope)
+        advanceUntilIdle()
         assertTrue(model.uiState.value is UiState.Error)
     }
 
