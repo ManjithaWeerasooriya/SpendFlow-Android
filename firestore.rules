@@ -205,10 +205,11 @@ service cloud.firestore {
 
     function isValidCategory(data) {
       return hasRequiredFields(data, ['name', 'type', 'isArchived', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'defaultCurrency', 'sortOrder', 'isArchived', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'type', 'iconName', 'colorArgb', 'classification', 'defaultCurrency', 'sortOrder', 'isArchived', 'createdAt', 'updatedAt']) &&
         isValidString(data.name, 1, 100) &&
         data.type in ['EXPENSE', 'INCOME'] &&
         isOptionalString(data, 'iconName', 64) &&
+        (data.get('classification', null) == null || data.classification in ['NEEDS', 'WANTS', 'SAVINGS']) &&
         (!('sortOrder' in data) || data.sortOrder is int) &&
         (data.get('defaultCurrency', null) == null || isCurrencyCode(data.defaultCurrency)) &&
         (!('colorArgb' in data) || data.colorArgb == null ||
