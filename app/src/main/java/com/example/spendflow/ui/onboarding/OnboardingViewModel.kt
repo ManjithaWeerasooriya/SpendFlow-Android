@@ -7,8 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 /**
- * 01c. The profile was already created in the default base currency at registration, and the rules
- * keep it fixed, so this screen only confirms it. Continue and Skip both lead Home via MainActivity.
+ * 01c. The profile was already created in the default base currency at registration, so this screen
+ * only confirms it; Settings can change it later. Continue and Skip both lead Home via MainActivity.
  */
 @HiltViewModel
 class OnboardingViewModel @Inject constructor(

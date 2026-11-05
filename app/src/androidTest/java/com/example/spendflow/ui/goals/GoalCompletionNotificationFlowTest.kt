@@ -6,8 +6,11 @@ import android.os.Build
 import android.os.SystemClock
 import android.widget.EditText
 import android.widget.TextView
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.core.view.children
-import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.BuildConfig
@@ -21,16 +24,26 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import org.junit.Assert.*
 import android.app.NotificationManager
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.*
-import androidx.test.espresso.matcher.ViewMatchers.withId
 import com.example.spendflow.core.notifications.AndroidGoalNotifications
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import com.example.spendflow.ui.transactions.FeedTags
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextReplacement
+import com.example.spendflow.ui.main.Routes
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.test.espresso.Espresso.pressBack
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
 class GoalCompletionNotificationFlowTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     private fun <T> main(block: () -> T): T {
@@ -72,16 +85,20 @@ class GoalCompletionNotificationFlowTest {
             instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.POST_NOTIFICATIONS)
         }
         val manager = context.getSystemService(NotificationManager::class.java)
-        eventually { main { assertEquals("Home", activity.findViewById<TextView>(R.id.screenTitle)?.text?.toString()) } }
-        main { activity.findViewById<android.view.View>(R.id.moreFragment).performClick() }
-        eventually { main { assertNotNull(activity.findViewById<android.view.View>(R.id.goalsRow)) } }
-        main { activity.findViewById<android.view.View>(R.id.goalsRow).performClick() }
-        eventually { main { assertNotNull(activity.findViewById<android.view.View>(R.id.addGoal)) } }
-        onView(withId(R.id.addGoal)).perform(click())
-        onView(withId(R.id.nameInput)).perform(replaceText("Laptop"))
-        onView(withId(R.id.targetInput)).perform(replaceText("100"))
-        onView(withId(R.id.savedInput)).perform(replaceText("0"), closeSoftKeyboard())
-        onView(withId(android.R.id.button1)).perform(click())
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("tab_${Routes.MORE}").performClick()
+        val goalsLink = context.getString(R.string.goals_title)
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsLink).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(goalsLink).performClick()
+        val addGoal = hasText(context.getString(R.string.goals_add)) and hasClickAction()
+        compose.waitUntil(15_000) { compose.onAllNodes(addGoal).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(addGoal).performClick()
+        // Name, target and saved amount, in that order
+        compose.waitUntil(5_000) { compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size == 3 }
+        compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("Laptop")
+        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("100")
+        compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("0")
+        compose.onNodeWithText(context.getString(R.string.quick_save)).performClick()
         var goalId: String? = null
         val deadline = SystemClock.elapsedRealtime() + 15000
         while (SystemClock.elapsedRealtime() < deadline && goalId == null) {
@@ -102,15 +119,12 @@ class GoalCompletionNotificationFlowTest {
         goal.update(mapOf("savedMinor" to 11000L, "updatedAt" to FieldValue.serverTimestamp())).await()
         SystemClock.sleep(800)
         assertEquals(notification.postTime, manager.activeNotifications.first { it.tag == notification.tag }.postTime)
-        main {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            host.navController.popBackStack(R.id.moreFragment, false)
-        }
+        // Back to More, so the notification has to navigate to Goals itself
+        pressBack()
+        val goalsDescription = context.getString(R.string.goals_description)
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsDescription).fetchSemanticsNodes().isEmpty() }
         notification.notification.contentIntent.send()
-        eventually { main {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            assertEquals(R.id.goalsFragment, host.navController.currentDestination?.id)
-        } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsDescription).fetchSemanticsNodes().isNotEmpty() }
         SystemClock.sleep(600)
         instrumentation.uiAutomation.executeShellCommand("screencap -p /sdcard/Download/goal-completed.png").use { descriptor ->
             java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }

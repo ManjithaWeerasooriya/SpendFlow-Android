@@ -28,18 +28,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.os.ConfigurationCompat
 import com.example.spendflow.R
 import com.example.spendflow.ui.theme.SpendFlowTheme
 import java.util.Currency
-import java.util.Locale
 
 internal data class OnboardingUiState(val baseCurrency: String)
 
@@ -60,13 +58,13 @@ internal fun OnboardingScreen(
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val locale = ConfigurationCompat.getLocales(LocalConfiguration.current)[0] ?: Locale.getDefault()
+    val locale = LocalLocale.current.platformLocale
     val currencyName = stringResource(
         R.string.onboarding_currency_value,
         state.baseCurrency,
         Currency.getInstance(state.baseCurrency).getDisplayName(locale),
     )
-    // MainActivity already supplies system bar/IME padding to the Fragment host.
+    // The app shell already pads the NavHost for system bars and the keyboard.
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             Column(

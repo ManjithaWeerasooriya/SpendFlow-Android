@@ -1,37 +1,82 @@
 package com.example.spendflow.ui.main
 
-import androidx.annotation.IdRes
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.window.DialogProperties
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.navOptions
-import com.example.spendflow.R
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
+import androidx.navigation.compose.navigation
 
-enum class AppGraph(@IdRes val id: Int) {
-    AUTH(R.id.auth_graph),
-    ONBOARDING(R.id.onboarding_graph),
-    MAIN(R.id.main_graph),
+/** Destination routes. The four tabs are the destinations that show the bottom bar. */
+object Routes {
+    const val LOGIN = "login"
+    const val ONBOARDING = "onboarding"
+    const val HOME = "home"
+    const val TRANSACTIONS = "transactions"
+    const val ANALYTICS = "analytics"
+    const val MORE = "more"
+    const val CATEGORIES = "categories"
+    const val GOALS = "goals"
+    const val SETTINGS = "settings"
+    const val QUICK_ADD = "quick_add"
 }
 
-/** Destinations that show the bottom bar; their ids match the items in menu/bottom_bar.xml. */
-val topLevelDestinations = setOf(
-    R.id.homeFragment,
-    R.id.transactionsFragment,
-    R.id.analyticsFragment,
-    R.id.moreFragment,
-)
+enum class AppGraph(val route: String, val start: String) {
+    AUTH("auth_graph", Routes.LOGIN),
+    ONBOARDING("onboarding_graph", Routes.ONBOARDING),
+    MAIN("main_graph", Routes.HOME),
+}
 
-/** Sets nav_root starting at [start]. After recreation the restored back stack takes precedence. */
-fun NavController.setRootGraph(start: AppGraph) {
-    graph = navInflater.inflate(R.navigation.nav_root).apply { setStartDestination(start.id) }
+val topLevelDestinations = setOf(Routes.HOME, Routes.TRANSACTIONS, Routes.ANALYTICS, Routes.MORE)
+
+/**
+ * The auth, onboarding and main graphs. [content] draws each destination; the app passes the real screens,
+ * and AppNavigationTest passes placeholders so it can check the back-stack rules without Hilt.
+ */
+fun NavGraphBuilder.appNavGraph(content: @Composable (route: String, entry: NavBackStackEntry) -> Unit) {
+    navigation(startDestination = AppGraph.AUTH.start, route = AppGraph.AUTH.route) {
+        composable(Routes.LOGIN) { content(Routes.LOGIN, it) }
+    }
+    // Its own graph so finishing it can clear the back stack
+    navigation(startDestination = AppGraph.ONBOARDING.start, route = AppGraph.ONBOARDING.route) {
+        composable(Routes.ONBOARDING) { content(Routes.ONBOARDING, it) }
+    }
+    navigation(startDestination = AppGraph.MAIN.start, route = AppGraph.MAIN.route) {
+        listOf(
+            Routes.HOME, Routes.TRANSACTIONS, Routes.ANALYTICS, Routes.MORE,
+            Routes.CATEGORIES, Routes.GOALS, Routes.SETTINGS,
+        ).forEach { route -> composable(route) { content(route, it) } }
+        // Full-window, so the bottom sheet drawn inside it can span the screen
+        dialog(Routes.QUICK_ADD, dialogProperties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+            content(Routes.QUICK_ADD, it)
+        }
+    }
 }
 
 /** Moves to [target] and clears the back stack, so Back can't return to the other graph. */
 fun NavController.showGraph(target: AppGraph) {
-    if (currentDestination?.hierarchy?.any { it.id == target.id } == true) return
-    navigate(target.id, null, navOptions { popUpTo(R.id.nav_root) { inclusive = true } })
+    if (currentDestination?.hierarchy?.any { it.route == target.route } == true) return
+    navigate(target.route) { popUpTo(graph.id) { inclusive = true } }
+}
+
+/** Switches tabs the way the bottom bar did: one entry per tab, each tab keeping its own state. */
+fun NavController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(Routes.HOME) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+/** Ignore duplicate or late callbacks after the sheet or session has already closed. */
+fun NavController.dismissQuickAdd() {
+    if (currentDestination?.route == Routes.QUICK_ADD) popBackStack()
 }
 
 fun NavController.openQuickAdd() {
     // A fast double tap would otherwise stack two sheets
-    if (currentDestination?.id != R.id.quickAddSheet) navigate(R.id.quickAddSheet)
+    if (currentDestination?.route != Routes.QUICK_ADD) navigate(Routes.QUICK_ADD)
 }

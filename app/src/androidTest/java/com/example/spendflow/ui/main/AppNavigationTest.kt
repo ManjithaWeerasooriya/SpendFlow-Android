@@ -1,107 +1,170 @@
 package com.example.spendflow.ui.main
 
+import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.navigation.compose.ComposeNavigator
+import androidx.navigation.compose.DialogNavigator
+import androidx.navigation.compose.NavHost
 import androidx.navigation.testing.TestNavHostController
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import com.example.spendflow.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Back-stack rules for the auth, onboarding and main graphs (AC1, AC4, AC5), checked against the real nav graphs. */
+/** Back-stack rules for the auth, onboarding and main graphs (AC1, AC4, AC5), checked against the real graph with placeholder screens. */
 @RunWith(AndroidJUnit4::class)
 class AppNavigationTest {
+    @get:Rule
+    val compose = createComposeRule()
 
-    private fun navController(start: AppGraph) =
-        TestNavHostController(InstrumentationRegistry.getInstrumentation().targetContext).apply { setRootGraph(start) }
+    private lateinit var nav: TestNavHostController
 
-    private val TestNavHostController.currentId get() = currentDestination?.id
-
-    // NavController must be driven from the main thread; rethrow so assertion failures fail the test
-    private fun onMain(block: () -> Unit) {
-        var failure: Throwable? = null
-        InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            try {
-                block()
-            } catch (t: Throwable) {
-                failure = t
+    private fun start(graph: AppGraph) {
+        compose.setContent {
+            nav = TestNavHostController(LocalContext.current).apply {
+                navigatorProvider.addNavigator(ComposeNavigator())
+                navigatorProvider.addNavigator(DialogNavigator())
             }
+            NavHost(nav, startDestination = graph.route) { appNavGraph { route, _ -> Text(route) } }
         }
-        failure?.let { throw it }
+    }
+
+    private val currentRoute get() = nav.currentDestination?.route
+
+    // NavController must be driven from the main thread; runOnIdle also lets the NavHost settle first
+    private fun onMain(block: () -> Unit) = compose.runOnIdle(block)
+
+    @Test
+    fun loggedOutStartsOnLogin() {
+        start(AppGraph.AUTH)
+        onMain { assertEquals(Routes.LOGIN, currentRoute) }
     }
 
     @Test
-    fun loggedOutStartsOnLoginAndLoggedInOnHome() = onMain {
-        assertEquals(R.id.loginFragment, navController(AppGraph.AUTH).currentId)
-        assertEquals(R.id.homeFragment, navController(AppGraph.MAIN).currentId)
+    fun loggedInStartsOnHome() {
+        start(AppGraph.MAIN)
+        onMain { assertEquals(Routes.HOME, currentRoute) }
     }
 
     @Test
-    fun signingInReplacesLoginSoBackLeavesTheApp() = onMain {
-        val nav = navController(AppGraph.AUTH)
-        nav.showGraph(AppGraph.MAIN)
-        assertEquals(R.id.homeFragment, nav.currentId)
-        assertNull(nav.previousBackStackEntry)
+    fun signingInReplacesLoginSoBackLeavesTheApp() {
+        start(AppGraph.AUTH)
+        onMain { nav.showGraph(AppGraph.MAIN) }
+        onMain {
+            assertEquals(Routes.HOME, currentRoute)
+            assertNull(nav.previousBackStackEntry)
+        }
     }
 
     @Test
-    fun registeringOpensOnboardingAndFinishingItReplacesItWithHome() = onMain {
-        val nav = navController(AppGraph.AUTH)
-        nav.showGraph(AppGraph.ONBOARDING)
-        assertEquals(R.id.onboardingFragment, nav.currentId)
-        assertNull(nav.previousBackStackEntry)
-        assertFalse(R.id.onboardingFragment in topLevelDestinations)
-
-        nav.showGraph(AppGraph.MAIN)
-        assertEquals(R.id.homeFragment, nav.currentId)
-        assertNull(nav.previousBackStackEntry)
+    fun registeringOpensOnboardingAndFinishingItReplacesItWithHome() {
+        start(AppGraph.AUTH)
+        onMain { nav.showGraph(AppGraph.ONBOARDING) }
+        onMain {
+            assertEquals(Routes.ONBOARDING, currentRoute)
+            assertNull(nav.previousBackStackEntry)
+            assertFalse(Routes.ONBOARDING in topLevelDestinations)
+            nav.showGraph(AppGraph.MAIN)
+        }
+        onMain {
+            assertEquals(Routes.HOME, currentRoute)
+            assertNull(nav.previousBackStackEntry)
+        }
     }
 
     @Test
-    fun signingOutClearsTheMainGraph() = onMain {
-        val nav = navController(AppGraph.MAIN)
-        nav.navigate(R.id.moreFragment)
-        nav.navigate(R.id.action_more_to_goals)
-        nav.showGraph(AppGraph.AUTH)
-        assertEquals(R.id.loginFragment, nav.currentId)
-        assertNull(nav.previousBackStackEntry)
+    fun signingOutClearsTheMainGraph() {
+        start(AppGraph.MAIN)
+        onMain {
+            nav.navigateToTab(Routes.MORE)
+            nav.navigate(Routes.GOALS)
+            nav.showGraph(AppGraph.AUTH)
+        }
+        onMain {
+            assertEquals(Routes.LOGIN, currentRoute)
+            assertNull(nav.previousBackStackEntry)
+        }
     }
 
     @Test
-    fun showingTheCurrentGraphKeepsTheBackStack() = onMain {
-        val nav = navController(AppGraph.MAIN)
-        nav.navigate(R.id.moreFragment)
-        nav.showGraph(AppGraph.MAIN)
-        assertEquals(R.id.moreFragment, nav.currentId)
+    fun showingTheCurrentGraphKeepsTheBackStack() {
+        start(AppGraph.MAIN)
+        onMain {
+            nav.navigateToTab(Routes.MORE)
+            nav.showGraph(AppGraph.MAIN)
+        }
+        onMain { assertEquals(Routes.MORE, currentRoute) }
     }
 
     @Test
-    fun moreLinksAreOneTapAwayAndBackReturnsToMore() = onMain {
-        val nav = navController(AppGraph.MAIN)
-        nav.navigate(R.id.moreFragment)
-        listOf(
-            R.id.action_more_to_categories to R.id.categoriesFragment,
-            R.id.action_more_to_goals to R.id.goalsFragment,
-            R.id.action_more_to_settings to R.id.settingsFragment,
-        ).forEach { (action, destination) ->
-            nav.navigate(action)
-            assertEquals(destination, nav.currentId)
-            assertFalse(destination in topLevelDestinations)
+    fun moreLinksAreOneTapAwayAndBackReturnsToMore() {
+        start(AppGraph.MAIN)
+        onMain { nav.navigateToTab(Routes.MORE) }
+        listOf(Routes.CATEGORIES, Routes.GOALS, Routes.SETTINGS).forEach { destination ->
+            onMain { nav.navigate(destination) }
+            onMain {
+                assertEquals(destination, currentRoute)
+                assertFalse(destination in topLevelDestinations)
+                nav.popBackStack()
+            }
+            onMain { assertEquals(Routes.MORE, currentRoute) }
+        }
+    }
+
+    @Test
+    fun quickAddOpensOverTheCurrentTabAndBackReturnsToIt() {
+        start(AppGraph.MAIN)
+        onMain { nav.navigateToTab(Routes.ANALYTICS) }
+        onMain {
+            nav.openQuickAdd()
+            nav.openQuickAdd()
+        }
+        onMain {
+            assertEquals(Routes.QUICK_ADD, currentRoute)
+            assertEquals(Routes.ANALYTICS, nav.previousBackStackEntry?.destination?.route)
             nav.popBackStack()
-            assertEquals(R.id.moreFragment, nav.currentId)
+        }
+        onMain { assertEquals(Routes.ANALYTICS, currentRoute) }
+    }
+
+    @Test
+    fun duplicateQuickAddDismissalsKeepTheUnderlyingTab() {
+        start(AppGraph.MAIN)
+        onMain { nav.navigateToTab(Routes.ANALYTICS); nav.openQuickAdd() }
+        onMain { nav.dismissQuickAdd(); nav.dismissQuickAdd() }
+        onMain {
+            assertEquals(Routes.ANALYTICS, currentRoute)
+            assertEquals(Routes.HOME, nav.previousBackStackEntry?.destination?.route)
         }
     }
 
     @Test
-    fun quickAddOpensOverTheCurrentTabAndBackReturnsToIt() = onMain {
-        val nav = navController(AppGraph.MAIN)
-        nav.navigate(R.id.analyticsFragment)
-        nav.openQuickAdd()
-        nav.openQuickAdd()
-        assertEquals(R.id.quickAddSheet, nav.currentId)
-        nav.popBackStack()
-        assertEquals(R.id.analyticsFragment, nav.currentId)
+    fun lateQuickAddDismissalCannotPopLoginAfterTheSessionEnds() {
+        start(AppGraph.MAIN)
+        onMain { nav.openQuickAdd() }
+        onMain { nav.showGraph(AppGraph.AUTH) }
+        onMain { nav.dismissQuickAdd() }
+        onMain {
+            assertEquals(Routes.LOGIN, currentRoute)
+            assertNull(nav.previousBackStackEntry)
+        }
+    }
+
+    @Test
+    fun tabsKeepOneEntryEachAboveHome() {
+        start(AppGraph.MAIN)
+        onMain {
+            nav.navigateToTab(Routes.TRANSACTIONS)
+            nav.navigateToTab(Routes.ANALYTICS)
+            nav.navigateToTab(Routes.MORE)
+        }
+        onMain {
+            assertEquals(Routes.MORE, currentRoute)
+            assertEquals(Routes.HOME, nav.previousBackStackEntry?.destination?.route)
+        }
     }
 }
