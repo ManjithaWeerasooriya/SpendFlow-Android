@@ -104,8 +104,8 @@ internal data class FeedRow(
     val subtitle: String,
     val amount: Money,
     val type: TransactionType,
-    val pending: Boolean = false,
     val categoryName: String = title,
+    val pending: Boolean = false,
 )
 
 /** [filter] is "ALL", "EXPENSE" or "INCOME", as stored by [TransactionFeedViewModel]. */
