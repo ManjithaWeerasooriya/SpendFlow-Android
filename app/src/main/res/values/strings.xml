@@ -294,4 +294,11 @@ Expenses: %3$s</string>
     <string name="category_move_up">Move up</string>
     <string name="category_move_down">Move down</string>
     <string name="category_expense_tab">Expense</string>
+    <string name="transaction_edit_title">Edit transaction</string>
+    <string name="transaction_loading">Loading transaction&#8230;</string>
+    <string name="transaction_delete">Delete</string>
+    <string name="transaction_delete_confirm">Delete %1$s %2$s?</string>
+    <string name="transaction_delete_action">Delete %1$s</string>
+    <string name="transaction_transfer">Transfer</string>
+    <string name="transaction_currency">Currency</string>
 </resources>
