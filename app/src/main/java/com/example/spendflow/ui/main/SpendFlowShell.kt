@@ -57,8 +57,6 @@ import com.example.spendflow.ui.settings.SettingsRoute
 import com.example.spendflow.ui.transactions.TransactionFeedRoute
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import java.math.BigDecimal
-import java.util.Currency
 import java.util.Locale
 
 private val TABS = listOf(
@@ -229,7 +227,7 @@ private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackb
         val remaining = current.expiresAt - System.currentTimeMillis()
         if (remaining <= 0) return@LaunchedEffect
         val visuals = SpendFlowSnackbarVisuals(
-            resources.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current, locale)),
+            resources.getString(R.string.entry_saved, current.entry.categoryName, AmountFormatter.formatTrimmed(current.entry.transaction.amount, locale)),
             SpendFlowSnackbar.Tone.SUCCESS,
             actionLabel = resources.getString(R.string.entry_undo),
             duration = SnackbarDuration.Indefinite,
@@ -253,12 +251,4 @@ private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackb
         }
         scope.launch { snackbar.showSnackbar(visuals) }
     }
-}
-
-/** Whole amounts without decimals ("LKR 2,450"), fractional ones with them. */
-private fun savedAmount(confirmation: EntryConfirmation, locale: Locale): String {
-    val money = confirmation.entry.transaction.amount
-    val digits = Currency.getInstance(money.currencyCode).defaultFractionDigits
-    val hasFraction = BigDecimal.valueOf(money.amountMinor).movePointLeft(digits).stripTrailingZeros().scale() > 0
-    return AmountFormatter.format(money, showDecimals = hasFraction, locale = locale)
 }

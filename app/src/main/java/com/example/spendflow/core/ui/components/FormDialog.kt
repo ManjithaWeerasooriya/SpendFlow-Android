@@ -25,6 +25,7 @@ fun FormDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     dismissOnClickOutside: Boolean = true,
+    confirmEnabled: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     // Violet is too dark as text on the dark dialog surface
@@ -34,7 +35,7 @@ fun FormDialog(
         title = { Text(title) },
         text = { Column(Modifier.verticalScroll(rememberScrollState())) { content() } },
         confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !saving, colors = buttonColors) { Text(confirm) }
+            TextButton(onClick = onConfirm, enabled = !saving && confirmEnabled, colors = buttonColors) { Text(confirm) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !saving, colors = buttonColors) { Text(dismiss) }

@@ -36,4 +36,11 @@ object AmountFormatter {
 
     fun format(money: Money, showDecimals: Boolean = false, signed: Boolean = false, locale: Locale = Locale.getDefault()) =
         parts(money, showDecimals, signed, locale).toString()
+
+    /** Whole amounts without decimals ("LKR 2,450"), fractional ones with them. */
+    fun formatTrimmed(money: Money, locale: Locale = Locale.getDefault()): String {
+        val digits = runCatching { Currency.getInstance(money.currencyCode).defaultFractionDigits }.getOrDefault(2).coerceAtLeast(0)
+        val hasFraction = BigDecimal.valueOf(money.amountMinor).movePointLeft(digits).stripTrailingZeros().scale() > 0
+        return format(money, showDecimals = hasFraction, locale = locale)
+    }
 }
