@@ -110,6 +110,8 @@ private val PAYMENT_LABELS = listOf(
 )
 
 internal data class QuickAddUiState(
+    val editing: Boolean = false,
+    val transfer: Boolean = false,
     val amount: String = "",
     val note: String = "",
     val showDetails: Boolean = false,
@@ -152,6 +154,8 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
     val categories by model.categories.collectAsStateWithLifecycle()
     val errors by model.errors.collectAsStateWithLifecycle()
     val saving by model.saving.collectAsStateWithLifecycle()
+    val loading by model.loading.collectAsStateWithLifecycle()
+    val loadError by model.loadError.collectAsStateWithLifecycle()
     val rateLoading by model.rateLoading.collectAsStateWithLifecycle()
     val rateFailed by model.rateError.collectAsStateWithLifecycle()
     var writeError by remember { mutableStateOf<Int?>(null) }
@@ -167,6 +171,14 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
         }
     }
 
+    if (loading || loadError != null) {
+        Column(Modifier.fillMaxWidth().padding(dimensionResource(R.dimen.sf_screen_padding))) {
+            StatusText(stringResource(loadError?.messageRes ?: R.string.transaction_loading))
+            if (loadError != null) TextButton(onClick = model::loadTransaction) { Text(stringResource(R.string.action_retry)) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.action_close)) }
+        }
+        return
+    }
     val locale = LocalLocale.current.platformLocale
     val base = (profile as? AppResult.Success)?.data?.baseCurrency ?: "LKR"
     val type = if (income) CategoryType.INCOME else CategoryType.EXPENSE
@@ -180,6 +192,8 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
     }
     QuickAddForm(
         state = QuickAddUiState(
+            editing = model.isEditing,
+            transfer = model.isTransfer,
             amount = amount,
             note = note,
             showDetails = details,
@@ -193,7 +207,7 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
             categories = when (val result = categories) {
                 null -> UiState.Loading
                 is AppResult.Error -> UiState.Error(result.error)
-                is AppResult.Success -> UiState.Success(result.data.filter { it.type == type })
+                is AppResult.Success -> UiState.Success(result.data.filter { it.type == type && (!it.isArchived || it.id == categoryId) })
             },
             errors = errors,
             writeError = writeError,
@@ -209,6 +223,7 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
         onType = {
             draft["income"] = it
             draft["category"] = null
+            if (!it) model.selectCurrency(base)
         },
         onCurrency = { if (it != (currency ?: base)) model.selectCurrency(it) },
         onRate = model::editRate,
@@ -273,7 +288,7 @@ internal fun QuickAddForm(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                stringResource(R.string.quick_add_title),
+                stringResource(if (state.editing) R.string.transaction_edit_title else R.string.quick_add_title),
                 Modifier
                     .weight(1f)
                     .semantics { heading() },
@@ -285,7 +300,8 @@ internal fun QuickAddForm(
                 colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = colors.tile, contentColor = colors.textHeading),
             ) { Icon(painterResource(R.drawable.ic_close), stringResource(R.string.action_close)) }
         }
-        SingleChoiceSegmentedButtonRow(Modifier.padding(top = dimensionResource(R.dimen.sf_space_s))) {
+        if (state.transfer) Text(stringResource(R.string.transaction_transfer), style = MaterialTheme.typography.titleMedium)
+        if (!state.transfer) SingleChoiceSegmentedButtonRow(Modifier.padding(top = dimensionResource(R.dimen.sf_space_s))) {
             listOf(false to R.string.category_type_expense, true to R.string.category_type_income).forEachIndexed { i, (value, label) ->
                 SegmentedButton(
                     selected = state.income == value,
@@ -328,9 +344,9 @@ internal fun QuickAddForm(
             ),
         )
         ErrorText(state.errors.amount, QuickAddTags.AMOUNT_ERROR)
-        if (state.income) {
+        if (state.income || state.editing) {
             DropdownField(
-                label = stringResource(R.string.income_currency),
+                label = stringResource(if (state.income) R.string.income_currency else R.string.transaction_currency),
                 options = CurrencyOptions.labels(locale),
                 selectedIndex = CurrencyOptions.codes.indexOf(state.currency).coerceAtLeast(0),
                 onSelect = { onCurrency(CurrencyOptions.codes[it]) },
@@ -357,33 +373,35 @@ internal fun QuickAddForm(
             }
             StatusText(state.preview ?: stringResource(R.string.income_preview_pending))
         }
-        Text(
-            stringResource(if (state.income) R.string.income_source else R.string.quick_category),
-            Modifier
-                .padding(top = dimensionResource(R.dimen.sf_space_l))
-                .semantics { heading() },
-            color = colors.textHeading,
-            style = MaterialTheme.typography.titleMedium,
-        )
-        val categories = (state.categories as? UiState.Success)?.data.orEmpty()
-        FlowRow(
-            Modifier.padding(top = dimensionResource(R.dimen.sf_space_s)),
-            horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_s)),
-            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_s)),
-        ) {
-            categories.forEach { category ->
-                CategoryChip(
-                    label = category.name,
-                    icon = if (state.income) R.drawable.ic_badge_income else CategoryAppearance.icon(category.iconName),
-                    selected = state.categoryId == category.id,
-                    onClick = { onCategory(category) },
-                )
+        if (!state.transfer) {
+            Text(
+                stringResource(if (state.income) R.string.income_source else R.string.quick_category),
+                Modifier
+                    .padding(top = dimensionResource(R.dimen.sf_space_l))
+                    .semantics { heading() },
+                color = colors.textHeading,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            val categories = (state.categories as? UiState.Success)?.data.orEmpty()
+            FlowRow(
+                Modifier.padding(top = dimensionResource(R.dimen.sf_space_s)),
+                horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_s)),
+                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_s)),
+            ) {
+                categories.forEach { category ->
+                    CategoryChip(
+                        label = category.name,
+                        icon = if (state.income) R.drawable.ic_badge_income else CategoryAppearance.icon(category.iconName),
+                        selected = state.categoryId == category.id,
+                        onClick = { onCategory(category) },
+                    )
+                }
             }
+            ErrorText(state.errors.category, QuickAddTags.CATEGORY_ERROR)
         }
-        ErrorText(state.errors.category, QuickAddTags.CATEGORY_ERROR)
         val message = state.writeError ?: state.errors.general ?: when (val loaded = state.categories) {
             is UiState.Error -> loaded.error.messageRes
-            is UiState.Success -> if (loaded.data.isEmpty()) R.string.quick_empty else null
+            is UiState.Success -> if (loaded.data.isEmpty() && !state.transfer) R.string.quick_empty else null
             UiState.Loading -> null
         }
         message?.let { StatusText(stringResource(it)) }
@@ -419,7 +437,7 @@ internal fun QuickAddForm(
                     options = PAYMENT_LABELS.map { stringResource(it) },
                     selectedIndex = state.payment,
                     onSelect = onPayment,
-                    enabled = !state.income,
+                    enabled = !state.income && !state.transfer,
                 )
                 LabeledTextField(
                     label = stringResource(R.string.quick_note),

@@ -10,10 +10,13 @@ import com.example.spendflow.testing.MainDispatcherRule
 import com.example.spendflow.ui.categories.CategoriesViewModel
 import com.example.spendflow.ui.goals.GoalsViewModel
 import com.example.spendflow.ui.quickadd.QuickAddViewModel
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.*
@@ -69,9 +72,11 @@ class ThrowingRepositoriesTest {
         override suspend fun latest(currency: String, base: String) = java.math.BigDecimal.ONE
     }
 
+    private fun goalsModel(repo: GoalRepository) = GoalsViewModel(repo, Users(), FakeWriteFailures(), com.example.spendflow.domain.usecase.GetMonthlySummary(NoTx, Users()), java.time.Clock.systemUTC())
+
     @Test fun `goals flow that throws becomes an error and retry recovers`() = runTest {
         val repo = Goals()
-        val model = GoalsViewModel(repo, Users(), FakeWriteFailures())
+        val model = goalsModel(repo)
         model.goals.launchIn(backgroundScope)
         advanceUntilIdle()
         assertTrue(model.goals.value is AppResult.Error)
@@ -82,8 +87,23 @@ class ThrowingRepositoriesTest {
     }
 
     @Test fun `goal save that throws resets saving`() = runTest {
-        val model = GoalsViewModel(Goals(), Users(), FakeWriteFailures())
-        model.save(null, "Laptop", "10", "0")
+        val model = goalsModel(Goals())
+        model.save(null, "Laptop", "10", "0", java.time.LocalDate.of(2027, 1, 1))
+        assertFalse(model.saving.value)
+    }
+
+    @Test fun `goal actions that throw report an error instead of crashing`() = runTest {
+        val model = goalsModel(Goals())
+        val goal = SavingsGoal("g", "Laptop", Money(100, "LKR"), Money(0, "LKR"))
+        val events = mutableListOf<AppResult<Unit>>()
+        model.events.onEach { events += it }.launchIn(CoroutineScope(backgroundScope.coroutineContext + UnconfinedTestDispatcher(testScheduler)))
+        model.markCompleted(goal)
+        advanceUntilIdle()
+        model.setPrimary(goal)
+        advanceUntilIdle()
+        model.delete(goal)
+        advanceUntilIdle()
+        assertEquals(3, events.count { it is AppResult.Error })
         assertFalse(model.saving.value)
     }
 

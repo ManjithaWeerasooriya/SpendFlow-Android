@@ -17,6 +17,7 @@ import com.example.spendflow.domain.model.User
 import com.example.spendflow.domain.model.UserPreferences
 import com.example.spendflow.domain.model.CapThresholds
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -26,6 +27,23 @@ import java.time.LocalDate
 class MapperRoundTripTest {
 
     private val usd = Money(12_345, "USD")
+
+    @Test
+    fun `goal deadline round trips and older goals have none`() {
+        val goal = com.example.spendflow.domain.model.SavingsGoal("g", "Mac", Money(500000, "LKR"), Money(1000, "LKR"), java.time.LocalDate.of(2027, 3, 31))
+        assertEquals(goal, savingsGoalFromFirestore(goal.id, goal.toFirestore()))
+        val old = goal.toFirestore() - "deadline"
+        assertNull(savingsGoalFromFirestore("g", old).deadline)
+    }
+
+    @Test
+    fun `goal contributions and flags round trip and default when absent`() {
+        val c = com.example.spendflow.domain.model.GoalContribution("c", Money(2000000, "LKR"), java.time.LocalDate.of(2026, 10, 11), "bonus")
+        val goal = com.example.spendflow.domain.model.SavingsGoal("g", "Mac", Money(500000000, "LKR"), Money(2000000, "LKR"), null, listOf(c), true, true)
+        assertEquals(goal, savingsGoalFromFirestore(goal.id, goal.toFirestore()))
+        val old = savingsGoalFromFirestore("g", goal.toFirestore() - "contributions" - "isPrimary" - "markedCompleted")
+        assertTrue(old.contributions.isEmpty() && !old.isPrimary && !old.markedCompleted)
+    }
 
     @Test
     fun `savings goals preserve exact target and saved amounts`() {

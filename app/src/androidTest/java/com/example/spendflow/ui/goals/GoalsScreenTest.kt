@@ -18,6 +18,7 @@ import com.example.spendflow.domain.model.Money
 import com.example.spendflow.domain.model.SavingsGoal
 import com.example.spendflow.ui.theme.SpendFlowTheme
 import org.junit.Assert.assertEquals
+import java.time.LocalDate
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,7 +32,7 @@ class GoalsScreenTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
     private fun text(id: Int, vararg args: Any) = context.getString(id, *args)
 
-    private val laptop = SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR"))
+    private val laptop = SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR"), LocalDate.of(2027, 3, 31))
     private val trip = SavingsGoal("trip", "Trip", Money(100_000_00, "LKR"), Money(100_000_00, "LKR"))
 
     private fun show(
@@ -39,10 +40,10 @@ class GoalsScreenTest {
         notificationsOn: Boolean = false,
         permissionAsked: Boolean = false,
         onEnable: () -> Unit = {},
-        onUpdate: (SavingsGoal) -> Unit = {},
+        onOpen: (SavingsGoal) -> Unit = {},
     ) = compose.setContent {
         SpendFlowTheme {
-            GoalsScreen(goals, notificationsOn, permissionAsked, onBack = {}, onEnableNotifications = onEnable, onAddGoal = {}, onUpdateGoal = onUpdate)
+            GoalsScreen(LocalDate.of(2026, 10, 11), Money(45_000_00, "LKR"), goals, notificationsOn, permissionAsked, onBack = {}, onEnableNotifications = onEnable, onAddGoal = {}, onOpenGoal = onOpen)
         }
     }
 
@@ -70,12 +71,12 @@ class GoalsScreenTest {
     }
 
     @Test
-    fun rowsShowCompletionAndUpdateTheirOwnGoal() {
+    fun rowsShowCompletionAndOpenTheirOwnGoal() {
         val updated = mutableListOf<String>()
-        show(onUpdate = { updated += it.id })
+        show(onOpen = { updated += it.id })
         compose.onNodeWithText(text(R.string.goal_completed_label, "Trip")).assertExists()
         compose.onNodeWithText("Laptop").assertExists()
-        compose.onNodeWithContentDescription("${text(R.string.goal_update)}: Laptop").performClick()
+        compose.onNodeWithContentDescription(text(R.string.goal_open_detail, "Laptop")).performClick()
         assertEquals(listOf("laptop"), updated)
     }
 
@@ -93,18 +94,18 @@ class GoalsScreenTest {
 
     @Test
     fun dialogPrefillsTheGoalAndSavesEditedValues() {
-        var saved: Triple<String, String, String>? = null
+        var saved: List<Any?>? = null
         compose.setContent {
             SpendFlowTheme {
-                GoalDialog(laptop, "LKR", saving = false, errors = GoalFormErrors(), writeError = null,
-                    onSave = { n, t, s -> saved = Triple(n, t, s) }, onDismiss = {})
+                GoalDialog(laptop, "LKR", saving = false, errors = GoalFormErrors(), writeError = null, today = LocalDate.of(2026, 10, 11),
+                    onSave = { n, t, s, d -> saved = listOf(n, t, s, d) }, onDismiss = {})
             }
         }
         compose.onNodeWithText(text(R.string.goal_currency, "LKR")).assertExists()
         compose.onNode(hasSetTextAction() and hasText("500000.00")).assertExists()
         compose.onNode(hasSetTextAction() and hasText("240000.00")).performTextReplacement("250000")
         compose.onNodeWithText(text(R.string.quick_save)).performClick()
-        assertEquals(Triple("Laptop", "500000.00", "250000"), saved)
+        assertEquals(listOf<Any?>("Laptop", "500000.00", "250000", LocalDate.of(2027, 3, 31)), saved)
     }
 
     @Test
@@ -112,13 +113,43 @@ class GoalsScreenTest {
         compose.setContent {
             SpendFlowTheme {
                 GoalDialog(null, "LKR", saving = true,
-                    errors = GoalFormErrors(name = R.string.goal_name_required), writeError = R.string.error_network,
-                    onSave = { _, _, _ -> }, onDismiss = {})
+                    errors = GoalFormErrors(name = R.string.goal_name_required), writeError = R.string.error_network, today = LocalDate.of(2026, 10, 11),
+                    onSave = { _, _, _, _ -> }, onDismiss = {})
             }
         }
         compose.onNodeWithText(text(R.string.goal_name_required)).assertExists()
         compose.onNodeWithText(text(R.string.error_network)).assertExists()
         compose.onNode(hasSetTextAction() and hasText("0")).assertExists()
         compose.onNode(hasText(text(R.string.quick_save)) and hasClickAction()).assertIsNotEnabled()
+    }
+
+    @Test
+    fun newGoalNeedsValidTargetAndFutureDeadlineBeforeCreate() {
+        compose.setContent {
+            SpendFlowTheme {
+                GoalDialog(null, "LKR", saving = false, errors = GoalFormErrors(), writeError = null,
+                    today = LocalDate.of(2026, 10, 11), onSave = { _, _, _, _ -> }, onDismiss = {})
+            }
+        }
+        compose.onNode(hasText(text(R.string.goal_create)) and hasClickAction()).assertIsNotEnabled()
+        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("-5")
+        compose.onNodeWithText(text(R.string.entry_amount_positive)).assertExists()
+    }
+
+    @Test
+    fun detailOffersAddMoneyAndNamesGoalOnDelete() {
+        var deleted = false
+        compose.setContent {
+            SpendFlowTheme {
+                GoalDetailScreen(laptop, LocalDate.of(2026, 10, 11), null, onBack = {}, onEdit = {},
+                    onAddMoney = { _, _, _ -> null }, onMarkCompleted = {}, onSetPrimary = {}, onDelete = { deleted = true })
+            }
+        }
+        compose.onNodeWithText(text(R.string.goal_add_money)).assertExists()
+        compose.onNodeWithText(text(R.string.goal_more_actions)).performClick()
+        compose.onNodeWithText(text(R.string.goal_delete)).performClick()
+        compose.onNodeWithText(text(R.string.goal_delete_message, "Laptop")).assertExists()
+        compose.onNode(hasText(text(R.string.goal_delete)) and hasClickAction()).performClick()
+        assertEquals(true, deleted)
     }
 }
