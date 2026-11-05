@@ -41,6 +41,7 @@ fun LabeledTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: (@Composable () -> Unit)? = null,
     maxLength: Int? = null,
+    singleLine: Boolean = true,
 ) {
     val colors = SpendFlowTheme.colors
     Column(modifier.padding(top = dimensionResource(R.dimen.sf_space_l))) {
@@ -69,7 +70,7 @@ fun LabeledTextField(
             visualTransformation = visualTransformation,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
-            singleLine = true,
+            singleLine = singleLine,
             shape = MaterialTheme.shapes.medium,
             colors = spendFlowFieldColors(),
         )

@@ -4,16 +4,13 @@ import android.Manifest
 import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
-import android.widget.EditText
 import android.widget.TextView
-import androidx.core.view.children
 import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.BuildConfig
 import com.example.spendflow.MainActivity
 import com.example.spendflow.R
-import com.example.spendflow.core.ui.components.CategoryChip
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -28,6 +25,14 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import com.example.spendflow.ui.transactions.FeedTags
 import org.junit.Rule
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -79,25 +84,14 @@ class QuickAddSaveFlowTest {
         compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
         val started = SystemClock.elapsedRealtime()
         main { activity.findViewById<android.view.View>(R.id.addButton).performClick() }
-        fun sheet(): QuickAddBottomSheet {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            return host.childFragmentManager.fragments.filterIsInstance<QuickAddBottomSheet>().firstOrNull()
-                ?: throw AssertionError("Quick Add is not open")
-        }
-        eventually { main {
-            val form = sheet().view ?: throw AssertionError("Form is not ready")
-            val chips = form.findViewById<android.view.ViewGroup>(R.id.categories)
-            assertTrue(chips.children.filterIsInstance<CategoryChip>().any { it.label == "SF08 Food" })
-        } }
-        main {
-            val form = sheet().requireView()
-            assertEquals("Date: Now", form.findViewById<TextView>(R.id.dateButton).text.toString())
-            assertEquals(android.view.View.GONE, form.findViewById<android.view.View>(R.id.details).visibility)
-            form.findViewById<EditText>(R.id.amountInput).setText("25.50")
-            form.findViewById<android.view.ViewGroup>(R.id.categories).children
-                .filterIsInstance<CategoryChip>().first { it.label == "SF08 Food" }.performClick()
-            form.findViewById<android.view.View>(R.id.saveButton).performClick()
-        }
+        fun waitFor(matcher: SemanticsMatcher) = compose.waitUntil(15_000) { compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }
+        val foodChip = hasText("SF08 Food") and hasClickAction()
+        waitFor(foodChip)
+        compose.onNodeWithTag(QuickAddTags.DATE).assert(hasText("Date: Now"))
+        compose.onNodeWithTag(QuickAddTags.DETAILS).assertDoesNotExist()
+        compose.onNodeWithTag(QuickAddTags.AMOUNT).performTextReplacement("25.50")
+        compose.onNode(foodChip).performScrollTo().performClick()
+        compose.onNodeWithTag(QuickAddTags.SAVE).performScrollTo().performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Expenses: LKR 25.50").fetchSemanticsNodes().isNotEmpty() }
         val elapsed = SystemClock.elapsedRealtime() - started
         assertTrue("Save flow took ${elapsed}ms", elapsed <= 10_000)

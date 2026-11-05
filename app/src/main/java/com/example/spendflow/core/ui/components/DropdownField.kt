@@ -22,7 +22,10 @@ import androidx.compose.ui.res.dimensionResource
 import com.example.spendflow.R
 import com.example.spendflow.ui.theme.SpendFlowTheme
 
-/** Read-only field that opens a menu of [options], styled like [LabeledTextField]. Replaces XML spinners. */
+/**
+ * Read-only field that opens a menu of [options], styled like [LabeledTextField]. Replaces XML spinners.
+ * [fieldModifier] reaches the field itself, for test tags.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DropdownField(
@@ -31,6 +34,7 @@ fun DropdownField(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    fieldModifier: Modifier = Modifier,
     error: String? = null,
     enabled: Boolean = true,
 ) {
@@ -41,7 +45,7 @@ fun DropdownField(
             OutlinedTextField(
                 value = options.getOrElse(selectedIndex) { "" },
                 onValueChange = {},
-                modifier = Modifier
+                modifier = fieldModifier
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled)
                     .padding(top = dimensionResource(R.dimen.sf_space_s))
                     .fillMaxWidth(),
