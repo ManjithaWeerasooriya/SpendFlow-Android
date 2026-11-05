@@ -66,6 +66,8 @@ class TransactionFeedViewModel @Inject constructor(
         YearMonth.parse(homeMonth.value).let { DashboardUiState(it, it < YearMonth.now(zone)) },
     )
     val categories = categories.observeCategories(includeArchived = true).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    internal val expenseBreakdown = combine(dashboard, this.categories, ::dashboardExpenses)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DashboardExpenseState(YearMonth.parse(homeMonth.value)))
     private val budgets = budgets.observeBudgets().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     internal val capPreviews = combine(dashboard, this.budgets, this.categories) { selected, limits, labels ->
         dashboardCaps(selected, limits, labels, YearMonth.now(zone))

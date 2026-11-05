@@ -24,12 +24,17 @@ class AnalyticsViewModel @Inject constructor(
     internal val zone: ZoneId = ZoneId.systemDefault()
     private fun currentMonth(): YearMonth = YearMonth.now(zone)
     private val month = state.getStateFlow("analytics_month", currentMonth().toString())
+    internal val selectedMonth get() = month
     private val incomeMode = state.getStateFlow("analytics_income", false)
     fun setIncomeMode(income: Boolean) { state["analytics_income"] = income }
 
     fun moveMonth(delta: Long) {
         val next = YearMonth.parse(month.value).plusMonths(delta)
-        if (next <= currentMonth()) state["analytics_month"] = next.toString()
+        selectMonth(next)
+    }
+
+    internal fun selectMonth(selected: YearMonth) {
+        if (selected <= currentMonth()) state["analytics_month"] = selected.toString()
     }
 
     internal val uiState: StateFlow<AnalyticsUiState> = month

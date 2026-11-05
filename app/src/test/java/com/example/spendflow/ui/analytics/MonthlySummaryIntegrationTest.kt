@@ -232,6 +232,20 @@ class MonthlySummaryIntegrationTest {
 
     private fun Flow<AnalyticsUiState>.settled() = filter { it.content != AnalyticsContent.Loading }
 
+    @Test
+    fun `explicit Analytics month selection persists while normal restoration and future restriction remain intact`() = runTest {
+        val saved = SavedStateHandle(mapOf("analytics_month" to "2024-01"))
+        val model = analytics(Transactions(), saved)
+        model.selectMonth(YearMonth.of(2024, 10))
+        assertEquals("2024-10", saved.get<String>("analytics_month"))
+        model.uiState.settled().test { assertEquals(YearMonth.of(2024, 10), awaitItem().month) }
+        model.moveMonth(-1)
+        val restored = analytics(Transactions(), SavedStateHandle(mapOf("analytics_month" to saved.get<String>("analytics_month"))))
+        assertEquals(YearMonth.of(2024, 9), restored.uiState.value.month)
+        restored.selectMonth(YearMonth.now().plusMonths(1))
+        assertEquals("2024-09", restored.selectedMonth.value)
+    }
+
     private fun analytics(
         transactions: Transactions,
         state: SavedStateHandle,

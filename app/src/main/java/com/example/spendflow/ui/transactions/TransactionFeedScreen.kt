@@ -84,6 +84,7 @@ internal data class FeedUiState(
     val month: YearMonth,
     val dashboard: DashboardUiState? = null,
     val caps: DashboardCapsState? = null,
+    val expenseChart: DashboardExpenseState? = null,
 )
 
 private val FILTERS = listOf(
@@ -100,6 +101,7 @@ internal fun TransactionFeedRoute(
     onViewGoals: () -> Unit,
     onAddTransaction: () -> Unit = {},
     onManageCaps: () -> Unit = {},
+    onViewAnalytics: (YearMonth) -> Unit = {},
 ) {
     val result by (if (home) model.recent else model.history).collectAsStateWithLifecycle()
     val monthly = if (!home) model.monthly.collectAsStateWithLifecycle().value else null
@@ -108,6 +110,7 @@ internal fun TransactionFeedRoute(
     val filter by model.filter.collectAsStateWithLifecycle()
     val goals by model.goalPreview.collectAsStateWithLifecycle()
     val caps = if (home) model.capPreviews.collectAsStateWithLifecycle().value else null
+    val expenseChart = if (home) model.expenseBreakdown.collectAsStateWithLifecycle().value else null
     val incomeLabel = stringResource(R.string.category_type_income)
     val expenseLabel = stringResource(R.string.category_type_expense)
     val names = (categories as? AppResult.Success)?.data.orEmpty().associate { it.id to it.name }
@@ -141,6 +144,7 @@ internal fun TransactionFeedRoute(
             month = model.currentMonth,
             dashboard = dashboard,
             caps = caps,
+            expenseChart = expenseChart,
         ),
         home = home,
         onFilter = model::setFilter,
@@ -150,6 +154,7 @@ internal fun TransactionFeedRoute(
         onNextMonth = { model.moveHomeMonth(1) },
         onAddTransaction = onAddTransaction,
         onManageCaps = onManageCaps,
+        onViewAnalytics = onViewAnalytics,
     )
 }
 
@@ -169,6 +174,7 @@ internal fun TransactionFeedScreen(
     onNextMonth: () -> Unit = {},
     onAddTransaction: () -> Unit = {},
     onManageCaps: () -> Unit = {},
+    onViewAnalytics: (YearMonth) -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
@@ -208,6 +214,7 @@ internal fun TransactionFeedScreen(
                         onPreviousMonth, onNextMonth, onAddTransaction,
                     )
                     val selectedMonth = state.dashboard?.month ?: state.month
+                    DashboardExpenseChart(selectedMonth, state.expenseChart ?: DashboardExpenseState(selectedMonth), onViewAnalytics)
                     DashboardCapsSection(selectedMonth, state.caps ?: DashboardCapsState(selectedMonth), onManageCaps)
                     SectionHeader(R.string.ui_recent_transactions, R.string.ui_see_all, onSeeAll)
                 } else {

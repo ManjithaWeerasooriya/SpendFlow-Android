@@ -130,10 +130,13 @@ class DashboardSectionsTest {
         compose.onNodeWithContentDescription("Income: LKR 1,000.00").assertExists()
         compose.runOnIdle { rows = UiState.Success(emptyList()) }
         compose.onNodeWithText(text(R.string.dashboard_recent_empty)).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("dashboard_goal").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("dashboard_goal"))
+        compose.onNodeWithTag("dashboard_goal").assertIsDisplayed()
         compose.runOnIdle { rows = UiState.Error(AppError.Network) }
-        compose.onNodeWithText(text(R.string.error_network)).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("dashboard_goal").performScrollTo().assertIsDisplayed()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text(R.string.error_network)))
+        compose.onNodeWithText(text(R.string.error_network)).assertIsDisplayed()
+        compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasTestTag("dashboard_goal"))
+        compose.onNodeWithTag("dashboard_goal").assertIsDisplayed()
     }
 
     @Test fun homeLinksUseExistingDestinationsAndBackPreservesTheHistoricalMonth() {

@@ -29,6 +29,7 @@ import androidx.compose.ui.window.DialogWindowProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -126,7 +127,7 @@ fun SpendFlowShell(
                 .consumeWindowInsets(padding)
                 .imePadding(),
         ) {
-            appNavGraph { route, _ -> Destination(route, nav, entryFeedback, notifications, monitor) }
+            appNavGraph { route, destinationEntry -> Destination(route, nav, entryFeedback, notifications, monitor, destinationEntry) }
         }
     }
 }
@@ -138,6 +139,7 @@ private fun Destination(
     entryFeedback: EntryFeedbackViewModel,
     notifications: AndroidGoalNotifications,
     monitor: GoalNotificationMonitor,
+    destinationEntry: NavBackStackEntry,
 ) {
     when (route) {
         Routes.LOGIN -> LoginRoute(hiltViewModel())
@@ -149,9 +151,10 @@ private fun Destination(
             onViewGoals = { nav.navigate(Routes.GOALS) },
             onAddTransaction = nav::openQuickAdd,
             onManageCaps = { nav.navigate(Routes.CATEGORIES) },
+            onViewAnalytics = nav::openAnalytics,
         )
         Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {})
-        Routes.ANALYTICS -> AnalyticsRoute(hiltViewModel(), onAddTransaction = nav::openQuickAdd)
+        Routes.ANALYTICS -> AnalyticsRoute(hiltViewModel(), onAddTransaction = nav::openQuickAdd, monthRequests = destinationEntry.savedStateHandle)
         Routes.MORE -> MoreRoute(
             hiltViewModel(),
             onOpenCategories = { nav.navigate(Routes.CATEGORIES) },

@@ -1,4 +1,14 @@
 <resources>
+    <string name="dashboard_expense_title">Expenses by category</string>
+    <string name="dashboard_view_analytics">View Analytics</string>
+    <string name="dashboard_expense_loading">Loading expense breakdown…</string>
+    <string name="dashboard_expense_none">No expenses for this month</string>
+    <string name="dashboard_expense_names_loading">Category names are loading. Amounts are available.</string>
+    <string name="dashboard_expense_names_error">Category names are unavailable. Amounts are still shown. %1$s</string>
+    <string name="dashboard_expense_archived">%1$s (Archived)</string>
+    <string name="dashboard_expense_unknown">Unknown category (%1$s)</string>
+    <string name="dashboard_expense_pending">Category (%1$s)</string>
+    <string name="dashboard_expense_legend">%1$s: %2$s, %3$s of expenses</string>
     <string name="dashboard_caps_title">Monthly caps</string>
     <string name="dashboard_manage_caps">Manage caps</string>
     <string name="dashboard_caps_historical">Historical cap limits are unavailable. Cap progress is shown for the current month only.</string>
