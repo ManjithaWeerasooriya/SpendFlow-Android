@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
 import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.common.catchAsError
+import com.example.spendflow.core.common.guarded
 import com.example.spendflow.data.repository.GoalRepository
 import com.example.spendflow.data.repository.UserRepository
 import com.example.spendflow.data.repository.WriteFailures
@@ -62,6 +64,7 @@ fun goalFormErrors(
     )
 }
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GoalsViewModel @Inject constructor(
     private val repository: GoalRepository,
@@ -70,13 +73,16 @@ class GoalsViewModel @Inject constructor(
     summary: GetMonthlySummary,
     private val clock: Clock,
 ) : ViewModel() {
+    private val refresh = MutableStateFlow(0)
+    fun retry() { refresh.value++ }
     val today: LocalDate get() = LocalDate.now(clock)
     /** Last month's net savings; null while loading or on error. */
     val lastMonth: StateFlow<Money?> = summary(YearMonth.now(clock).minusMonths(1), clock.zone)
+        .catchAsError()
         .map { (it as? AppResult.Success)?.data?.netSavings }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    val goals = repository.observeGoals().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-    private val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val goals = refresh.flatMapLatest { repository.observeGoals().catchAsError() }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    private val profile = users.observeProfile().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val saving = MutableStateFlow(false)
     val errors = MutableStateFlow(GoalFormErrors())
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
@@ -115,7 +121,13 @@ class GoalsViewModel @Inject constructor(
             ?: SavingsGoal(repository.newId(), name.trim(), target, saved, deadline)
         saving.value = true
         viewModelScope.launch {
-            val result = if (existing == null) repository.create(goal) else repository.update(goal)
+            val result = try {
+                if (existing == null) repository.create(goal) else repository.update(goal)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppResult.Error(com.example.spendflow.core.common.AppError.Unknown(e))
+            }
             saving.value = false
             results.send(result)
         }
@@ -144,12 +156,12 @@ class GoalsViewModel @Inject constructor(
     fun setPrimary(goal: SavingsGoal) {
         saving.value = true
         viewModelScope.launch {
-            val all = (repository.observeGoals().first() as? AppResult.Success)?.data ?: listOf(goal)
+            val all = (repository.observeGoals().catchAsError().first() as? AppResult.Success)?.data ?: listOf(goal)
             var result: AppResult<Unit> = AppResult.Success(Unit)
             for (g in all) {
                 val wanted = g.id == goal.id
                 if (g.isPrimary != wanted) {
-                    val r = repository.update(g.copy(isPrimary = wanted))
+                    val r = guarded { repository.update(g.copy(isPrimary = wanted)) }
                     if (r is AppResult.Error) result = r
                 }
             }
@@ -160,13 +172,13 @@ class GoalsViewModel @Inject constructor(
 
     fun delete(goal: SavingsGoal) {
         // Success is visible: the goal leaves the list, and "Goal saved" would be wrong here
-        viewModelScope.launch { repository.delete(goal.id).let { if (it is AppResult.Error) results.send(it) } }
+        viewModelScope.launch { guarded { repository.delete(goal.id) }.let { if (it is AppResult.Error) results.send(it) } }
     }
 
     private fun write(goal: SavingsGoal) {
         saving.value = true
         viewModelScope.launch {
-            val result = repository.update(goal)
+            val result = guarded { repository.update(goal) }
             saving.value = false
             results.send(result)
         }

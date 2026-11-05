@@ -1,5 +1,7 @@
 package com.example.spendflow.ui.quickadd
 
+import com.example.spendflow.core.common.catchAsError
+import com.example.spendflow.core.common.guarded
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -29,8 +31,8 @@ class QuickAddViewModel @Inject constructor(
     private var original: Transaction? = null
     val loading = MutableStateFlow(isEditing)
     val loadError = MutableStateFlow<com.example.spendflow.core.common.AppError?>(null)
-    val categories = categories.observeCategories(includeArchived = isEditing).stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val categories = categories.observeCategories(includeArchived = isEditing).catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val profile = users.observeProfile().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
     val events = results.receiveAsFlow()
     val saving = MutableStateFlow(false)
@@ -48,7 +50,7 @@ class QuickAddViewModel @Inject constructor(
         loading.value = true
         loadError.value = null
         viewModelScope.launch {
-            when (val result = transactions.get(id)) {
+            when (val result = guarded { transactions.get(id) }) {
                 is AppResult.Error -> loadError.value = result.error
                 is AppResult.Success -> {
                     val item = result.data
@@ -183,7 +185,7 @@ class QuickAddViewModel @Inject constructor(
         )
         saving.value = true
         viewModelScope.launch {
-            val result = if (isEditing) transactions.update(transaction) else transactions.create(transaction)
+            val result = guarded { if (isEditing) transactions.update(transaction) else transactions.create(transaction) }
             completed = result is AppResult.Success
             if (completed) {
                 if (!isEditing) savedEntry = SavedEntry(transaction, category?.name.orEmpty())
