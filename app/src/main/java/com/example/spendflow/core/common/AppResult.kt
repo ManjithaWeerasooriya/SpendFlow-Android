@@ -38,3 +38,12 @@ suspend inline fun <T> appResultOf(
 /** Turns a throwing repository flow into an error value so stateIn never crashes the app. */
 fun <T> kotlinx.coroutines.flow.Flow<AppResult<T>>.catchAsError(): kotlinx.coroutines.flow.Flow<AppResult<T>> =
     kotlinx.coroutines.flow.catch { emit(AppResult.Error(AppError.Unknown(it))) }
+
+/** Like [appResultOf] for repository calls that already return an [AppResult]: a throw becomes an error. */
+suspend inline fun <T> guarded(block: suspend () -> AppResult<T>): AppResult<T> = try {
+    block()
+} catch (e: CancellationException) {
+    throw e
+} catch (e: Exception) {
+    AppResult.Error(AppError.Unknown(e))
+}

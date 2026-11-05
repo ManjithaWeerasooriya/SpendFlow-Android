@@ -1,5 +1,6 @@
 package com.example.spendflow.ui.more
 
+import com.example.spendflow.core.common.guarded
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.data.repository.AuthRepository
@@ -14,6 +15,6 @@ class MoreViewModel @Inject constructor(
 
     // MainActivity shows Login as soon as the session ends; the repository finishes clearing the cache
     fun logOut() {
-        viewModelScope.launch { auth.logOut() }
+        viewModelScope.launch { guarded { auth.logOut() } }
     }
 }

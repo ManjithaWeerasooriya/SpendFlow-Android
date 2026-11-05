@@ -1,5 +1,7 @@
 package com.example.spendflow.ui.quickadd
 
+import com.example.spendflow.core.common.catchAsError
+import com.example.spendflow.core.common.guarded
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,8 +27,8 @@ class QuickAddViewModel @Inject constructor(
     val draft: SavedStateHandle,
     private val exchangeRates: com.example.spendflow.data.repository.ExchangeRates,
 ) : ViewModel() {
-    val categories = categories.observeCategories().stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val categories = categories.observeCategories().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val profile = users.observeProfile().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
     val events = results.receiveAsFlow()
     val saving = MutableStateFlow(false)
@@ -132,7 +134,7 @@ class QuickAddViewModel @Inject constructor(
         )
         saving.value = true
         viewModelScope.launch {
-            val result = transactions.create(transaction)
+            val result = guarded { transactions.create(transaction) }
             completed = result is AppResult.Success
             if (completed) {
                 savedEntry = SavedEntry(transaction, category.name)

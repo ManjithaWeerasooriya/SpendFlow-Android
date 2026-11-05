@@ -1,5 +1,7 @@
 package com.example.spendflow.ui.categories
 
+import com.example.spendflow.core.common.catchAsError
+import com.example.spendflow.core.common.guarded
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
@@ -26,13 +28,13 @@ class ExpenseCategoriesViewModel @Inject constructor(
 ) : ViewModel() {
     private val refresh = MutableStateFlow(0)
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val categories = refresh.flatMapLatest { repository.observeCategories(CategoryType.EXPENSE, includeArchived = true) }
+    val categories = refresh.flatMapLatest { repository.observeCategories(CategoryType.EXPENSE, includeArchived = true).catchAsError() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    val caps = budgets.observeBudgets().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val caps = budgets.observeBudgets().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /** This month's spending and cap usage per category; it also raises the cap warnings shown here and on Home. */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    val capOverview = refresh.flatMapLatest { capUsage() }
+    val capOverview = refresh.flatMapLatest { capUsage().catchAsError() }
         .onEach { result -> (result as? AppResult.Success)?.data?.let(::checkWarnings) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val warnings = capWarnings.pending
@@ -44,7 +46,7 @@ class ExpenseCategoriesViewModel @Inject constructor(
         val archived = (categories.value as? AppResult.Success)?.data.orEmpty().filter { it.isArchived }.map { it.id }.toSet()
         capWarnings.check(overview.month, overview.usages.filterKeys { it !in archived }.values)
     }
-    private val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val profile = users.observeProfile().catchAsError().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val saving = MutableStateFlow(false)
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
     val events = results.receiveAsFlow()
@@ -133,7 +135,7 @@ class ExpenseCategoriesViewModel @Inject constructor(
         if (saving.value) return
         saving.value = true
         viewModelScope.launch {
-            try { results.send(operation()) } finally { saving.value = false }
+            try { results.send(guarded { operation() }) } finally { saving.value = false }
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.example.spendflow.ui.settings
 
+import com.example.spendflow.core.common.catchAsError
+import com.example.spendflow.core.common.guarded
 import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -66,7 +68,7 @@ class SettingsViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     internal val uiState: StateFlow<UiState<SettingsContent>> = retries
         .flatMapLatest {
-            combine(users.observeProfile(), transactions.observeRecent(limit = 1)) { profile, recent ->
+            combine(users.observeProfile().catchAsError(), transactions.observeRecent(limit = 1).catchAsError()) { profile, recent ->
                 when (profile) {
                     is AppResult.Error -> UiState.Error(profile.error)
                     is AppResult.Success -> profile.data?.let { user ->
@@ -129,7 +131,7 @@ class SettingsViewModel @Inject constructor(
 
     // MainActivity shows Login as soon as the session ends
     fun logOut() {
-        viewModelScope.launch { auth.logOut() }
+        viewModelScope.launch { guarded { auth.logOut() } }
     }
 
     private fun changeBaseCurrency(code: String) = write(successEvent = { SettingsEvent.CurrencyChanged(code) }) {
@@ -138,7 +140,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun write(successEvent: (() -> SettingsEvent)? = null, block: suspend () -> AppResult<Unit>) {
         viewModelScope.launch {
-            block()
+            guarded { block() }
                 .onSuccess { successEvent?.let { _events.send(it()) } }
                 .onError { _events.send(SettingsEvent.ShowError(it)) }
         }
