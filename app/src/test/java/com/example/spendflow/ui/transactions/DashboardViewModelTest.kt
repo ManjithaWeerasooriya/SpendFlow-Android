@@ -29,7 +29,9 @@ class DashboardViewModelTest {
     private val zone = ZoneId.systemDefault()
     private val january = YearMonth.of(2024, 1)
     private fun model(state: SavedStateHandle = SavedStateHandle()) = TransactionFeedViewModel(
-        transactions, FakeCategoryRepository(), GetMonthlySummary(transactions, Profile), Goals, state,
+        transactions, FakeCategoryRepository(), GetMonthlySummary(transactions, Profile), Goals,
+        com.example.spendflow.testing.dashboardCapUsage(com.example.spendflow.testing.FakeBudgetRepository(), GetMonthlySummary(transactions, Profile)),
+        com.example.spendflow.testing.dashboardCapWarnings(), state,
         com.example.spendflow.testing.FakeBudgetRepository(),
     )
     private fun saved(month: YearMonth = january) = SavedStateHandle(mapOf("home_month" to month.toString()))

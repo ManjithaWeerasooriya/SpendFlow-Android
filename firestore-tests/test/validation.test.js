@@ -310,13 +310,61 @@ describe('profile specifics', () => {
     await assertFails(create('profile', { baseCurrency: 'lkr' }));
   });
 
-  it('rejects changing the base currency', async () => {
+  it('allows changing the base currency', async () => {
     await seed(env, entities.profile.path(ALICE), entities.profile.valid());
-    await assertFails(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'USD' }));
-    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { displayName: 'Alice W' }));
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'USD' }));
+    await assertFails(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'usd' }));
+  });
+
+  it('accepts a profile without preference fields', async () => {
+    const { streakEnabled, lockScreenQuickEntry, capThresholds, ...legacy } = entities.profile.valid();
+    await assertSucceeds(createDoc(db, entities.profile.path(ALICE), legacy));
+  });
+
+  it('updates a single preference with a partial write', async () => {
+    await seed(env, entities.profile.path(ALICE), entities.profile.valid());
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { streakEnabled: true }));
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { lockScreenQuickEntry: true }));
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { capThresholds: [50, 80, 95] }));
+  });
+
+  it('rejects non-boolean switches', async () => {
+    await assertFails(create('profile', { streakEnabled: 'yes' }));
+    await assertFails(create('profile', { lockScreenQuickEntry: 1 }));
+  });
+
+  it('rejects invalid cap thresholds', async () => {
+    for (const capThresholds of [[75, 90], [75, 90, 100, 110], [90, 75, 100], [75, 75, 100], [0, 90, 100],
+      [75, 90, 101], [75.5, 90, 100], ['75', 90, 100], 75]) {
+      await assertFails(create('profile', { capThresholds }));
+    }
   });
 });
 
+
+describe('category cap specifics', () => {
+  it('accepts any subset of alert levels', async () => {
+    for (const alerts of [[], ['OVER'], ['NOTICE', 'OVER'], ['NOTICE', 'WARNING', 'OVER']]) {
+      await assertSucceeds(create('budgets', { categoryId: 'cat1', alerts }));
+    }
+  });
+
+  it('accepts a cap saved before per-cap alerts', async () => {
+    await assertSucceeds(createDoc(db, entities.budgets.path(ALICE, 'legacy'), without(entities.budgets.valid(), 'alerts')));
+  });
+
+  it('rejects unknown, repeated or non-list alerts', async () => {
+    for (const alerts of [['UNDER'], ['notice'], ['OVER', 'OVER'], ['NOTICE', 'WARNING', 'OVER', 'OVER'], 'OVER', [1]]) {
+      await assertFails(create('budgets', { alerts }));
+    }
+  });
+
+  it('rejects a zero or negative limit', async () => {
+    for (const limitMinor of [0, -50000]) {
+      await assertFails(create('budgets', { categoryId: 'cat1', limitMinor }));
+    }
+  });
+});
 
 describe('savings goal specifics', () => {
   it('accepts reaching and exceeding the target', async () => {
@@ -327,6 +375,18 @@ describe('savings goal specifics', () => {
     for (const changes of [{ targetMinor: 0 }, { savedMinor: -1 }, { savedMinor: 1.5 }, { targetMinor: 100000000000 }, { savedMinor: 100000000000 }]) {
       await assertFails(create('goals', changes));
     }
+  });
+  it('accepts a deadline or none, rejects a malformed one', async () => {
+    await assertSucceeds(create('goals', { deadline: '2027-03-31' }));
+    await assertSucceeds(create('goals', { deadline: null }));
+    await assertFails(create('goals', { deadline: 'soon' }));
+    await assertFails(create('goals', { deadline: 20270331 }));
+  });
+  it('validates contribution and flag fields', async () => {
+    await assertSucceeds(create('goals', { contributions: [{ id: 'c1', amountMinor: 2000000, date: '2026-10-11', note: null }], isPrimary: true, markedCompleted: false }));
+    await assertFails(create('goals', { contributions: 'x' }));
+    await assertFails(create('goals', { isPrimary: 'yes' }));
+    await assertFails(create('goals', { markedCompleted: 1 }));
   });
   it('rejects changing a goal currency', async () => {
     const path = entities.goals.path(ALICE, 'fixed-currency');

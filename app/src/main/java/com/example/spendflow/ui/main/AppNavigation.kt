@@ -25,6 +25,7 @@ object Routes {
     const val GOALS = "goals"
     const val SETTINGS = "settings"
     const val QUICK_ADD = "quick_add"
+    const val EDIT_TRANSACTION = "edit_transaction/{transactionId}"
 }
 
 enum class AppGraph(val route: String, val start: String) {
@@ -53,6 +54,10 @@ fun NavGraphBuilder.appNavGraph(content: @Composable (route: String, entry: NavB
             Routes.CATEGORIES, Routes.GOALS, Routes.SETTINGS,
         ).forEach { route -> composable(route) { content(route, it) } }
         // Full-window, so the bottom sheet drawn inside it can span the screen
+        dialog(Routes.EDIT_TRANSACTION,
+            arguments = listOf(androidx.navigation.navArgument("transactionId") { type = androidx.navigation.NavType.StringType }),
+            dialogProperties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        ) { content(Routes.EDIT_TRANSACTION, it) }
         dialog(Routes.QUICK_ADD, dialogProperties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
             content(Routes.QUICK_ADD, it)
         }
@@ -82,10 +87,16 @@ fun NavController.openAnalytics(month: YearMonth) {
 
 /** Ignore duplicate or late callbacks after the sheet or session has already closed. */
 fun NavController.dismissQuickAdd() {
-    if (currentDestination?.route == Routes.QUICK_ADD) popBackStack()
+    if (currentDestination?.route in setOf(Routes.QUICK_ADD, Routes.EDIT_TRANSACTION)) popBackStack()
 }
 
 fun NavController.openQuickAdd() {
     // A fast double tap would otherwise stack two sheets
     if (currentDestination?.route != Routes.QUICK_ADD) navigate(Routes.QUICK_ADD)
+}
+
+fun NavController.openTransactionEdit(id: String) {
+    if (currentDestination?.route !in setOf(Routes.QUICK_ADD, Routes.EDIT_TRANSACTION)) {
+        navigate("edit_transaction/${android.net.Uri.encode(id)}")
+    }
 }

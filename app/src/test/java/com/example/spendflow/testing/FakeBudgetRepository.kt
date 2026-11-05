@@ -7,7 +7,8 @@ import com.example.spendflow.domain.model.Budget
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 
-class FakeBudgetRepository : BudgetRepository {
+/** Supports explicit loading/error emissions for dashboard tests. */
+class DashboardBudgetRepository : BudgetRepository {
     val results = MutableStateFlow<AppResult<List<Budget>>?>(AppResult.Success(emptyList()))
     private val items get() = (results.value as? AppResult.Success)?.data.orEmpty()
     override fun observeBudgets() = results.filterNotNull()

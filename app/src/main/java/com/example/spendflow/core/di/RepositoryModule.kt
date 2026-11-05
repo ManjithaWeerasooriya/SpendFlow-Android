@@ -10,7 +10,9 @@ import com.example.spendflow.data.repository.FirestoreBudgetRepository
 import com.example.spendflow.data.repository.FirestoreCategoryRepository
 import com.example.spendflow.data.repository.FirestoreRecurringTransactionRepository
 import com.example.spendflow.data.repository.FirestoreTransactionRepository
+import com.example.spendflow.data.repository.FirestorePreferencesRepository
 import com.example.spendflow.data.repository.FirestoreUserRepository
+import com.example.spendflow.data.repository.PreferencesRepository
 import com.example.spendflow.data.repository.RecurringTransactionRepository
 import com.example.spendflow.data.repository.TransactionRepository
 import com.example.spendflow.data.repository.UserRepository
@@ -27,11 +29,14 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
     @Binds abstract fun bindGoalRepository(impl: com.example.spendflow.data.repository.FirestoreGoalRepository): com.example.spendflow.data.repository.GoalRepository
+    @Binds abstract fun bindConnectivity(impl: com.example.spendflow.core.network.AndroidConnectivityMonitor): com.example.spendflow.core.network.ConnectivityMonitor
     @Binds abstract fun bindExchangeRates(impl: com.example.spendflow.data.repository.ApiExchangeRates): com.example.spendflow.data.repository.ExchangeRates
     @Binds abstract fun bindUserSession(impl: FirebaseUserSession): UserSession
+    @Binds abstract fun bindCapAlertHistory(impl: com.example.spendflow.core.notifications.SharedPreferencesCapAlertHistory): com.example.spendflow.core.notifications.CapAlertHistory
     @Binds abstract fun bindAuthRepository(impl: FirebaseAuthRepository): AuthRepository
     @Binds abstract fun bindWriteFailures(impl: WriteFailureReporter): WriteFailures
     @Binds abstract fun bindUserRepository(impl: FirestoreUserRepository): UserRepository
+    @Binds abstract fun bindPreferencesRepository(impl: FirestorePreferencesRepository): PreferencesRepository
     @Binds abstract fun bindAccountRepository(impl: FirestoreAccountRepository): AccountRepository
     @Binds abstract fun bindCategoryRepository(impl: FirestoreCategoryRepository): CategoryRepository
     @Binds abstract fun bindTransactionRepository(impl: FirestoreTransactionRepository): TransactionRepository

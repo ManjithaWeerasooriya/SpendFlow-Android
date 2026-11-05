@@ -9,12 +9,12 @@ internal object CategoryAppearance {
     val classifications = listOf("NEEDS", "WANTS", "SAVINGS")
     val classificationLabels = listOf(R.string.category_needs, R.string.category_wants, R.string.category_savings)
     fun icon(name: String?) = when (name) {
-        "food" -> R.drawable.ic_category_food
-        "home" -> R.drawable.ic_category_home
-        "transport" -> R.drawable.ic_category_transport
-        "shopping" -> R.drawable.ic_category_shopping
-        "health" -> R.drawable.ic_category_health
-        else -> R.drawable.ic_budget
+        "food" -> R.drawable.ic_cat_food
+        "home" -> R.drawable.ic_cat_housing
+        "transport" -> R.drawable.ic_cat_transport
+        "shopping" -> R.drawable.ic_cat_shopping
+        "health" -> R.drawable.ic_cat_health
+        else -> R.drawable.ic_cat_other
     }
     fun classification(name: String?): Int = classificationLabels.getOrNull(classifications.indexOf(name)) ?: R.string.category_unclassified
 }

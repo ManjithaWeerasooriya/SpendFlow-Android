@@ -159,9 +159,11 @@ class DashboardSectionsTest {
         }
         for ((label, route) in listOf(R.string.dashboard_manage_caps to Routes.CATEGORIES,
             R.string.ui_view_goals to Routes.GOALS, R.string.ui_see_all to Routes.TRANSACTIONS)) {
-            compose.onNodeWithText(text(label)).performScrollTo().performClick()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text(label)))
+            compose.onNodeWithText(text(label)).performClick()
             compose.runOnIdle { assertEquals(route, nav.currentDestination?.route); nav.popBackStack() }
-            compose.onNodeWithText(text(R.string.dashboard_caps_historical)).assertExists()
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText(text(R.string.dashboard_caps_historical)))
+            compose.onNodeWithText(text(R.string.dashboard_caps_historical)).assertIsDisplayed()
         }
     }
 }

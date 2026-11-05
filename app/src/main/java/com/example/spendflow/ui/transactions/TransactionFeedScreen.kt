@@ -2,6 +2,24 @@ package com.example.spendflow.ui.transactions
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.unit.IntOffset
+import com.example.spendflow.core.ui.EventEffect
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -46,9 +64,12 @@ import com.example.spendflow.core.ui.components.AmountSize
 import com.example.spendflow.core.ui.components.AmountText
 import com.example.spendflow.core.ui.components.AmountTone
 import com.example.spendflow.core.ui.components.EmptyState
+import com.example.spendflow.core.ui.components.ErrorState
+import com.example.spendflow.core.ui.components.CapWarningBanner
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.domain.model.Money
+import com.example.spendflow.domain.model.CapWarning
 import com.example.spendflow.domain.model.MonthlySummary
 import com.example.spendflow.domain.model.SavingsGoal
 import com.example.spendflow.domain.model.TransactionType
@@ -73,6 +94,8 @@ internal data class FeedRow(
     val subtitle: String,
     val amount: Money,
     val type: TransactionType,
+    val categoryName: String = title,
+    val pending: Boolean = false,
 )
 
 /** [filter] is "ALL", "EXPENSE" or "INCOME", as stored by [TransactionFeedViewModel]. */
@@ -85,7 +108,9 @@ internal data class FeedUiState(
     val dashboard: DashboardUiState? = null,
     val caps: DashboardCapsState? = null,
     val expenseChart: DashboardExpenseState? = null,
+    val warning: Pair<CapWarning, String>? = null,
 )
+
 
 private val FILTERS = listOf(
     "ALL" to R.string.ui_all,
@@ -102,6 +127,7 @@ internal fun TransactionFeedRoute(
     onAddTransaction: () -> Unit = {},
     onManageCaps: () -> Unit = {},
     onViewAnalytics: (YearMonth) -> Unit = {},
+    onEdit: (String) -> Unit = {},
 ) {
     val result by (if (home) model.recent else model.history).collectAsStateWithLifecycle()
     val monthly = if (!home) model.monthly.collectAsStateWithLifecycle().value else null
@@ -111,9 +137,16 @@ internal fun TransactionFeedRoute(
     val goals by model.goalPreview.collectAsStateWithLifecycle()
     val caps = if (home) model.capPreviews.collectAsStateWithLifecycle().value else null
     val expenseChart = if (home) model.expenseBreakdown.collectAsStateWithLifecycle().value else null
+    val pendingIds by model.pendingIds.collectAsStateWithLifecycle()
+    val warnings = if (home) model.warnings.collectAsStateWithLifecycle().value else emptyList()
     val incomeLabel = stringResource(R.string.category_type_income)
     val expenseLabel = stringResource(R.string.category_type_expense)
-    val names = (categories as? AppResult.Success)?.data.orEmpty().associate { it.id to it.name }
+    val allCategories = (categories as? AppResult.Success)?.data.orEmpty()
+    val names = allCategories.associate { it.id to it.name }
+    val activeCategories = allCategories.filter { !it.isArchived }.associateBy { it.id }
+    val warning = if (home)
+        warnings.filter { it.month == dashboard?.month && it.usage.categoryId in activeCategories }
+            .maxByOrNull { it.level } else null
     val locale = LocalLocale.current.platformLocale
     val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm", locale)
     val rows = when (val current = result) {
@@ -131,10 +164,24 @@ internal fun TransactionFeedRoute(
                         subtitle = category + " - " + item.dateTime.atZone(ZoneId.systemDefault()).format(dateFormat),
                         amount = if (item.type == TransactionType.EXPENSE) -item.amount else item.amount,
                         type = item.type,
+                        pending = item.id in pendingIds,
+                        categoryName = category,
                     )
                 },
         )
     }
+    var pendingDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    val deleting by model.deleting.collectAsStateWithLifecycle()
+    val deleteError by model.deleteError.collectAsStateWithLifecycle()
+    EventEffect(model.deletionEvents) { if (it is AppResult.Success) pendingDeleteId = null }
+    val pendingRow = (rows as? UiState.Success)?.data?.firstOrNull { it.id == pendingDeleteId }
+    if (pendingRow != null) TransactionDeleteDialog(
+        row = pendingRow,
+        deleting = deleting != null,
+        error = deleteError?.messageRes,
+        onCancel = { pendingDeleteId = null; model.clearDeleteError() },
+        onConfirm = { model.deleteTransaction(pendingRow.id) },
+    )
     TransactionFeedScreen(
         state = FeedUiState(
             rows = rows,
@@ -145,6 +192,7 @@ internal fun TransactionFeedRoute(
             dashboard = dashboard,
             caps = caps,
             expenseChart = expenseChart,
+            warning = warning?.let { it to activeCategories.getValue(it.usage.categoryId).name },
         ),
         home = home,
         onFilter = model::setFilter,
@@ -155,6 +203,10 @@ internal fun TransactionFeedRoute(
         onAddTransaction = onAddTransaction,
         onManageCaps = onManageCaps,
         onViewAnalytics = onViewAnalytics,
+        onEdit = onEdit,
+        onDelete = { pendingDeleteId = it.id; model.clearDeleteError() },
+        onRetry = model::retry,
+        onDismissWarning = { warning?.let(model::dismissWarning) },
     )
 }
 
@@ -175,6 +227,10 @@ internal fun TransactionFeedScreen(
     onAddTransaction: () -> Unit = {},
     onManageCaps: () -> Unit = {},
     onViewAnalytics: (YearMonth) -> Unit = {},
+    onEdit: (String) -> Unit = {},
+    onDelete: (FeedRow) -> Unit = {},
+    onDismissWarning: () -> Unit = {},
+    onRetry: () -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
@@ -209,6 +265,9 @@ internal fun TransactionFeedScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (home) {
+                    state.warning?.let { (warning, name) ->
+                        CapWarningBanner(warning, name, onDismissWarning, Modifier.padding(bottom = dimensionResource(R.dimen.sf_space_l)))
+                    }
                     DashboardSummaryPanel(
                         state.dashboard ?: DashboardUiState(state.month, false),
                         onPreviousMonth, onNextMonth, onAddTransaction,
@@ -236,13 +295,15 @@ internal fun TransactionFeedScreen(
                 }
                 when (val status = state.rows) {
                     UiState.Loading -> StatusText(stringResource(if (home) R.string.dashboard_recent_loading else R.string.analytics_loading))
-                    is UiState.Error -> StatusText(stringResource(status.error.messageRes))
+                    is UiState.Error -> ErrorState(stringResource(status.error.messageRes), onRetry, Modifier.fillMaxWidth())
                     is UiState.Success -> if (status.data.isEmpty()) {
                         EmptyState(
                             title = stringResource(if (home) R.string.dashboard_recent_empty else R.string.transactions_empty),
                             modifier = Modifier.fillMaxWidth(),
                             icon = R.drawable.ic_transactions,
                             message = stringResource(if (home) R.string.dashboard_recent_empty_hint else R.string.ui_empty_hint),
+                            actionText = stringResource(R.string.nav_add_transaction),
+                            onAction = onAddTransaction,
                         )
                     }
                 }
@@ -250,9 +311,11 @@ internal fun TransactionFeedScreen(
         }
         itemsIndexed(rows, key = { _, row -> row.id }) { index, row ->
             val corner = dimensionResource(R.dimen.sf_corner_inset)
-            TransactionRow(
-                row,
-                Modifier
+            SwipeableTransactionRow(
+                row = row,
+                onEdit = { onEdit(row.id) },
+                onDelete = { onDelete(row) },
+                modifier = Modifier
                     .animateItem()
                     .background(
                         colors.insetCard,
@@ -334,6 +397,61 @@ private fun StatusText(text: String) {
     )
 }
 
+/** Swiping reveals an action; it never removes a record by itself. */
+@Composable
+private fun SwipeableTransactionRow(row: FeedRow, onEdit: () -> Unit, onDelete: () -> Unit, modifier: Modifier = Modifier) {
+    val revealWidth = with(LocalDensity.current) { 96.dp.toPx() }
+    var offset by rememberSaveable(row.id) { mutableFloatStateOf(0f) }
+    Box(modifier.clipToBounds()) {
+        TextButton(
+            onClick = onDelete,
+            modifier = Modifier.align(Alignment.CenterEnd).width(96.dp).heightIn(min = 48.dp)
+                .testTag("delete_${row.id}"),
+        ) { Text(stringResource(R.string.transaction_delete), color = MaterialTheme.colorScheme.error) }
+        val deleteLabel = stringResource(R.string.transaction_delete_action, row.categoryName)
+        TransactionRow(row, Modifier
+            .offset { IntOffset(offset.roundToInt(), 0) }
+            .background(SpendFlowTheme.colors.insetCard)
+            .draggable(
+                state = rememberDraggableState { delta -> offset = (offset + delta).coerceIn(-revealWidth, 0f) },
+                orientation = Orientation.Horizontal,
+                onDragStopped = { offset = if (offset < -revealWidth / 2) -revealWidth else 0f },
+            )
+            .clickable(onClick = onEdit)
+            .semantics { customActions = listOf(CustomAccessibilityAction(deleteLabel) { onDelete(); true }) },
+        )
+    }
+}
+
+@Composable
+internal fun TransactionDeleteDialog(
+    row: FeedRow,
+    deleting: Boolean,
+    @StringRes error: Int?,
+    onCancel: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val locale = LocalLocale.current.platformLocale
+    val digits = java.util.Currency.getInstance(row.amount.currencyCode).defaultFractionDigits.coerceAtLeast(0)
+    val hasFraction = java.math.BigDecimal.valueOf(row.amount.amountMinor, digits).stripTrailingZeros().scale() > 0
+
+    AlertDialog(
+        onDismissRequest = { if (!deleting) onCancel() },
+        title = { Text(stringResource(R.string.transaction_delete_confirm, row.categoryName,
+            AmountFormatter.format(row.amount, showDecimals = hasFraction,
+                signed = row.type != TransactionType.TRANSFER, locale = locale))) },
+        text = { error?.let { StatusText(stringResource(it)) } },
+        confirmButton = {
+            TextButton(onClick = onConfirm, enabled = !deleting) {
+                Text(stringResource(R.string.transaction_delete), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel, enabled = !deleting) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
+}
+
 @Composable
 private fun TransactionRow(row: FeedRow, modifier: Modifier = Modifier) {
     val colors = SpendFlowTheme.colors
@@ -372,6 +490,14 @@ private fun TransactionRow(row: FeedRow, modifier: Modifier = Modifier) {
                 color = colors.textMuted,
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (row.pending) {
+                Text(
+                    stringResource(R.string.sync_pending),
+                    Modifier.padding(top = dimensionResource(R.dimen.sf_space_xs)),
+                    color = colors.violetText,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
         AmountText(
             row.amount,
@@ -389,6 +515,7 @@ private fun TransactionRow(row: FeedRow, modifier: Modifier = Modifier) {
 private val previewRows = listOf(
     FeedRow("1", "G", "Weekly shop", "Groceries - 04 Nov, 18:20", Money(-2_450_00, "LKR"), TransactionType.EXPENSE),
     FeedRow("2", "S", "Salary", "Salary - 01 Nov, 09:00", Money(185_000_00, "LKR"), TransactionType.INCOME),
+    FeedRow("3", "C", "Coffee", "Food - 05 Nov, 08:10", Money(-450_00, "LKR"), TransactionType.EXPENSE, pending = true),
 )
 
 @ThemePreviews

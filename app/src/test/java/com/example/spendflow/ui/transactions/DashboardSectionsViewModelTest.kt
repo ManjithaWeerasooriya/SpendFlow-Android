@@ -26,9 +26,9 @@ class DashboardSectionsViewModelTest {
     private val month = YearMonth.now()
     private val transactions = Transactions()
     private val categories = FakeCategoryRepository(listOf(Category("food", "Food", CategoryType.EXPENSE)))
-    private val budgets = FakeBudgetRepository()
+    private val budgets = DashboardBudgetRepository()
     private val goals = Goals()
-    private fun model(labels: CategoryRepository = categories) = TransactionFeedViewModel(transactions, labels, GetMonthlySummary(transactions, Profile), goals, SavedStateHandle(), budgets)
+    private fun model(labels: CategoryRepository = categories) = TransactionFeedViewModel(transactions, labels, GetMonthlySummary(transactions, Profile), goals, dashboardCapUsage(budgets, GetMonthlySummary(transactions, Profile)), dashboardCapWarnings(), SavedStateHandle(), budgets)
     private fun budget(limit: Long = 1000) = Budget("food-cap", "Food", Money(limit, "LKR"), BudgetPeriod.MONTHLY, month.atDay(1), "food")
     private suspend fun ReceiveTurbine<DashboardCapsState>.ready(): DashboardCapsState {
         var state = awaitItem()
@@ -145,6 +145,37 @@ class DashboardSectionsViewModelTest {
             expectNoEvents()
             goals.results.value = AppResult.Success(emptyList())
             assertEquals(UiState.Success(null), awaitItem())
+        }
+    }
+
+    @Test fun `selected primary goal wins even when completed and falls back after removal`() = runTest {
+        val incomplete = SavingsGoal("a", "Incomplete", Money(1000, "LKR"), Money(200, "LKR"))
+        val primary = incomplete.copy(id = "primary", isPrimary = true, saved = incomplete.target)
+        goals.results.value = AppResult.Success(listOf(incomplete, primary))
+        model().goalPreview.test {
+            assertEquals(UiState.Success(primary), awaitItem())
+            goals.results.value = AppResult.Success(listOf(incomplete))
+            assertEquals(UiState.Success(incomplete), awaitItem())
+        }
+    }
+
+    @Test fun `warnings react to duplicate late and currency edits without stale progress`() = runTest {
+        transactions.rows.value = listOf(expense("food", 1100))
+        budgets.create(budget())
+        val model = model()
+        model.warnings.test {
+            var current = awaitItem()
+            while (current.isEmpty()) current = awaitItem()
+            assertEquals("food-cap", current.single().budgetId)
+            budgets.create(budget().copy(id = "duplicate"))
+            assertTrue(awaitItem().isEmpty())
+            // A later-starting record no longer duplicates the remaining full-month cap.
+            budgets.update(budget().copy(startDate = month.atDay(2)))
+            assertEquals("duplicate", awaitItem().single().budgetId)
+            budgets.update(budget().copy(id = "duplicate", limit = Money(1000, "USD")))
+            assertTrue(awaitItem().isEmpty())
+            model.moveHomeMonth(-1)
+            expectNoEvents()
         }
     }
 

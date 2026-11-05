@@ -4,9 +4,6 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,7 +11,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLocale
@@ -24,14 +20,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import com.example.spendflow.R
-import com.example.spendflow.core.common.AppResult
-import com.example.spendflow.core.ui.messageRes
-import com.example.spendflow.domain.model.Budget
-import com.example.spendflow.domain.model.BudgetPeriod
-import java.math.BigDecimal
-import java.util.Currency
 import com.example.spendflow.core.ui.CurrencyOptions
 import com.example.spendflow.core.ui.components.DropdownField
 import com.example.spendflow.core.ui.components.FormDialog
@@ -84,71 +73,6 @@ internal fun ExpenseCategoryDialog(
             options = CategoryAppearance.classificationLabels.map { stringResource(it) },
             selectedIndex = classification,
             onSelect = { classification = it },
-        )
-    }
-}
-
-/** Wait for cap data before initializing the form; an unresolved cap must not look like a new one. */
-@Composable
-internal fun ObservedCategoryCapDialog(
-    category: Category,
-    caps: AppResult<List<Budget>>?,
-    saving: Boolean,
-    @StringRes error: Int?,
-    onSave: (String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val formState = rememberSaveableStateHolder()
-    if (caps is AppResult.Success) {
-        val cap = caps.data.firstOrNull { it.categoryId == category.id && it.period == BudgetPeriod.MONTHLY }
-        val initial = cap?.limit?.let { money ->
-            BigDecimal.valueOf(money.amountMinor, Currency.getInstance(money.currencyCode).defaultFractionDigits).toPlainString()
-        }.orEmpty()
-        formState.SaveableStateProvider(category.id) {
-            CategoryCapDialog(initial, saving, error, onSave, onDismiss)
-        }
-    } else {
-        val message = stringResource(if (caps is AppResult.Error) caps.error.messageRes else R.string.category_cap_loading)
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.category_cap)) },
-            text = {
-                Column {
-                    if (caps == null) CircularProgressIndicator()
-                    Text(message, Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-            },
-        )
-    }
-}
-
-/** Monthly cap in the base currency; [initialAmount] pre-fills an existing cap. */
-@Composable
-internal fun CategoryCapDialog(
-    initialAmount: String,
-    saving: Boolean,
-    @StringRes error: Int?,
-    onSave: (amount: String) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var amount by rememberSaveable { mutableStateOf(initialAmount) }
-    FormDialog(
-        title = stringResource(R.string.category_cap),
-        confirm = stringResource(R.string.quick_save),
-        dismiss = stringResource(R.string.action_cancel),
-        saving = saving,
-        onConfirm = { onSave(amount) },
-        onDismiss = onDismiss,
-    ) {
-        LabeledTextField(
-            label = stringResource(R.string.category_cap_hint),
-            value = amount,
-            onValueChange = { amount = it },
-            error = error?.let { stringResource(it) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         )
     }
 }

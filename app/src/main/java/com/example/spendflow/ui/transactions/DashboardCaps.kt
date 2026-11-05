@@ -20,6 +20,7 @@ internal data class DashboardCap(
     val fraction: BigDecimal?,
     val issue: CapIssue? = null,
     val categoryLabel: CapCategoryLabel? = null,
+    val budgetId: String? = null,
 )
 
 internal data class CapPreviews(val overall: DashboardCap?, val categories: List<DashboardCap>)
@@ -37,6 +38,7 @@ internal fun dashboardCaps(
     budgets: AppResult<List<Budget>>?,
     categories: AppResult<List<Category>>?,
     currentMonth: YearMonth,
+    previewLimit: Int = 3,
 ): DashboardCapsState {
     fun state(content: DashboardCapsContent) = DashboardCapsState(dashboard.month, content)
     if (dashboard.month != currentMonth) return state(DashboardCapsContent.Historical)
@@ -76,6 +78,7 @@ internal fun dashboardCaps(
         }
         DashboardCap(
             categoryId = id,
+            budgetId = chosen?.id,
             name = category?.name ?: (chosen?.name ?: group.map { it.name }.distinct().sorted().joinToString(" / ")),
             spending = spending,
             // With duplicates or no applicable cap there is no authoritative limit to display.
@@ -102,7 +105,7 @@ internal fun dashboardCaps(
             }
             else -> a.categoryId!!.compareTo(b.categoryId!!)
         }
-    }.take(3)
+    }.take(previewLimit)
     return state(DashboardCapsContent.Ready(CapPreviews(rows.firstOrNull { it.categoryId == null }, ranked)))
 }
 
@@ -110,3 +113,22 @@ internal fun dashboardCaps(
 internal fun capFraction(spending: Money, limit: Money): BigDecimal? =
     if (limit.amountMinor <= 0 || spending.currencyCode != limit.currencyCode) null
     else BigDecimal.valueOf(spending.amountMinor).divide(BigDecimal.valueOf(limit.amountMinor), MathContext.DECIMAL128)
+
+/** Shares the preview evaluator's eligibility; warnings are not limited to the top three. */
+internal fun dashboardWarningUsages(
+    selected: DashboardUiState,
+    budgets: AppResult<List<Budget>>?,
+    categories: AppResult<List<Category>>?,
+    currentMonth: YearMonth,
+    thresholds: CapThresholds,
+): List<CapUsage> {
+    val evaluated = dashboardCaps(selected, budgets, categories, currentMonth, Int.MAX_VALUE)
+    val previews = (evaluated.content as? DashboardCapsContent.Ready)?.previews ?: return emptyList()
+    val records = (budgets as? AppResult.Success)?.data.orEmpty().associateBy { it.id }
+    return previews.categories.mapNotNull { row ->
+        // Preserve incoming behavior: archived/missing categories do not raise warnings.
+        if (row.issue != null || row.categoryLabel != null) return@mapNotNull null
+        val cap = records[row.budgetId] ?: return@mapNotNull null
+        CapUsage(requireNotNull(row.categoryId), cap, row.spending, thresholds)
+    }
+}
