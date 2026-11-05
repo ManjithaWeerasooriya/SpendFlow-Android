@@ -47,7 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -76,7 +76,6 @@ import com.example.spendflow.domain.model.CategoryType
 import com.example.spendflow.ui.theme.SpendFlowTheme
 import kotlinx.coroutines.launch
 import java.io.Serializable
-import java.math.BigDecimal
 
 internal enum class CategoryAction(@StringRes val label: Int) {
     RENAME(R.string.category_rename),
@@ -103,6 +102,7 @@ internal fun CategoriesRoute(
     val incomeSaving by viewModel.incomeSourceSaving.collectAsStateWithLifecycle()
     val expenseResult by expenseModel.categories.collectAsStateWithLifecycle()
     val expenseSaving by expenseModel.saving.collectAsStateWithLifecycle()
+    val caps by expenseModel.caps.collectAsStateWithLifecycle()
     val expenses = when (val result = expenseResult) {
         is AppResult.Success -> UiState.Success(result.data)
         is AppResult.Error -> UiState.Error(result.error)
@@ -124,11 +124,11 @@ internal fun CategoriesRoute(
 
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val resources = LocalResources.current
     fun show(message: Int, tone: SpendFlowSnackbar.Tone = SpendFlowSnackbar.Tone.NONE, long: Boolean = false) {
         snackbar.currentSnackbarData?.dismiss()
         val duration = if (long) SnackbarDuration.Long else SnackbarDuration.Short
-        scope.launch { snackbar.showSnackbar(SpendFlowSnackbarVisuals(context.getString(message), tone, duration = duration)) }
+        scope.launch { snackbar.showSnackbar(SpendFlowSnackbarVisuals(resources.getString(message), tone, duration = duration)) }
     }
     EventEffect(expenseModel.events) { result ->
         when (result) {
@@ -202,9 +202,10 @@ internal fun CategoriesRoute(
     val category = current.categoryId?.let { id ->
         ((if (current.kind.isIncome) incomeSources else expenses) as? UiState.Success)?.data?.firstOrNull { it.id == id }
     }
-    // The category was removed while its dialog was open (or after recreation)
+    // Loading or an observer failure does not prove a restored category was deleted.
     if (current.categoryId != null && category == null) {
-        LaunchedEffect(current) { dialog = null }
+        val source = if (current.kind.isIncome) incomeSources else expenses
+        if (source is UiState.Success) LaunchedEffect(current) { dialog = null }
         return
     }
     val close = { dialog = null }
@@ -216,11 +217,9 @@ internal fun CategoriesRoute(
             onSave = { name, icon, classification -> expenseError = expenseModel.save(category?.id, name, icon, classification) },
             onDismiss = close,
         )
-        CategoriesDialog.Kind.EXPENSE_CAP -> CategoryCapDialog(
-            initialAmount = expenseModel.cap(category!!)?.limit?.let { money ->
-                val digits = java.util.Currency.getInstance(money.currencyCode).defaultFractionDigits
-                BigDecimal.valueOf(money.amountMinor, digits).toPlainString()
-            }.orEmpty(),
+        CategoriesDialog.Kind.EXPENSE_CAP -> ObservedCategoryCapDialog(
+            category = category!!,
+            caps = caps,
             saving = expenseSaving,
             error = expenseError,
             onSave = { amount -> expenseError = expenseModel.saveCap(category, amount) },

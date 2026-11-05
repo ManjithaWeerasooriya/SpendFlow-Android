@@ -71,6 +71,11 @@ fun NavController.navigateToTab(route: String) {
     }
 }
 
+/** Ignore duplicate or late callbacks after the sheet or session has already closed. */
+fun NavController.dismissQuickAdd() {
+    if (currentDestination?.route == Routes.QUICK_ADD) popBackStack()
+}
+
 fun NavController.openQuickAdd() {
     // A fast double tap would otherwise stack two sheets
     if (currentDestination?.route != Routes.QUICK_ADD) navigate(Routes.QUICK_ADD)

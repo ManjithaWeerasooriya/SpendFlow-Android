@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -36,7 +37,7 @@ fun AmountText(
     signed: Boolean = false,
     maxLines: Int = Int.MAX_VALUE,
 ) {
-    val parts = AmountFormatter.parts(amount, showDecimals, signed)
+    val parts = AmountFormatter.parts(amount, showDecimals, signed, LocalLocale.current.platformLocale)
     val (color, mutedColor) = tone.colors()
     val text = buildAnnotatedString {
         append(parts.sign)

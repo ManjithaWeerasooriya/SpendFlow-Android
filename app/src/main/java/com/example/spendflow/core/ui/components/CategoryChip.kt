@@ -1,6 +1,5 @@
 package com.example.spendflow.core.ui.components
 
-import android.widget.RadioButton
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,7 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -73,7 +72,7 @@ fun CategoryChip(
 @ThemePreviews
 @Composable
 private fun CategoryChipPreview() = ComponentPreview {
-    var selected by remember { mutableStateOf(0) }
+    var selected by remember { mutableIntStateOf(0) }
     Row {
         listOf("Groceries" to R.drawable.ic_cat_food, "Transport" to R.drawable.ic_cat_transport, "Subscriptions" to R.drawable.ic_cat_subscriptions)
             .forEachIndexed { i, (label, icon) -> CategoryChip(label, icon, selected = i == selected, onClick = { selected = i }) }

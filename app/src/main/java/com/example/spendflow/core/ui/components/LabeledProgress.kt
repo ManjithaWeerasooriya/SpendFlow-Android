@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -45,6 +46,7 @@ fun LabeledProgress(
     showDecimals: Boolean = false,
 ) {
     val colors = SpendFlowTheme.colors
+    val locale = LocalLocale.current.platformLocale
     val percent = progressPercent(current, target)
     val percentText = stringResource(R.string.percent, percent)
     val shape = MaterialTheme.shapes.medium
@@ -59,13 +61,13 @@ fun LabeledProgress(
     Column(modifier.then(container)) {
         Row {
             Text(
-                AmountFormatter.format(current, showDecimals = showDecimals),
+                AmountFormatter.format(current, showDecimals = showDecimals, locale = locale),
                 Modifier.weight(1f),
                 color = colors.textHeading,
                 style = MaterialTheme.typography.titleSmall,
             )
             Text(
-                AmountFormatter.format(target, showDecimals = showDecimals),
+                AmountFormatter.format(target, showDecimals = showDecimals, locale = locale),
                 color = colors.textMuted,
                 style = MaterialTheme.typography.bodyLarge,
             )

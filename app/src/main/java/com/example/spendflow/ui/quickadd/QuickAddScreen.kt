@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -166,6 +167,7 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
         }
     }
 
+    val locale = LocalLocale.current.platformLocale
     val base = (profile as? AppResult.Success)?.data?.baseCurrency ?: "LKR"
     val type = if (income) CategoryType.INCOME else CategoryType.EXPENSE
     val preview = model.conversion(amount, income)?.first?.let { converted ->
@@ -173,7 +175,7 @@ internal fun QuickAddRoute(model: QuickAddViewModel, onSaved: (SavedEntry) -> Un
         stringResource(
             R.string.income_preview,
             converted.currencyCode,
-            NumberFormat.getNumberInstance().format(BigDecimal.valueOf(converted.amountMinor).movePointLeft(digits)),
+            NumberFormat.getNumberInstance(locale).format(BigDecimal.valueOf(converted.amountMinor).movePointLeft(digits)),
         )
     }
     QuickAddForm(
@@ -255,6 +257,7 @@ internal fun QuickAddForm(
     modifier: Modifier = Modifier,
     focus: QuickAddFocus = remember { QuickAddFocus() },
 ) {
+    val locale = LocalLocale.current.platformLocale
     val colors = SpendFlowTheme.colors
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     var pickedDay by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -328,7 +331,7 @@ internal fun QuickAddForm(
         if (state.income) {
             DropdownField(
                 label = stringResource(R.string.income_currency),
-                options = CurrencyOptions.labels,
+                options = CurrencyOptions.labels(locale),
                 selectedIndex = CurrencyOptions.codes.indexOf(state.currency).coerceAtLeast(0),
                 onSelect = { onCurrency(CurrencyOptions.codes[it]) },
                 fieldModifier = Modifier.testTag(QuickAddTags.CURRENCY),
@@ -394,7 +397,7 @@ internal fun QuickAddForm(
             Text(
                 stringResource(
                     R.string.quick_date,
-                    state.date?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm"))
+                    state.date?.atZone(ZoneId.systemDefault())?.format(DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm", locale))
                         ?: stringResource(R.string.quick_now),
                 ),
                 style = MaterialTheme.typography.labelLarge,

@@ -1,4 +1,5 @@
 <resources>
+    <string name="category_cap_loading">Loading monthly cap…</string>
     <string name="app_name">SpendFlow</string>
 
     <string name="error_network">No connection. Check your network and try again.</string>

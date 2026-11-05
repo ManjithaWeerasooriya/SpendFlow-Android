@@ -3,7 +3,6 @@ package com.example.spendflow.ui.goals
 import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -32,6 +31,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.core.net.toUri
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -84,6 +85,7 @@ internal fun GoalsRoute(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val result by model.goals.collectAsStateWithLifecycle()
     val saving by model.saving.collectAsStateWithLifecycle()
     val errors by model.errors.collectAsStateWithLifecycle()
@@ -108,7 +110,7 @@ internal fun GoalsRoute(
     val scope = rememberCoroutineScope()
     fun show(message: Int, tone: SpendFlowSnackbar.Tone) {
         snackbar.currentSnackbarData?.dismiss()
-        scope.launch { snackbar.showSnackbar(SpendFlowSnackbarVisuals(context.getString(message), tone)) }
+        scope.launch { snackbar.showSnackbar(SpendFlowSnackbarVisuals(resources.getString(message), tone)) }
     }
     EventEffect(model.events) { event ->
         when (event) {
@@ -146,7 +148,7 @@ internal fun GoalsRoute(
                     if (Build.VERSION.SDK_INT >= 26) {
                         Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                     } else {
-                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri())
                     },
                 )
             }
@@ -167,7 +169,7 @@ internal fun GoalsRoute(
     val goal = if (id == NEW) null else (goals as? UiState.Success)?.data?.firstOrNull { it.id == id }
     if (id != NEW && goal == null) {
         // The goal was deleted while its dialog was open, or hasn't loaded yet after recreation
-        if (goals !is UiState.Loading) LaunchedEffect(id) { dialogGoalId = null }
+        if (goals is UiState.Success) LaunchedEffect(id) { dialogGoalId = null }
         return
     }
     GoalDialog(

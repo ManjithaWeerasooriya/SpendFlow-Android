@@ -25,6 +25,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.dimensionResource
@@ -50,10 +51,11 @@ fun SummaryCard(
     showExpenseRatioBar: Boolean = false,
 ) {
     val colors = SpendFlowTheme.colors
+    val locale = LocalLocale.current.platformLocale
     val shape = MaterialTheme.shapes.large
     val unavailable = stringResource(R.string.summary_ratio_unavailable)
     val ratio = summary.expenseToIncomeRatio
-    val saved = summary.savingsRate?.let { PercentFormatter.formatFraction(it) }
+    val saved = summary.savingsRate?.let { PercentFormatter.formatFraction(it, locale) }
     Column(
         modifier
             .background(Brush.linearGradient(listOf(colors.heroStart, colors.heroEnd)), shape)
@@ -75,7 +77,7 @@ fun SummaryCard(
                 R.string.summary_expenses, R.drawable.ic_badge_expense, summary.totalExpenses,
                 caption = if (showExpenseRatioBar) null else stringResource(
                     R.string.summary_spent_ratio,
-                    ratio?.let { PercentFormatter.formatFraction(it) } ?: unavailable,
+                    ratio?.let { PercentFormatter.formatFraction(it, locale) } ?: unavailable,
                 ),
                 modifier = Modifier.weight(1f),
             )
@@ -87,7 +89,7 @@ fun SummaryCard(
         )
         val netLabel = stringResource(R.string.summary_net_savings)
         Text(netLabel, Modifier.clearAndSetSemantics {}, color = colors.textOnDarkMuted, style = MaterialTheme.typography.bodyLarge)
-        val netText = AmountFormatter.format(summary.netSavings, showDecimals = true)
+        val netText = AmountFormatter.format(summary.netSavings, showDecimals = true, locale = locale)
         val netDescription = stringResource(R.string.summary_metric_value, netLabel, netText)
         AmountText(
             summary.netSavings,
@@ -115,15 +117,16 @@ fun SummaryCard(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (showExpenseRatioBar) ExpenseRatio(ExpenseRatioDisplay.from(ratio), unavailable)
+        if (showExpenseRatioBar) ExpenseRatio(ExpenseRatioDisplay.from(ratio, locale), unavailable)
     }
 }
 
 @Composable
 private fun Metric(@StringRes label: Int, @DrawableRes badge: Int, amount: Money, caption: String?, modifier: Modifier) {
     val colors = SpendFlowTheme.colors
+    val locale = LocalLocale.current.platformLocale
     val labelText = stringResource(label)
-    val description = stringResource(R.string.summary_metric_value, labelText, AmountFormatter.format(amount, showDecimals = true))
+    val description = stringResource(R.string.summary_metric_value, labelText, AmountFormatter.format(amount, showDecimals = true, locale = locale))
     Column(modifier) {
         Row(Modifier.clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically) {
             Image(painterResource(badge), contentDescription = null)
