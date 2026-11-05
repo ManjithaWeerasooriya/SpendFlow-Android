@@ -28,7 +28,7 @@ class TransactionMutationScreenTest {
             var pending by remember { mutableStateOf<FeedRow?>(null) }
             SpendFlowTheme {
                 TransactionFeedScreen(
-                    FeedUiState(UiState.Success(listOf(row)), null, null, "ALL", YearMonth.now()),
+                    FeedUiState(UiState.Success(listOf(row)), null, UiState.Success(null), "ALL", YearMonth.now()),
                     home = false, onFilter = {}, onSeeAll = {}, onViewGoals = {},
                     onEdit = { edits += it }, onDelete = { pending = it },
                 )

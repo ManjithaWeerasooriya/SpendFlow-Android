@@ -9,6 +9,9 @@ import android.widget.TextView
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.core.view.children
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -92,13 +95,30 @@ class GoalCompletionNotificationFlowTest {
         compose.onNodeWithText(goalsLink).performClick()
         val addGoal = hasText(context.getString(R.string.goals_add)) and hasClickAction()
         compose.waitUntil(15_000) { compose.onAllNodes(addGoal).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNode(addGoal).performClick()
+        compose.onAllNodes(addGoal).onFirst().performScrollTo().performClick()
         // Name, target and saved amount, in that order
         compose.waitUntil(5_000) { compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size == 3 }
         compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("Laptop")
         compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("100")
         compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("0")
-        compose.onNodeWithText(context.getString(R.string.quick_save)).performClick()
+        compose.onNodeWithContentDescription(
+            context.getString(R.string.goal_deadline_label) + ": " + context.getString(R.string.goal_deadline_choose),
+        ).performScrollTo().performClick()
+        compose.onNodeWithContentDescription(context.getString(
+            androidx.compose.material3.R.string.m3c_date_picker_switch_to_next_month,
+        )).performClick()
+        val goalDeadline = java.time.YearMonth.now().plusMonths(1).atDay(15)
+        val deadlineLabel = android.icu.text.DateFormat.getInstanceForSkeleton(
+            "yMMMMEEEEd", context.resources.configuration.locales[0],
+        ).apply { timeZone = android.icu.util.TimeZone.getTimeZone("UTC") }.format(
+            java.util.Date(goalDeadline.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()),
+        )
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText(deadlineLabel).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText(deadlineLabel).performClick()
+        compose.onNodeWithText(context.getString(android.R.string.ok)).performClick()
+        compose.onNodeWithText(context.getString(R.string.goal_create)).performClick()
         var goalId: String? = null
         val deadline = SystemClock.elapsedRealtime() + 15000
         while (SystemClock.elapsedRealtime() < deadline && goalId == null) {
@@ -107,6 +127,7 @@ class GoalCompletionNotificationFlowTest {
         }
         val goal = profile.collection("goals").document(requireNotNull(goalId))
         assertEquals(10000L, goal.get().await().getLong("targetMinor"))
+        assertEquals(goalDeadline.toString(), goal.get().await().getString("deadline"))
         assertTrue(manager.activeNotifications.none { it.tag == "goal:${user.uid}:$goalId" })
         goal.update(mapOf("savedMinor" to 10000L, "updatedAt" to FieldValue.serverTimestamp())).await()
         eventually {

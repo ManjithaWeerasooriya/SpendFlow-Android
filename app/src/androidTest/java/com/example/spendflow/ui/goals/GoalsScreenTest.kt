@@ -1,5 +1,8 @@
 package com.example.spendflow.ui.goals
 
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
@@ -76,7 +79,9 @@ class GoalsScreenTest {
         show(onOpen = { updated += it.id })
         compose.onNodeWithText(text(R.string.goal_completed_label, "Trip")).assertExists()
         compose.onNodeWithText("Laptop").assertExists()
-        compose.onNodeWithContentDescription(text(R.string.goal_open_detail, "Laptop")).performClick()
+        compose.onNode(SemanticsMatcher("Open details action for Laptop") {
+            it.config.getOrNull(SemanticsActions.OnClick)?.label == text(R.string.goal_open_detail, "Laptop")
+        }).performClick()
         assertEquals(listOf("laptop"), updated)
     }
 
@@ -120,7 +125,7 @@ class GoalsScreenTest {
         compose.onNodeWithText(text(R.string.goal_name_required)).assertExists()
         compose.onNodeWithText(text(R.string.error_network)).assertExists()
         compose.onNode(hasSetTextAction() and hasText("0")).assertExists()
-        compose.onNode(hasText(text(R.string.quick_save)) and hasClickAction()).assertIsNotEnabled()
+        compose.onNode(hasText(text(R.string.goal_create)) and hasClickAction()).assertIsNotEnabled()
     }
 
     @Test

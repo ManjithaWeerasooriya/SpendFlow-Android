@@ -20,8 +20,6 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.unit.IntOffset
 import com.example.spendflow.core.ui.EventEffect
 import kotlin.math.roundToInt
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -44,13 +42,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -69,18 +65,11 @@ import com.example.spendflow.core.ui.components.AmountText
 import com.example.spendflow.core.ui.components.AmountTone
 import com.example.spendflow.core.ui.components.EmptyState
 import com.example.spendflow.core.ui.components.ErrorState
-import com.example.spendflow.core.ui.components.CapProgressBar
 import com.example.spendflow.core.ui.components.CapWarningBanner
-import com.example.spendflow.core.ui.components.OverCapLine
-import com.example.spendflow.core.ui.components.LabeledProgress
-import com.example.spendflow.core.ui.components.SummaryCard
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.domain.model.Money
-import com.example.spendflow.domain.model.primaryGoal
-import com.example.spendflow.domain.model.CapUsage
 import com.example.spendflow.domain.model.CapWarning
-import com.example.spendflow.ui.categories.CategoryAppearance
 import com.example.spendflow.domain.model.MonthlySummary
 import com.example.spendflow.domain.model.SavingsGoal
 import com.example.spendflow.domain.model.TransactionType
@@ -113,15 +102,15 @@ internal data class FeedRow(
 internal data class FeedUiState(
     val rows: UiState<List<FeedRow>>,
     val monthly: MonthlySummary?,
-    val goal: SavingsGoal?,
+    val goal: UiState<SavingsGoal?>,
     val filter: String,
     val month: YearMonth,
-    val caps: List<HomeCap> = emptyList(),
+    val dashboard: DashboardUiState? = null,
+    val caps: DashboardCapsState? = null,
+    val expenseChart: DashboardExpenseState? = null,
     val warning: Pair<CapWarning, String>? = null,
 )
 
-/** A row of Home's Spending caps. */
-internal data class HomeCap(val name: String, val iconName: String?, val usage: CapUsage)
 
 private val FILTERS = listOf(
     "ALL" to R.string.ui_all,
@@ -135,33 +124,29 @@ internal fun TransactionFeedRoute(
     home: Boolean,
     onSeeAll: () -> Unit,
     onViewGoals: () -> Unit,
-    onEdit: (String) -> Unit = {},
-    onManageCaps: () -> Unit = {},
     onAddTransaction: () -> Unit = {},
+    onManageCaps: () -> Unit = {},
+    onViewAnalytics: (YearMonth) -> Unit = {},
+    onEdit: (String) -> Unit = {},
 ) {
     val result by (if (home) model.recent else model.history).collectAsStateWithLifecycle()
-    val monthly by model.monthly.collectAsStateWithLifecycle()
+    val monthly = if (!home) model.monthly.collectAsStateWithLifecycle().value else null
+    val dashboard = if (home) model.dashboard.collectAsStateWithLifecycle().value else null
     val categories by model.categories.collectAsStateWithLifecycle()
     val filter by model.filter.collectAsStateWithLifecycle()
-    val goals by model.goals.collectAsStateWithLifecycle()
+    val goals by model.goalPreview.collectAsStateWithLifecycle()
+    val caps = if (home) model.capPreviews.collectAsStateWithLifecycle().value else null
+    val expenseChart = if (home) model.expenseBreakdown.collectAsStateWithLifecycle().value else null
     val pendingIds by model.pendingIds.collectAsStateWithLifecycle()
-    val capFlow = if (home) model.caps else remember { kotlinx.coroutines.flow.MutableStateFlow(null) }
-    val caps by capFlow.collectAsStateWithLifecycle()
-    val warnings by model.warnings.collectAsStateWithLifecycle()
+    val warnings = if (home) model.warnings.collectAsStateWithLifecycle().value else emptyList()
     val incomeLabel = stringResource(R.string.category_type_income)
     val expenseLabel = stringResource(R.string.category_type_expense)
     val allCategories = (categories as? AppResult.Success)?.data.orEmpty()
     val names = allCategories.associate { it.id to it.name }
     val activeCategories = allCategories.filter { !it.isArchived }.associateBy { it.id }
-    // Fullest caps first, so the ones closest to their limit lead
-    val homeCaps = (caps as? AppResult.Success)?.data?.usages?.values.orEmpty()
-        .mapNotNull { usage ->
-            val category = activeCategories[usage.categoryId] ?: return@mapNotNull null
-            if (usage.spent == null) null else HomeCap(category.name, category.iconName, usage)
-        }
-        .sortedByDescending { it.usage.spent!!.amountMinor.toDouble() / it.usage.cap.limit.amountMinor }
-    // The most serious first; dismissing it reveals the next
-    val warning = if (home) warnings.filter { it.usage.categoryId in activeCategories }.maxByOrNull { it.level } else null
+    val warning = if (home)
+        warnings.filter { it.month == dashboard?.month && it.usage.categoryId in activeCategories }
+            .maxByOrNull { it.level } else null
     val locale = LocalLocale.current.platformLocale
     val dateFormat = DateTimeFormatter.ofPattern("dd MMM, HH:mm", locale)
     val rows = when (val current = result) {
@@ -201,20 +186,25 @@ internal fun TransactionFeedRoute(
         state = FeedUiState(
             rows = rows,
             monthly = (monthly as? AppResult.Success)?.data,
-            goal = if (home) (goals as? AppResult.Success)?.data?.let(::primaryGoal) else null,
+            goal = goals,
             filter = filter,
             month = model.currentMonth,
-            caps = homeCaps,
+            dashboard = dashboard,
+            caps = caps,
+            expenseChart = expenseChart,
             warning = warning?.let { it to activeCategories.getValue(it.usage.categoryId).name },
         ),
         home = home,
         onFilter = model::setFilter,
         onSeeAll = onSeeAll,
         onViewGoals = onViewGoals,
+        onPreviousMonth = { model.moveHomeMonth(-1) },
+        onNextMonth = { model.moveHomeMonth(1) },
+        onAddTransaction = onAddTransaction,
+        onManageCaps = onManageCaps,
+        onViewAnalytics = onViewAnalytics,
         onEdit = onEdit,
         onDelete = { pendingDeleteId = it.id; model.clearDeleteError() },
-        onManageCaps = onManageCaps,
-        onAddTransaction = onAddTransaction,
         onRetry = model::retry,
         onDismissWarning = { warning?.let(model::dismissWarning) },
     )
@@ -232,11 +222,14 @@ internal fun TransactionFeedScreen(
     onSeeAll: () -> Unit,
     onViewGoals: () -> Unit,
     modifier: Modifier = Modifier,
+    onPreviousMonth: () -> Unit = {},
+    onNextMonth: () -> Unit = {},
+    onAddTransaction: () -> Unit = {},
+    onManageCaps: () -> Unit = {},
+    onViewAnalytics: (YearMonth) -> Unit = {},
     onEdit: (String) -> Unit = {},
     onDelete: (FeedRow) -> Unit = {},
-    onManageCaps: () -> Unit = {},
     onDismissWarning: () -> Unit = {},
-    onAddTransaction: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
@@ -265,9 +258,8 @@ internal fun TransactionFeedScreen(
                     color = colors.textHeading,
                     style = MaterialTheme.typography.headlineMedium,
                 )
-                Text(
-                    if (home) state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
-                    else stringResource(R.string.ui_all_history),
+                if (!home) Text(
+                    stringResource(R.string.ui_all_history),
                     Modifier.padding(top = dimensionResource(R.dimen.sf_space_xs), bottom = dimensionResource(R.dimen.sf_space_l)),
                     color = colors.textMuted,
                     style = MaterialTheme.typography.bodyMedium,
@@ -276,7 +268,13 @@ internal fun TransactionFeedScreen(
                     state.warning?.let { (warning, name) ->
                         CapWarningBanner(warning, name, onDismissWarning, Modifier.padding(bottom = dimensionResource(R.dimen.sf_space_l)))
                     }
-                    state.monthly?.let { SummaryCard(it, Modifier.fillMaxWidth()) }
+                    DashboardSummaryPanel(
+                        state.dashboard ?: DashboardUiState(state.month, false),
+                        onPreviousMonth, onNextMonth, onAddTransaction,
+                    )
+                    val selectedMonth = state.dashboard?.month ?: state.month
+                    DashboardExpenseChart(selectedMonth, state.expenseChart ?: DashboardExpenseState(selectedMonth), onViewAnalytics)
+                    DashboardCapsSection(selectedMonth, state.caps ?: DashboardCapsState(selectedMonth), onManageCaps)
                     SectionHeader(R.string.ui_recent_transactions, R.string.ui_see_all, onSeeAll)
                 } else {
                     state.monthly?.let {
@@ -296,14 +294,14 @@ internal fun TransactionFeedScreen(
                     FilterRow(state.filter, onFilter)
                 }
                 when (val status = state.rows) {
-                    UiState.Loading -> StatusText(stringResource(R.string.analytics_loading))
+                    UiState.Loading -> StatusText(stringResource(if (home) R.string.dashboard_recent_loading else R.string.analytics_loading))
                     is UiState.Error -> ErrorState(stringResource(status.error.messageRes), onRetry, Modifier.fillMaxWidth())
                     is UiState.Success -> if (status.data.isEmpty()) {
                         EmptyState(
-                            title = stringResource(R.string.transactions_empty),
+                            title = stringResource(if (home) R.string.dashboard_recent_empty else R.string.transactions_empty),
                             modifier = Modifier.fillMaxWidth(),
                             icon = R.drawable.ic_transactions,
-                            message = stringResource(R.string.ui_empty_hint),
+                            message = stringResource(if (home) R.string.dashboard_recent_empty_hint else R.string.ui_empty_hint),
                             actionText = stringResource(R.string.nav_add_transaction),
                             onAction = onAddTransaction,
                         )
@@ -334,74 +332,15 @@ internal fun TransactionFeedScreen(
             item(key = "goals") {
                 Column {
                     SectionHeader(R.string.ui_savings_goals, R.string.ui_view_goals, onViewGoals)
-                    state.goal?.let { goal ->
-                        LabeledProgress(goal.saved, goal.target, goal.name, Modifier.fillMaxWidth(), showDecimals = true)
-                    } ?: StatusText(stringResource(R.string.goals_empty))
-                }
-            }
-            item(key = "caps") {
-                Column {
-                    SectionHeader(R.string.home_spending_caps, R.string.home_manage_caps, onManageCaps)
-                    if (state.caps.isEmpty()) {
-                        StatusText(stringResource(R.string.home_caps_empty))
-                    } else {
-                        Column(
-                            Modifier
-                                .fillMaxWidth()
-                                .background(colors.insetCard, RoundedCornerShape(dimensionResource(R.dimen.sf_corner_inset)))
-                                .padding(dimensionResource(R.dimen.sf_space_l)),
-                            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_xl)),
-                        ) {
-                            state.caps.forEach { HomeCapRow(it) }
-                        }
-                    }
+                    DashboardGoal(state.goal)
                 }
             }
         }
     }
 }
 
-/** 02a: icon, name, "10,500 / 10,000", the notched bar and, past the cap, "Over cap by LKR 500". */
 @Composable
-private fun HomeCapRow(cap: HomeCap) {
-    val colors = SpendFlowTheme.colors
-    val locale = LocalLocale.current.platformLocale
-    val usage = cap.usage
-    Column {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painterResource(CategoryAppearance.icon(cap.iconName)),
-                contentDescription = null,
-                Modifier
-                    .size(40.dp)
-                    .background(colors.tile, RoundedCornerShape(dimensionResource(R.dimen.sf_corner_tile)))
-                    .padding(dimensionResource(R.dimen.sf_space_s)),
-            )
-            Text(
-                cap.name,
-                Modifier
-                    .weight(1f)
-                    .padding(horizontal = dimensionResource(R.dimen.sf_space_m)),
-                color = colors.textHeading,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                stringResource(
-                    R.string.cap_compact,
-                    AmountFormatter.parts(usage.spent!!, showDecimals = false, signed = false, locale = locale).number,
-                    AmountFormatter.parts(usage.cap.limit, showDecimals = false, signed = false, locale = locale).number,
-                ),
-                color = colors.textHeading,
-                style = MaterialTheme.typography.titleSmall,
-            )
-        }
-        CapProgressBar(usage, cap.name, Modifier.padding(top = dimensionResource(R.dimen.sf_space_m)))
-        usage.overBy?.let { OverCapLine(it, Modifier.padding(top = dimensionResource(R.dimen.sf_space_s))) }
-    }
-}
-
-@Composable
-private fun SectionHeader(@StringRes title: Int, @StringRes action: Int, onAction: () -> Unit) {
+internal fun SectionHeader(@StringRes title: Int, @StringRes action: Int, onAction: () -> Unit) {
     Row(Modifier.padding(top = dimensionResource(R.dimen.sf_space_l)), verticalAlignment = Alignment.CenterVertically) {
         Text(
             stringResource(title),
@@ -586,7 +525,13 @@ private fun HomePreview() = SpendFlowTheme {
         FeedUiState(
             rows = UiState.Success(previewRows),
             monthly = MonthlySummary(YearMonth.of(2026, 11), Money(185_000_00, "LKR"), Money(2_450_00, "LKR")),
-            goal = SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR")),
+            goal = UiState.Success(SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR"))),
+            dashboard = DashboardUiState(
+                YearMonth.of(2026, 11), false,
+                UiState.Success(DashboardSummary(
+                    MonthlySummary(YearMonth.of(2026, 11), Money(185_000_00, "LKR"), Money(2_450_00, "LKR")), true,
+                )),
+            ),
             filter = "ALL",
             month = YearMonth.of(2026, 11),
         ),
@@ -601,7 +546,7 @@ private fun TransactionsPreview() = SpendFlowTheme {
         FeedUiState(
             rows = UiState.Success(previewRows),
             monthly = MonthlySummary(YearMonth.of(2026, 11), Money(185_000_00, "LKR"), Money(2_450_00, "LKR")),
-            goal = null,
+            goal = UiState.Success(null),
             filter = "EXPENSE",
             month = YearMonth.of(2026, 11),
         ),

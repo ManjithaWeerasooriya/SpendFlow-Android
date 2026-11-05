@@ -58,7 +58,7 @@ class TransactionMutationIntegrationTest {
         val repository = FakeTransactionRepository(listOf(row))
         val categories = FakeCategoryRepository(listOf(Category("food", "Groceries", CategoryType.EXPENSE)))
         val summary = GetMonthlySummary(repository, users)
-        val feed = TransactionFeedViewModel(repository, categories, summary, goals, capUsage(summary), warnings, SavedStateHandle())
+        val feed = TransactionFeedViewModel(repository, categories, summary, goals, capUsage(summary), warnings, SavedStateHandle(), budgets)
         val analytics = AnalyticsViewModel(summary, categories, SavedStateHandle())
         val caps = ExpenseCategoriesViewModel(categories, budgets, users, capUsage(summary), warnings)
         val edit = QuickAddViewModel(categories, users, repository, SavedStateHandle(mapOf("transactionId" to row.id)), rates)
@@ -91,7 +91,7 @@ class TransactionMutationIntegrationTest {
         val row = Transaction("stored", TransactionType.INCOME, Money(100, "LKR"), BigDecimal.ONE, Money(100, "LKR"), date, null, null)
         val repository = FakeTransactionRepository(listOf(row))
         val summary = GetMonthlySummary(repository, users)
-        val feed = TransactionFeedViewModel(repository, FakeCategoryRepository(), summary, goals, capUsage(summary), warnings, SavedStateHandle())
+        val feed = TransactionFeedViewModel(repository, FakeCategoryRepository(), summary, goals, capUsage(summary), warnings, SavedStateHandle(), budgets)
         repository.error = AppError.PermissionDenied
         feed.deletionEvents.test {
             feed.deleteTransaction(row.id)

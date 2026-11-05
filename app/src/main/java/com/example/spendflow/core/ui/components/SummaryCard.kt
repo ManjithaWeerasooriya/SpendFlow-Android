@@ -43,12 +43,14 @@ import java.time.YearMonth
 /**
  * Monthly income, expenses and net savings on the dark hero card, with the savings rate pill.
  * [showExpenseRatioBar] replaces the "x% of income" caption with a bar, as on Analytics.
+ * [showRatios] lets the dashboard replace unavailable percentage indicators with an explanation.
  */
 @Composable
 fun SummaryCard(
     summary: MonthlySummary,
     modifier: Modifier = Modifier,
     showExpenseRatioBar: Boolean = false,
+    showRatios: Boolean = true,
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
@@ -75,7 +77,7 @@ fun SummaryCard(
             )
             Metric(
                 R.string.summary_expenses, R.drawable.ic_badge_expense, summary.totalExpenses,
-                caption = if (showExpenseRatioBar) null else stringResource(
+                caption = if (showExpenseRatioBar || !showRatios) null else stringResource(
                     R.string.summary_spent_ratio,
                     ratio?.let { PercentFormatter.formatFraction(it, locale) } ?: unavailable,
                 ),
@@ -96,28 +98,30 @@ fun SummaryCard(
             Modifier.clearAndSetSemantics { contentDescription = netDescription },
             size = AmountSize.TITLE, tone = AmountTone.ON_DARK, showDecimals = true, maxLines = 2,
         )
-        val savedDescription = if (saved == null) {
-            stringResource(R.string.summary_savings_rate_unavailable)
-        } else {
-            stringResource(R.string.summary_savings_rate_value, saved)
+        if (showRatios) {
+            val savedDescription = if (saved == null) {
+                stringResource(R.string.summary_savings_rate_unavailable)
+            } else {
+                stringResource(R.string.summary_savings_rate_value, saved)
+            }
+            Row(
+                Modifier
+                    .padding(top = dimensionResource(R.dimen.sf_space_s))
+                    .background(colors.heroPill, CircleShape)
+                    .padding(horizontal = dimensionResource(R.dimen.sf_space_s), vertical = dimensionResource(R.dimen.sf_space_xs))
+                    .clearAndSetSemantics { contentDescription = savedDescription },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_s)),
+            ) {
+                Box(Modifier.size(8.dp).background(colors.income, CircleShape))
+                Text(
+                    stringResource(R.string.summary_saved_ratio, saved ?: unavailable),
+                    color = colors.textOnDark,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            if (showExpenseRatioBar) ExpenseRatio(ExpenseRatioDisplay.from(ratio, locale), unavailable)
         }
-        Row(
-            Modifier
-                .padding(top = dimensionResource(R.dimen.sf_space_s))
-                .background(colors.heroPill, CircleShape)
-                .padding(horizontal = dimensionResource(R.dimen.sf_space_s), vertical = dimensionResource(R.dimen.sf_space_xs))
-                .clearAndSetSemantics { contentDescription = savedDescription },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.sf_space_s)),
-        ) {
-            Box(Modifier.size(8.dp).background(colors.income, CircleShape))
-            Text(
-                stringResource(R.string.summary_saved_ratio, saved ?: unavailable),
-                color = colors.textOnDark,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-        if (showExpenseRatioBar) ExpenseRatio(ExpenseRatioDisplay.from(ratio, locale), unavailable)
     }
 }
 

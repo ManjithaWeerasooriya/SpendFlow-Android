@@ -13,11 +13,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.ui.theme.SpendFlowTheme
-import kotlin.math.min
 
 /** Slice colours, in order; category rows use the same colour for their dot and bar. */
 @Composable
@@ -31,30 +29,16 @@ internal fun analyticsPalette(): List<Color> = SpendFlowTheme.colors.run { listO
 @Composable
 internal fun DonutChart(slices: List<CategoryTotal>, selected: Int?, modifier: Modifier = Modifier) {
     val palette = analyticsPalette()
-    val track = SpendFlowTheme.colors.tile
-    Canvas(modifier) {
-        val stroke = min(size.width, size.height) * .12f
-        val diameter = min(size.width, size.height) - stroke * 1.4f
-        val topLeft = Offset((size.width - diameter) / 2, (size.height - diameter) / 2)
-        val arcSize = Size(diameter, diameter)
-        drawArc(track, 0f, 360f, useCenter = false, topLeft = topLeft, size = arcSize, style = Stroke(stroke))
-        val total = slices.sumOf { it.amountMinor }
-        var angle = -90f
-        slices.forEachIndexed { index, item ->
-            val sweep = if (total > 0) (item.amountMinor.toDouble() / total * 360).toFloat() else 0f
-            drawArc(
-                color = palette[index % palette.size],
-                startAngle = angle + min(1f, sweep / 4),
-                sweepAngle = (sweep - min(2f, sweep / 2)).coerceAtLeast(0f),
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                alpha = if (selected == null || selected == index) 1f else 80 / 255f,
-                style = Stroke(stroke),
+    val total = slices.sumOf { it.amountMinor }
+    com.example.spendflow.core.ui.components.DonutChart(
+        slices.mapIndexed { index, item ->
+            com.example.spendflow.core.ui.components.DonutSlice(
+                if (total > 0) item.amountMinor.toDouble() / total else 0.0,
+                palette[index % palette.size],
             )
-            angle += sweep
-        }
-    }
+        },
+        SpendFlowTheme.colors.tile, selected, modifier,
+    )
 }
 
 /** Income (green) and expense (violet) bars per day over a light grid. */

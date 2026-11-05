@@ -9,6 +9,9 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.navigation
+import java.time.YearMonth
+
+internal const val ANALYTICS_MONTH_REQUEST = "analytics_month_request"
 
 /** Destination routes. The four tabs are the destinations that show the bottom bar. */
 object Routes {
@@ -74,6 +77,12 @@ fun NavController.navigateToTab(route: String) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/** Durable, one-shot request on the existing destination, including when restoring its tab. */
+fun NavController.openAnalytics(month: YearMonth) {
+    if (currentDestination?.route != Routes.ANALYTICS) navigateToTab(Routes.ANALYTICS)
+    getBackStackEntry(Routes.ANALYTICS).savedStateHandle[ANALYTICS_MONTH_REQUEST] = month.toString()
 }
 
 /** Ignore duplicate or late callbacks after the sheet or session has already closed. */

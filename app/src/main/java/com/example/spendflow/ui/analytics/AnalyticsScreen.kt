@@ -31,6 +31,8 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,6 +55,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.SavedStateHandle
+import kotlinx.coroutines.flow.MutableStateFlow
+import com.example.spendflow.ui.main.ANALYTICS_MONTH_REQUEST
 import com.example.spendflow.R
 import com.example.spendflow.core.ui.components.AmountFormatter
 import com.example.spendflow.core.ui.components.EmptyState
@@ -84,10 +89,26 @@ internal object AnalyticsTags {
 }
 
 @Composable
-internal fun AnalyticsRoute(model: AnalyticsViewModel, onAddTransaction: () -> Unit) {
+internal fun AnalyticsRoute(model: AnalyticsViewModel, onAddTransaction: () -> Unit, monthRequests: SavedStateHandle? = null) {
     val state by model.uiState.collectAsStateWithLifecycle()
+    val selected by model.selectedMonth.collectAsStateWithLifecycle()
+    val requests = remember(monthRequests) {
+        monthRequests?.getStateFlow<String?>(ANALYTICS_MONTH_REQUEST, null) ?: MutableStateFlow<String?>(null)
+    }
+    val requested by requests.collectAsStateWithLifecycle()
+    LaunchedEffect(requested) {
+        requested?.let { value ->
+            runCatching { YearMonth.parse(value) }.getOrNull()?.let(model::selectMonth)
+            // Selection is now in the ViewModel's SavedStateHandle. Repeating after process death
+            // between these two writes is harmless; ordinary tab openings cannot replay it.
+            monthRequests?.set(ANALYTICS_MONTH_REQUEST, null)
+        }
+    }
+    val expected = runCatching { YearMonth.parse(requested ?: selected) }.getOrDefault(state.month)
+    val visible = if (state.month == expected) state else
+        AnalyticsUiState(expected, expected < YearMonth.now(model.zone), state.incomeMode, AnalyticsContent.Loading)
     AnalyticsScreen(
-        state = state,
+        state = visible,
         zone = model.zone,
         onPreviousMonth = { model.moveMonth(-1) },
         onNextMonth = { model.moveMonth(1) },
