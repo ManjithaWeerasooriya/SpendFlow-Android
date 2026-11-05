@@ -38,8 +38,12 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug
 
-      - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest
+      # Runs the unit tests too, so they are not run twice.
+      - name: Run unit tests with coverage
+        run: ./gradlew :app:createDebugUnitTestCoverageReport
+
+      - name: Report domain coverage
+        run: python3 scripts/domain_coverage.py app/build/reports/coverage/test/debug/report.xml >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run lint
         run: ./gradlew :app:lintDebug
