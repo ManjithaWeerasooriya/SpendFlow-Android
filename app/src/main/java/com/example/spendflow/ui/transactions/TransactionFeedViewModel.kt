@@ -3,6 +3,8 @@ package com.example.spendflow.ui.transactions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.data.repository.*
+import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.ui.UiState
 import com.example.spendflow.domain.usecase.GetMonthlySummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -28,5 +30,32 @@ class TransactionFeedViewModel @Inject constructor(
     private val zone = ZoneId.systemDefault()
     val currentMonth: YearMonth = YearMonth.now(zone)
     val monthly = summaries(currentMonth, zone).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val homeMonth = state.getStateFlow("home_month", currentMonth.toString())
+
+    fun moveHomeMonth(delta: Long) {
+        val next = YearMonth.parse(homeMonth.value).plusMonths(delta)
+        if (next <= YearMonth.now(zone)) state["home_month"] = next.toString()
+    }
+
+    // Reuse the engine's snapshot presence flag, including transfer-only months. This bounded
+    // two-month query also calculates the previous summary; Home does not display comparisons.
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    internal val dashboard = homeMonth.flatMapLatest { value ->
+        val selected = YearMonth.parse(value)
+        summaries.observeComparison(selected, zone).map { result ->
+            val content = when (result) {
+                is AppResult.Error -> UiState.Error(result.error)
+                is AppResult.Success -> UiState.Success(
+                    DashboardSummary(result.data.current, result.data.hasCurrentTransactions),
+                )
+            }
+            DashboardUiState(selected, selected < YearMonth.now(zone), content)
+        }.onStart { emit(DashboardUiState(selected, selected < YearMonth.now(zone))) }
+    }.buffer(0).stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        YearMonth.parse(homeMonth.value).let { DashboardUiState(it, it < YearMonth.now(zone)) },
+    )
     val categories = categories.observeCategories(includeArchived = true).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 }

@@ -1,4 +1,8 @@
 <resources>
+    <string name="dashboard_previous_month">Previous dashboard month</string>
+    <string name="dashboard_next_month">Next dashboard month</string>
+    <string name="dashboard_loading">Loading monthly summary…</string>
+    <string name="dashboard_historical_add_hint">Quick Add defaults to today. Change its date to record a transaction for this month.</string>
     <string name="category_cap_loading">Loading monthly cap…</string>
     <string name="app_name">SpendFlow</string>
 

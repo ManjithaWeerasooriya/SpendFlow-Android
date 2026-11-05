@@ -47,7 +47,6 @@ import com.example.spendflow.core.ui.components.AmountText
 import com.example.spendflow.core.ui.components.AmountTone
 import com.example.spendflow.core.ui.components.EmptyState
 import com.example.spendflow.core.ui.components.LabeledProgress
-import com.example.spendflow.core.ui.components.SummaryCard
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.domain.model.Money
@@ -84,6 +83,7 @@ internal data class FeedUiState(
     val goal: SavingsGoal?,
     val filter: String,
     val month: YearMonth,
+    val dashboard: DashboardUiState? = null,
 )
 
 private val FILTERS = listOf(
@@ -98,9 +98,11 @@ internal fun TransactionFeedRoute(
     home: Boolean,
     onSeeAll: () -> Unit,
     onViewGoals: () -> Unit,
+    onAddTransaction: () -> Unit = {},
 ) {
     val result by (if (home) model.recent else model.history).collectAsStateWithLifecycle()
-    val monthly by model.monthly.collectAsStateWithLifecycle()
+    val monthly = if (!home) model.monthly.collectAsStateWithLifecycle().value else null
+    val dashboard = if (home) model.dashboard.collectAsStateWithLifecycle().value else null
     val categories by model.categories.collectAsStateWithLifecycle()
     val filter by model.filter.collectAsStateWithLifecycle()
     val goals by model.goals.collectAsStateWithLifecycle()
@@ -135,11 +137,15 @@ internal fun TransactionFeedRoute(
             goal = if (home) (goals as? AppResult.Success)?.data?.sortedBy { it.isCompleted }?.firstOrNull() else null,
             filter = filter,
             month = model.currentMonth,
+            dashboard = dashboard,
         ),
         home = home,
         onFilter = model::setFilter,
         onSeeAll = onSeeAll,
         onViewGoals = onViewGoals,
+        onPreviousMonth = { model.moveHomeMonth(-1) },
+        onNextMonth = { model.moveHomeMonth(1) },
+        onAddTransaction = onAddTransaction,
     )
 }
 
@@ -155,6 +161,9 @@ internal fun TransactionFeedScreen(
     onSeeAll: () -> Unit,
     onViewGoals: () -> Unit,
     modifier: Modifier = Modifier,
+    onPreviousMonth: () -> Unit = {},
+    onNextMonth: () -> Unit = {},
+    onAddTransaction: () -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
@@ -182,15 +191,17 @@ internal fun TransactionFeedScreen(
                     color = colors.textHeading,
                     style = MaterialTheme.typography.headlineMedium,
                 )
-                Text(
-                    if (home) state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", locale))
-                    else stringResource(R.string.ui_all_history),
+                if (!home) Text(
+                    stringResource(R.string.ui_all_history),
                     Modifier.padding(top = dimensionResource(R.dimen.sf_space_xs), bottom = dimensionResource(R.dimen.sf_space_l)),
                     color = colors.textMuted,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 if (home) {
-                    state.monthly?.let { SummaryCard(it, Modifier.fillMaxWidth()) }
+                    DashboardSummaryPanel(
+                        state.dashboard ?: DashboardUiState(state.month, false),
+                        onPreviousMonth, onNextMonth, onAddTransaction,
+                    )
                     SectionHeader(R.string.ui_recent_transactions, R.string.ui_see_all, onSeeAll)
                 } else {
                     state.monthly?.let {
@@ -212,7 +223,7 @@ internal fun TransactionFeedScreen(
                 when (val status = state.rows) {
                     UiState.Loading -> StatusText(stringResource(R.string.analytics_loading))
                     is UiState.Error -> StatusText(stringResource(status.error.messageRes))
-                    is UiState.Success -> if (status.data.isEmpty()) {
+                    is UiState.Success -> if (!home && status.data.isEmpty()) {
                         EmptyState(
                             title = stringResource(R.string.transactions_empty),
                             modifier = Modifier.fillMaxWidth(),
@@ -376,6 +387,12 @@ private fun HomePreview() = SpendFlowTheme {
             rows = UiState.Success(previewRows),
             monthly = MonthlySummary(YearMonth.of(2026, 11), Money(185_000_00, "LKR"), Money(2_450_00, "LKR")),
             goal = SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR")),
+            dashboard = DashboardUiState(
+                YearMonth.of(2026, 11), false,
+                UiState.Success(DashboardSummary(
+                    MonthlySummary(YearMonth.of(2026, 11), Money(185_000_00, "LKR"), Money(2_450_00, "LKR")), true,
+                )),
+            ),
             filter = "ALL",
             month = YearMonth.of(2026, 11),
         ),

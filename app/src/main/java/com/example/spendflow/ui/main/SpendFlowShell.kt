@@ -147,6 +147,7 @@ private fun Destination(
             home = true,
             onSeeAll = { nav.navigateToTab(Routes.TRANSACTIONS) },
             onViewGoals = { nav.navigate(Routes.GOALS) },
+            onAddTransaction = nav::openQuickAdd,
         )
         Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {})
         Routes.ANALYTICS -> AnalyticsRoute(hiltViewModel(), onAddTransaction = nav::openQuickAdd)
