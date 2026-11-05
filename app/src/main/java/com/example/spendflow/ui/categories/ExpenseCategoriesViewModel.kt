@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spendflow.R
 import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.notifications.CapWarnings
 import com.example.spendflow.data.repository.*
 import com.example.spendflow.domain.model.*
+import com.example.spendflow.domain.usecase.CapOverview
+import com.example.spendflow.domain.usecase.ObserveCapUsage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
@@ -18,14 +21,29 @@ class ExpenseCategoriesViewModel @Inject constructor(
     private val repository: CategoryRepository,
     private val budgets: BudgetRepository,
     users: UserRepository,
-    summaries: com.example.spendflow.domain.usecase.GetMonthlySummary,
+    capUsage: ObserveCapUsage,
+    private val capWarnings: CapWarnings,
 ) : ViewModel() {
     private val refresh = MutableStateFlow(0)
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val categories = refresh.flatMapLatest { repository.observeCategories(CategoryType.EXPENSE, includeArchived = true) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    val spending = summaries(java.time.YearMonth.now()).stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val caps = budgets.observeBudgets().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** This month's spending and cap usage per category; it also raises the cap warnings shown here and on Home. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val capOverview = refresh.flatMapLatest { capUsage() }
+        .onEach { result -> (result as? AppResult.Success)?.data?.let(::checkWarnings) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val warnings = capWarnings.pending
+
+    fun dismissWarning(warning: CapWarning) = capWarnings.dismiss(warning)
+
+    // Archived categories keep their caps but don't warn
+    private fun checkWarnings(overview: CapOverview) {
+        val archived = (categories.value as? AppResult.Success)?.data.orEmpty().filter { it.isArchived }.map { it.id }.toSet()
+        capWarnings.check(overview.month, overview.usages.filterKeys { it !in archived }.values)
+    }
     private val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val saving = MutableStateFlow(false)
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
@@ -77,20 +95,38 @@ class ExpenseCategoriesViewModel @Inject constructor(
         }
     }
 
-    fun cap(category: Category): Budget? = (caps.value as? AppResult.Success)?.data?.firstOrNull {
-        it.categoryId == category.id && it.period == BudgetPeriod.MONTHLY
-    }
+    fun cap(category: Category): Budget? =
+        (caps.value as? AppResult.Success)?.data?.let { CategoryCaps.active(it)[category.id] }
 
-    fun saveCap(category: Category, text: String): Int? {
+    /**
+     * Saves a monthly cap in the base currency, alerting at [alerts]. Returns the message to show under the
+     * amount, or null when saved. Each category keeps one cap, so an existing one is updated.
+     */
+    fun saveCap(category: Category, text: String, alerts: Set<CapLevel> = CapLevel.ALERTS): Int? {
         val currency = (profile.value as? AppResult.Success)?.data?.baseCurrency ?: return R.string.entry_not_ready
         if (caps.value !is AppResult.Success) return R.string.entry_not_ready
+        capAmountError(text, currency)?.let { return it }
         val money = com.example.spendflow.ui.quickadd.QuickAddViewModel.parseAmount(text, currency)
             ?: return R.string.category_cap_invalid
         val old = cap(category)
-        val budget = old?.copy(limit = money) ?: Budget(budgets.newId(), category.name, money,
-            BudgetPeriod.MONTHLY, LocalDate.now().withDayOfMonth(1), category.id)
+        val budget = old?.copy(limit = money, alerts = alerts) ?: Budget(budgets.newId(), category.name, money,
+            BudgetPeriod.MONTHLY, LocalDate.now().withDayOfMonth(1), category.id, alerts)
         write { if (old == null) budgets.create(budget) else budgets.update(budget) }
         return null
+    }
+
+    /** Deletes every monthly cap on [category], including duplicates left by older versions. */
+    fun removeCap(category: Category) {
+        val existing = (caps.value as? AppResult.Success)?.data.orEmpty()
+            .filter { it.categoryId == category.id && it.period == BudgetPeriod.MONTHLY }
+        if (existing.isEmpty()) return
+        write {
+            existing.forEach { cap ->
+                val result = budgets.delete(cap.id)
+                if (result is AppResult.Error) return@write result
+            }
+            AppResult.Success(Unit)
+        }
     }
 
     private fun write(operation: suspend () -> AppResult<Unit>) {
@@ -100,4 +136,15 @@ class ExpenseCategoriesViewModel @Inject constructor(
             try { results.send(operation()) } finally { saving.value = false }
         }
     }
+}
+
+/** AC1: empty, zero and negative caps get their own inline message; anything else unparseable is invalid. */
+internal fun capAmountError(text: String, currency: String): Int? {
+    val trimmed = text.trim().replace(',', '.')
+    if (trimmed.isEmpty()) return R.string.category_cap_required
+    val value = trimmed.toBigDecimalOrNull() ?: return R.string.category_cap_invalid
+    if (value.signum() <= 0) return R.string.category_cap_positive
+    val digits = java.util.Currency.getInstance(currency).defaultFractionDigits.coerceAtLeast(0)
+    if (value.stripTrailingZeros().scale() > digits) return R.string.category_cap_invalid
+    return null
 }

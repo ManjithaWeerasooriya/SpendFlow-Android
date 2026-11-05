@@ -18,7 +18,11 @@ rules_version = '2';
 // Document: users/{uid}                      (profile; contains PII, owner-only)
 //   - displayName: string | null (<= 100)
 //   - email: string | null (valid email, <= 254)
-//   - baseCurrency: string (ISO 4217, ^[A-Z]{3}$, immutable once set: stored baseAmounts are in it)
+//   - baseCurrency: string (ISO 4217, ^[A-Z]{3}$). May change; stored transactions keep their own
+//     baseAmount/baseCurrency, so nothing is converted
+//   - streakEnabled: bool (optional; absent on profiles created before Settings)
+//   - lockScreenQuickEntry: bool (optional)
+//   - capThresholds: list of 3 ints, strictly ascending, each 1..100 (optional; percent of a cap)
 //
 // Collection: users/{uid}/accounts/{accountId}
 //   - name: string (1..100)
@@ -58,6 +62,7 @@ rules_version = '2';
 //   - period: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 //   - startDate: string (YYYY-MM-DD)
 //   - categoryId: string | null (document ID; null = all expenses)
+//   - alerts: list of 'NOTICE' | 'WARNING' | 'OVER' (optional; the cap thresholds it warns at)
 //
 // Collection: users/{uid}/recurring/{recurringId}
 //   - type, amount, currency, rate, baseAmount, baseCurrency, paymentMethod, accountId, categoryId,
@@ -173,14 +178,34 @@ service cloud.firestore {
     // Domain Validators (used by both create and update)
     // ===============================================================
 
+    function isOptionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    function isThresholdPercent(value) {
+      return value is int && value >= 1 && value <= 100;
+    }
+
+    function isValidCapThresholds(data) {
+      return !('capThresholds' in data) ||
+        (data.capThresholds is list && data.capThresholds.size() == 3 &&
+         isThresholdPercent(data.capThresholds[0]) &&
+         isThresholdPercent(data.capThresholds[1]) &&
+         isThresholdPercent(data.capThresholds[2]) &&
+         data.capThresholds[0] < data.capThresholds[1] &&
+         data.capThresholds[1] < data.capThresholds[2]);
+    }
+
     function isValidUser(data) {
       return hasRequiredFields(data, ['baseCurrency', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['displayName', 'email', 'baseCurrency', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['displayName', 'email', 'baseCurrency', 'streakEnabled', 'lockScreenQuickEntry',
+          'capThresholds', 'createdAt', 'updatedAt']) &&
         isOptionalString(data, 'displayName', 100) &&
         (!('email' in data) || data.email == null || isValidEmail(data.email)) &&
         isCurrencyCode(data.baseCurrency) &&
-        // Changing it would leave every stored baseAmount in the wrong currency
-        (request.method == 'create' || data.baseCurrency == resource.data.baseCurrency);
+        isOptionalBool(data, 'streakEnabled') &&
+        isOptionalBool(data, 'lockScreenQuickEntry') &&
+        isValidCapThresholds(data);
     }
 
     function isValidAccount(data) {
@@ -254,7 +279,11 @@ service cloud.firestore {
     function isValidBudget(data) {
       return hasRequiredFields(data, ['name', 'limitMinor', 'currencyCode', 'period', 'startDate', 'createdAt', 'updatedAt']) &&
         hasOnlyAllowedFields(data, ['name', 'limitMinor', 'currencyCode', 'period', 'startDate', 'categoryId',
-          'createdAt', 'updatedAt']) &&
+          'alerts', 'createdAt', 'updatedAt']) &&
+        (!('alerts' in data) ||
+          (data.alerts is list && data.alerts.size() <= 3 &&
+           data.alerts.toSet().size() == data.alerts.size() &&
+           data.alerts.toSet().hasOnly(['NOTICE', 'WARNING', 'OVER']))) &&
         isValidString(data.name, 1, 100) &&
         isPositiveAmount(data.limitMinor) &&
         isCurrencyCode(data.currencyCode) &&

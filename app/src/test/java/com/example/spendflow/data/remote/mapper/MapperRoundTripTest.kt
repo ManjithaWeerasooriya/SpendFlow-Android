@@ -14,6 +14,8 @@ import com.example.spendflow.domain.model.RecurringTransaction
 import com.example.spendflow.domain.model.Transaction
 import com.example.spendflow.domain.model.TransactionType
 import com.example.spendflow.domain.model.User
+import com.example.spendflow.domain.model.UserPreferences
+import com.example.spendflow.domain.model.CapThresholds
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,6 +38,37 @@ class MapperRoundTripTest {
     fun user() {
         val user = User(id = "u1", displayName = "Sam", email = "sam@example.com", baseCurrency = "LKR")
         assertEquals(user, userFromFirestore("u1", user.toFirestore()))
+    }
+
+    @Test
+    fun `cap alerts round-trip and caps saved before them alert at every threshold`() {
+        val cap = Budget("c", "Food", Money(5_000_000, "LKR"), BudgetPeriod.MONTHLY, LocalDate.of(2026, 10, 1), "food",
+            setOf(com.example.spendflow.domain.model.CapLevel.OVER, com.example.spendflow.domain.model.CapLevel.NOTICE))
+        val payload = cap.toFirestore()
+        assertEquals(listOf("NOTICE", "OVER"), payload["alerts"])
+        assertEquals(cap, budgetFromFirestore(cap.id, payload))
+        assertEquals(com.example.spendflow.domain.model.CapLevel.ALERTS, budgetFromFirestore(cap.id, payload - "alerts").alerts)
+        assertEquals(emptySet<Any>(), budgetFromFirestore(cap.id, payload + ("alerts" to emptyList<String>())).alerts)
+    }
+
+    @Test
+    fun `user preferences round-trip and legacy profiles read as defaults`() {
+        val preferences = UserPreferences(streakEnabled = true, lockScreenQuickEntry = true, capThresholds = CapThresholds(50, 80, 95))
+        val user = User(id = "u1", displayName = null, email = null, baseCurrency = "USD", preferences = preferences)
+        val payload = user.toFirestore()
+        assertEquals(listOf(50, 80, 95), payload["capThresholds"])
+        assertEquals(user, userFromFirestore("u1", payload))
+        // Firestore returns stored integers as Long
+        assertEquals(preferences, userFromFirestore("u1", payload + ("capThresholds" to listOf(50L, 80L, 95L))).preferences)
+
+        val legacy = mapOf("displayName" to null, "email" to null, "baseCurrency" to "LKR")
+        assertEquals(UserPreferences(), userFromFirestore("u1", legacy).preferences)
+    }
+
+    @Test
+    fun `invalid stored cap thresholds are a mapping error`() {
+        val data = mapOf("baseCurrency" to "LKR", "capThresholds" to listOf(90L, 75L, 100L))
+        org.junit.Assert.assertThrows(FirestoreMappingException::class.java) { userFromFirestore("u1", data) }
     }
 
     @Test

@@ -21,6 +21,8 @@ class TransactionFeedViewModel @Inject constructor(
     categories: CategoryRepository,
     summaries: GetMonthlySummary,
     goals: GoalRepository,
+    capUsage: com.example.spendflow.domain.usecase.ObserveCapUsage,
+    private val capWarnings: com.example.spendflow.core.notifications.CapWarnings,
     private val state: androidx.lifecycle.SavedStateHandle,
 ) : ViewModel() {
     val filter = state.getStateFlow("feed_filter", "ALL")
@@ -52,4 +54,17 @@ class TransactionFeedViewModel @Inject constructor(
     }
 
     fun clearDeleteError() { deleteError.value = null }
+
+    /** Home's Spending caps; collecting it also raises the cap warnings (AC2). Archived categories don't warn. */
+    val caps = capUsage()
+        .onEach { result ->
+            val overview = (result as? com.example.spendflow.core.common.AppResult.Success)?.data ?: return@onEach
+            val archived = (this.categories.value as? com.example.spendflow.core.common.AppResult.Success)?.data.orEmpty()
+                .filter { it.isArchived }.map { it.id }.toSet()
+            capWarnings.check(overview.month, overview.usages.filterKeys { it !in archived }.values)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val warnings = capWarnings.pending
+
+    fun dismissWarning(warning: com.example.spendflow.domain.model.CapWarning) = capWarnings.dismiss(warning)
 }
