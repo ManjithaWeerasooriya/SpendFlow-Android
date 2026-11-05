@@ -24,7 +24,7 @@ class GoalsViewModelTest {
         val rows = mutableListOf<SavingsGoal>()
         override fun newId() = "goal"
         override suspend fun create(item: SavingsGoal): AppResult<Unit> { rows += item; return AppResult.Success(Unit) }
-        override suspend fun update(item: SavingsGoal): AppResult<Unit> { rows[0] = item; return AppResult.Success(Unit) }
+        override suspend fun update(item: SavingsGoal): AppResult<Unit> { rows[rows.indexOfFirst { it.id == item.id }.coerceAtLeast(0)] = item; return AppResult.Success(Unit) }
         override suspend fun get(id: String) = AppResult.Success(rows.first())
         override suspend fun delete(id: String) = AppResult.Success(Unit)
         override fun observeGoals() = flowOf(AppResult.Success(rows.toList()))
@@ -84,5 +84,56 @@ class GoalsViewModelTest {
         val e = goalFormErrors("Mac", "0", "-5", LocalDate.of(2020, 1, 1), null, "LKR", LocalDate.of(2026, 10, 11))
         assertNotNull(e.target); assertNotNull(e.saved); assertNotNull(e.deadline)
         assertFalse(goalFormErrors("Mac", "500000", "240000", LocalDate.of(2027, 3, 31), null, "LKR", LocalDate.of(2026, 10, 11)).hasErrors)
+    }
+
+    private val laptop = SavingsGoal("goal", "Mac", Money(500_000_00, "LKR"), Money(240_000_00, "LKR"), deadline)
+
+    @Test fun `a 20000 contribution raises saved and recalculates figures`() = runTest {
+        val goals = Goals().apply { rows += laptop }
+        val model = model(goals)
+        val today = LocalDate.of(2026, 10, 11)
+        assertNull(model.addContribution(laptop, "20000", today, " bonus "))
+        val updated = goals.rows.single()
+        assertEquals(Money(260_000_00, "LKR"), updated.saved)
+        assertEquals(Money(240_000_00, "LKR"), updated.remaining)
+        assertEquals(Money(48_000_00, "LKR"), updated.requiredMonthly(today))
+        assertEquals("bonus", updated.contributions.single().note)
+    }
+
+    @Test fun `zero or negative contributions are rejected`() = runTest {
+        val goals = Goals().apply { rows += laptop }
+        val model = model(goals)
+        for (bad in listOf("0", "-5", "", "abc")) assertNotNull(model.addContribution(laptop, bad, LocalDate.of(2026, 10, 11), ""))
+        assertNotNull(model.addContribution(laptop, "10", LocalDate.of(2026, 10, 11), "x".repeat(201)))
+        assertEquals(laptop, goals.rows.single())
+    }
+
+    @Test fun `setPrimary moves the flag to one goal`() = runTest {
+        val other = laptop.copy(id = "other", name = "Trip", isPrimary = true)
+        val goals = Goals().apply { rows += laptop; rows += other }
+        model(goals).setPrimary(laptop)
+        assertTrue(goals.rows.first { it.id == "goal" }.isPrimary)
+        assertFalse(goals.rows.first { it.id == "other" }.isPrimary)
+    }
+
+    @Test fun `editing keeps contributions and flags`() = runTest {
+        val goals = Goals().apply { rows += laptop }
+        val model = model(goals)
+        model.addContribution(laptop, "100", LocalDate.of(2026, 10, 11), "")
+        val withContribution = goals.rows.single().copy(isPrimary = true)
+        goals.rows[0] = withContribution
+        assertTrue(model.save(withContribution, "Mac Pro", "500000", "240100", deadline))
+        assertEquals(1, goals.rows.single().contributions.size)
+        assertTrue(goals.rows.single().isPrimary)
+    }
+
+    @Test fun `primaryGoal prefers primary then unfinished then first`() {
+        val done = laptop.copy(id = "a", markedCompleted = true)
+        val open = laptop.copy(id = "b")
+        val primary = laptop.copy(id = "c", isPrimary = true, markedCompleted = true)
+        assertEquals("c", primaryGoal(listOf(done, open, primary))!!.id)
+        assertEquals("b", primaryGoal(listOf(done, open))!!.id)
+        assertEquals("a", primaryGoal(listOf(done))!!.id)
+        assertNull(primaryGoal(emptyList()))
     }
 }
