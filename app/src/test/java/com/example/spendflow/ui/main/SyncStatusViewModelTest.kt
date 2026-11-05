@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.runCurrent
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -54,10 +55,12 @@ class SyncStatusViewModelTest {
             FakeCategoryRepository(), FakeBudgetRepository(),
         )
         model.status.onEach { }.launchIn(backgroundScope)
+        runCurrent()
         assertEquals(SyncStatus(offline = true, pendingCount = 2), model.status.value)
 
         net.state.value = true
         pending.value = emptySet()
+        runCurrent()
         assertEquals(SyncStatus(offline = false, pendingCount = 0), model.status.value)
     }
 }
