@@ -1,6 +1,7 @@
 package com.example.spendflow.core.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
@@ -9,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,13 +40,14 @@ fun LabeledTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: (@Composable () -> Unit)? = null,
+    maxLength: Int? = null,
 ) {
     val colors = SpendFlowTheme.colors
     Column(modifier.padding(top = dimensionResource(R.dimen.sf_space_l))) {
         Text(label, color = colors.textHeading, style = MaterialTheme.typography.bodyMedium)
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = { if (maxLength == null || it.length <= maxLength) onValueChange(it) },
             modifier = fieldModifier
                 .padding(top = dimensionResource(R.dimen.sf_space_s))
                 .fillMaxWidth(),
@@ -52,27 +55,43 @@ fun LabeledTextField(
             textStyle = MaterialTheme.typography.bodyLarge,
             placeholder = placeholder?.let { { Text(it) } },
             trailingIcon = trailingIcon,
-            supportingText = error?.let { { Text(it) } },
+            supportingText = if (error != null || maxLength != null) {
+                {
+                    Row {
+                        Text(error.orEmpty(), Modifier.weight(1f))
+                        if (maxLength != null) Text("${value.length}/$maxLength")
+                    }
+                }
+            } else {
+                null
+            },
             isError = error != null,
             visualTransformation = visualTransformation,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             singleLine = true,
             shape = MaterialTheme.shapes.medium,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = colors.insetCard,
-                unfocusedContainerColor = colors.insetCard,
-                disabledContainerColor = colors.insetCard,
-                errorContainerColor = colors.insetCard,
-                focusedBorderColor = colors.violet,
-                unfocusedTextColor = colors.textHeading,
-                focusedTextColor = colors.textHeading,
-                focusedPlaceholderColor = colors.textMuted,
-                unfocusedPlaceholderColor = colors.textMuted,
-                cursorColor = colors.violet,
-            ),
+            colors = spendFlowFieldColors(),
         )
     }
+}
+
+/** Inset-card fill with a violet focus outline, shared by the outlined fields. */
+@Composable
+internal fun spendFlowFieldColors(): TextFieldColors {
+    val colors = SpendFlowTheme.colors
+    return OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = colors.insetCard,
+        unfocusedContainerColor = colors.insetCard,
+        disabledContainerColor = colors.insetCard,
+        errorContainerColor = colors.insetCard,
+        focusedBorderColor = colors.violet,
+        unfocusedTextColor = colors.textHeading,
+        focusedTextColor = colors.textHeading,
+        focusedPlaceholderColor = colors.textMuted,
+        unfocusedPlaceholderColor = colors.textMuted,
+        cursorColor = colors.violet,
+    )
 }
 
 @ThemePreviews
@@ -82,5 +101,6 @@ private fun LabeledTextFieldPreview() = ComponentPreview {
     Column {
         LabeledTextField("Email", email, { email = it }, placeholder = "name@mail.com")
         LabeledTextField("Password", "abc", {}, error = "Use at least 6 characters")
+        LabeledTextField("Category name", "Groceries", {}, maxLength = 100)
     }
 }
