@@ -71,8 +71,8 @@ class TransactionTest {
     }
 
     @Test
-    fun `payment method is required for expenses only`() {
-        assertRejected { transaction(paymentMethod = null) }
+    fun `payment method is optional for expenses only`() {
+        transaction(paymentMethod = null)
         assertRejected { transaction(type = TransactionType.INCOME, paymentMethod = PaymentMethod.CASH) }
     }
 

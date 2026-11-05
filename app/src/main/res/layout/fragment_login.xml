@@ -1,40 +1,197 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 01a Log in and 01b Create account: one form; LoginFragment shows or hides the parts per mode -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical"
-    android:padding="@dimen/sf_screen_padding"
+    android:fillViewport="true"
     tools:context=".ui.auth.LoginFragment">
 
-    <ImageView
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:importantForAccessibility="no"
-        android:src="@drawable/logo_spendflow_mark" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/sf_space_xxl"
-        android:gravity="center"
-        android:text="@string/login_title"
-        android:textAppearance="?attr/textAppearanceHeadlineMedium" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/sf_space_s"
-        android:gravity="center"
-        android:text="@string/login_message"
-        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
-        android:textColor="?attr/sfColorTextMuted" />
-
-    <Button
-        android:id="@+id/continueButton"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/sf_space_xxxl"
-        android:text="@string/login_continue" />
-</LinearLayout>
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/sf_screen_padding"
+        android:paddingTop="@dimen/sf_space_xxl"
+        android:paddingBottom="@dimen/sf_space_l">
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:visibility="invisible" />
+
+        <com.google.android.material.button.MaterialButtonToggleGroup
+            android:id="@+id/modeToggle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_s"
+            android:visibility="gone"
+            app:selectionRequired="true"
+            app:singleSelection="true"
+            tools:visibility="visible">
+
+            <Button
+                android:id="@+id/logInModeButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/auth_mode_log_in" />
+
+            <Button
+                android:id="@+id/createAccountModeButton"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/auth_mode_create_account" />
+        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="@dimen/sf_space_xxxl"
+            android:importantForAccessibility="no"
+            android:src="@drawable/logo_spendflow_mark" />
+
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            android:accessibilityHeading="true"
+            android:text="@string/login_title"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+        <TextView
+            android:id="@+id/message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xs"
+            android:text="@string/login_message"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+            android:textColor="?attr/sfColorTextMuted" />
+
+        <TextView
+            android:id="@+id/emailLabel"
+            style="@style/Widget.SpendFlow.TextField.Label"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            android:labelFor="@id/emailInput"
+            android:text="@string/auth_email_label" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/emailField"
+            style="@style/Widget.SpendFlow.TextField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:placeholderText="@string/auth_email_placeholder">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/emailInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:autofillHints="emailAddress"
+                android:imeOptions="actionNext"
+                android:inputType="textEmailAddress" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/passwordLabel"
+            style="@style/Widget.SpendFlow.TextField.Label"
+            android:labelFor="@id/passwordInput"
+            android:text="@string/auth_password_label" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/passwordField"
+            style="@style/Widget.SpendFlow.TextField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:endIconMode="password_toggle">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/passwordInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:autofillHints="password"
+                android:imeOptions="actionDone"
+                android:inputType="textPassword" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:id="@+id/confirmGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                style="@style/Widget.SpendFlow.TextField.Label"
+                android:labelFor="@id/confirmInput"
+                android:text="@string/auth_confirm_label" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/confirmField"
+                style="@style/Widget.SpendFlow.TextField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:endIconMode="password_toggle"
+                app:placeholderText="@string/auth_confirm_placeholder">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/confirmInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:autofillHints="newPassword"
+                    android:imeOptions="actionDone"
+                    android:inputType="textPassword" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/forgotPassword"
+            style="@style/Widget.SpendFlow.TextLink"
+            android:layout_gravity="end"
+            android:layout_marginTop="@dimen/sf_space_xs"
+            android:text="@string/auth_forgot_password" />
+
+        <Button
+            android:id="@+id/submitButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            android:text="@string/auth_mode_log_in" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:minHeight="@dimen/sf_space_xxl" />
+
+        <LinearLayout
+            android:id="@+id/createAccountPrompt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/sf_space_xs"
+                android:text="@string/auth_new_here"
+                android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+                android:textColor="?attr/sfColorTextMuted" />
+
+            <TextView
+                android:id="@+id/createAccountLink"
+                style="@style/Widget.SpendFlow.TextLink"
+                android:text="@string/auth_mode_create_account" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -8,6 +8,9 @@ data class Category(
     val iconName: String? = null,
     val colorArgb: Int? = null,
     val isArchived: Boolean = false,
+    val sortOrder: Long = 0,
+    val defaultCurrency: String? = null,
+    val classification: String? = null,
 ) {
     init {
         require(name.isNotBlank()) { "Category name must not be blank" }

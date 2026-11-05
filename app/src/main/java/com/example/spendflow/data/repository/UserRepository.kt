@@ -11,5 +11,8 @@ interface UserRepository {
 
     suspend fun createProfile(user: User): AppResult<Unit>
 
+    /** Creates [user] only if the server has no profile yet, e.g. after a registration whose profile write failed. */
+    suspend fun createProfileIfMissing(user: User): AppResult<Unit>
+
     suspend fun updateProfile(user: User): AppResult<Unit>
 }

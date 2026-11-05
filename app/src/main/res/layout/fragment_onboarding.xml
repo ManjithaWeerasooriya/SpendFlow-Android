@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 01c. The tracking streak card is left out until streaks exist; the base currency is fixed once set. -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".ui.onboarding.OnboardingFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/sf_screen_padding"
+        android:paddingTop="@dimen/sf_space_l"
+        android:paddingBottom="@dimen/sf_space_l">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/onboarding_overline"
+                android:textAppearance="@style/TextAppearance.SpendFlow.Overline" />
+
+            <Button
+                android:id="@+id/skipButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/onboarding_skip"
+                android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+                android:textColor="?attr/sfColorTextHeading" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xl"
+            android:accessibilityHeading="true"
+            android:text="@string/onboarding_title"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xs"
+            android:text="@string/onboarding_message"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+            android:textColor="?attr/sfColorTextMuted" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.SpendFlow.CardShell"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            app:cardBackgroundColor="?attr/sfColorInsetCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_currency_field"
+                    android:gravity="center_vertical"
+                    android:minHeight="@dimen/sf_link_row_height"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="@dimen/sf_space_l">
+
+                    <ImageView
+                        android:layout_width="@dimen/sf_icon_size"
+                        android:layout_height="@dimen/sf_icon_size"
+                        android:layout_marginEnd="@dimen/sf_space_m"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_currency_exchange" />
+
+                    <TextView
+                        android:id="@+id/currencyName"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textAppearance="@style/TextAppearance.SpendFlow.Body"
+                        android:textColor="?attr/sfColorTextHeading"
+                        tools:text="LKR – Sri Lankan Rupee" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/sf_space_s"
+                    android:text="@string/onboarding_currency_caption"
+                    android:textAppearance="@style/TextAppearance.SpendFlow.Caption"
+                    android:textColor="?attr/sfColorTextMuted" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:minHeight="@dimen/sf_space_xxl" />
+
+        <Button
+            android:id="@+id/continueButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/onboarding_continue" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

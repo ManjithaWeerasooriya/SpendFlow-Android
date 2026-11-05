@@ -3,6 +3,7 @@ package com.example.spendflow.data.repository
 import com.example.spendflow.core.common.AppError
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.common.DispatcherProvider
+import com.example.spendflow.core.common.appResultOf
 import com.example.spendflow.data.remote.FirestoreRefs
 import com.example.spendflow.data.remote.mapper.toFirestore
 import com.example.spendflow.data.remote.mapper.userFromFirestore
@@ -14,6 +15,7 @@ import com.example.spendflow.domain.model.User
 import com.google.android.gms.tasks.Task
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.firestore.Source
 import com.google.firebase.firestore.snapshots
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -47,6 +50,18 @@ class FirestoreUserRepository @Inject constructor(
 
     override suspend fun createProfile(user: User): AppResult<Unit> =
         writeProfile(user) { it.set(user.toFirestore().withCreateTimestamps()) }
+
+    override suspend fun createProfileIfMissing(user: User): AppResult<Unit> {
+        val exists = withContext(dispatchers.io) {
+            val uid = session.currentUid() ?: return@withContext AppResult.Error(AppError.Unauthenticated)
+            // From the server: a cache miss doesn't mean the profile is missing
+            appResultOf(errorMapper = { it.toAppError() }) { refs.user(uid).get(Source.SERVER).await().exists() }
+        }
+        return when (exists) {
+            is AppResult.Error -> exists
+            is AppResult.Success -> if (exists.data) AppResult.Success(Unit) else createProfile(user)
+        }
+    }
 
     override suspend fun updateProfile(user: User): AppResult<Unit> =
         writeProfile(user) { it.set(user.toFirestore().withUpdateTimestamp(), SetOptions.merge()) }

@@ -104,3 +104,33 @@ every pull request.
 ## License
 
 [MIT](LICENSE)
+
+### Income in multiple currencies (SF-09)
+
+Income Quick Add supports original currency, a manual exchange rate (base currency per unit), and a live approximate base amount. With an LKR profile, USD 500 at 300 saves USD 50,000 minor units and LKR 15,000,000 minor units. Existing transaction fields `amount`, `currency`, `rate`, `baseAmount`, and `baseCurrency` preserve this snapshot; historical records are never repriced. The last successfully saved rate for each currency pair is remembered on this device. Income sources created in Categories can specify a default currency. Deploy the updated `firestore.rules` to allow that optional field.
+
+?Use latest rate? calls [ExchangeRate-API's open endpoint](https://www.exchangerate-api.com/docs/free), with no API key. Rates update daily, are indicative, and are cached in memory until the provider's next update. All supported provider currencies can be converted to LKR; unsupported currencies or network errors leave manual entry available. The currency selector lists spendable ISO currencies, so provider coverage may be narrower. Provider attribution is shown beside the rate. Conversion follows the profile base currency (normally LKR).
+
+### Entry validation and Undo (SF-10)
+
+Save validates every required field and shows errors beside the amount, category or income source, and foreign-currency rate. Amounts must be positive plain decimal numbers, have at most two decimal places (zero for JPY and other currencies with no fractional unit), and both original and converted amounts must be at most 999,999,999.99. Validation failures create no transaction.
+
+After a local save, Quick Add closes and the activity shows ?Saved - Groceries LKR 2,450? with Undo for five seconds. Undo deletes that exact transaction; the existing Firestore snapshot listeners refresh the transaction list and monthly totals. Confirmation and Undo survive sheet dismissal and activity recreation. Failed deletes and delayed server rejections display an error. Like other app writes, offline changes are stored locally and sync when connectivity returns.
+
+`EntryValidationUndoFlowTest` runs against the debug Auth/Firestore emulators and checks inline errors, blocked invalid writes, the save snackbar, Undo deletion, and restored totals on an Android device.
+
+### Savings goals and completion notifications
+
+More > Goals lets a signed-in user create a savings target and update the total saved so far, in their profile base currency. This is manual goal progress, tracked separately from transaction totals. Reaching or exceeding the target posts a system notification after Firestore acknowledges the update. Tap the notification to open Goals.
+
+Enable goal notifications on the Goals screen; Android 13+ asks for permission, and disabled channels can be restored in system notification settings. Completion history is stored per user and goal on this device, so repeated snapshots, edits, and app restarts do not repeat an alert. A denied notification is retried when permission is enabled. Clearing app data or reinstalling resets this local history.
+
+Goal monitoring runs while the app process is alive and checks saved completions again on the next launch. This does not include server push delivery while the app is fully stopped. Deploy the updated `firestore.rules` before using goals against production Firebase; goal documents live at `users/{uid}/goals/{id}`.
+
+### Refined dashboard and Analytics
+
+Home uses the dark monthly summary, rounded transaction rows, and a live savings-goal preview. Transactions supports All / Expense / Income filters. Both keep the original transaction currency visible; summary totals use stored base amounts.
+
+Analytics adds previous/next month navigation, income and expense category rings, ranked category shares, transaction detail dialogs, daily cash-flow bars and exact daily totals, average daily spending, highest-spending day, savings/net totals, and a spending comparison with the prior month. Reports exclude transfers and never reprice historical entries. The daily average uses elapsed calendar days in the current month and all calendar days in a past month. All screens follow the existing light/dark theme.
+
+The visual direction follows the published SpendFlow prototype (https://shade-garnet-72361972.figma.site/) and the category/cash-flow presentation on Spendee (https://www.spendee.com/). Charts are native Android views; the app does not embed reference-site screenshots or use an external chart service.

@@ -26,9 +26,36 @@ class MapperRoundTripTest {
     private val usd = Money(12_345, "USD")
 
     @Test
+    fun `savings goals preserve exact target and saved amounts`() {
+        val goal = com.example.spendflow.domain.model.SavingsGoal("g", "Laptop", Money(15000000, "LKR"), Money(15000000, "LKR"))
+        assertEquals(goal, savingsGoalFromFirestore(goal.id, goal.toFirestore()))
+        assertTrue(savingsGoalFromFirestore(goal.id, goal.toFirestore()).isCompleted)
+    }
+
+    @Test
     fun user() {
         val user = User(id = "u1", displayName = "Sam", email = "sam@example.com", baseCurrency = "LKR")
         assertEquals(user, userFromFirestore("u1", user.toFirestore()))
+    }
+
+    @Test
+    fun `income source preserves default currency and legacy sources have none`() {
+        val source = Category("salary", "Salary", CategoryType.INCOME, defaultCurrency = "USD")
+        val payload = source.toFirestore()
+        assertEquals("Salary", payload["name"])
+        assertEquals("INCOME", payload["type"])
+        assertEquals(false, payload[FirestoreFields.IS_ARCHIVED])
+        assertEquals("USD", payload["defaultCurrency"])
+        assertEquals(source, categoryFromFirestore(source.id, payload))
+        assertEquals(null, categoryFromFirestore(source.id, payload - "defaultCurrency").defaultCurrency)
+
+        val archived = source.copy(name = "Day job", isArchived = true)
+        val update = archived.toFirestore()
+        assertEquals(
+            payload + mapOf("name" to "Day job", FirestoreFields.IS_ARCHIVED to true),
+            update,
+        )
+        assertEquals(archived, categoryFromFirestore(source.id, update))
     }
 
     @Test
@@ -45,9 +72,25 @@ class MapperRoundTripTest {
         // Opaque ARGB colors are negative ints, so this also checks the Long round trip
         val category = Category(
             id = "c1", name = "Food", type = CategoryType.EXPENSE,
-            iconName = "restaurant", colorArgb = 0xFFE91E63.toInt(),
+            iconName = "restaurant", colorArgb = 0xFFE91E63.toInt(), sortOrder = 3,
         )
         assertEquals(category, categoryFromFirestore("c1", category.toFirestore()))
+    }
+
+    @Test
+    fun `legacy category defaults to zero order`() {
+        val category = Category("food", "Food", CategoryType.EXPENSE)
+        assertEquals(category, categoryFromFirestore("food", category.toFirestore() - "sortOrder"))
+    }
+
+    @Test
+    fun `expense without optional details round trips`() {
+        val transaction = Transaction(
+            id = "quick", type = TransactionType.EXPENSE, amount = Money(2500, "LKR"),
+            rate = BigDecimal.ONE, baseAmount = Money(2500, "LKR"),
+            dateTime = Instant.parse("2026-10-22T10:00:00Z"), categoryId = "food", paymentMethod = null,
+        )
+        assertEquals(transaction, transactionFromFirestore("quick", transaction.toFirestore()))
     }
 
     @Test

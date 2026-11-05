@@ -19,6 +19,7 @@ object FirestorePaths {
     const val CATEGORIES = "categories"
     const val TRANSACTIONS = "transactions"
     const val BUDGETS = "budgets"
+    const val GOALS = "goals"
     const val RECURRING = "recurring"
 
     fun user(uid: String) = "$USERS/${requireSegment(uid)}"
@@ -26,6 +27,7 @@ object FirestorePaths {
     fun categories(uid: String) = "${user(uid)}/$CATEGORIES"
     fun transactions(uid: String) = "${user(uid)}/$TRANSACTIONS"
     fun budgets(uid: String) = "${user(uid)}/$BUDGETS"
+    fun goals(uid: String) = "${user(uid)}/$GOALS"
     fun recurring(uid: String) = "${user(uid)}/$RECURRING"
 
     // A blank or slash-containing ID would silently address a different path

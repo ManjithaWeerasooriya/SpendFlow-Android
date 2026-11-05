@@ -34,7 +34,7 @@ class FirestoreCategoryRepository @Inject constructor(
             result.map { categories ->
                 categories
                     .filter { (type == null || it.type == type) && (includeArchived || !it.isArchived) }
-                    .sortedBy { it.name.lowercase() }
+                    .sortedWith(compareBy<Category> { it.sortOrder }.thenBy { it.name.lowercase() })
             }
         }
 }

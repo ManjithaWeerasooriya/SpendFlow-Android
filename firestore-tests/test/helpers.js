@@ -68,6 +68,8 @@ export const validBudget = () => ({
   categoryId: null,
 });
 
+export const validGoal = () => ({ name: 'Laptop', targetMinor: 15000000, savedMinor: 0, currencyCode: 'LKR' });
+
 export const validRecurring = () => ({
   ...validMovement(),
   frequency: 'MONTHLY',
@@ -85,6 +87,7 @@ export const entities = {
   categories: { path: (uid, id = 'cat1') => `users/${uid}/categories/${id}`, valid: validCategory },
   transactions: { path: (uid, id = 'tx1') => `users/${uid}/transactions/${id}`, valid: validTransaction },
   budgets: { path: (uid, id = 'bud1') => `users/${uid}/budgets/${id}`, valid: validBudget },
+  goals: { path: (uid, id = 'goal1') => `users/${uid}/goals/${id}`, valid: validGoal },
   recurring: { path: (uid, id = 'rec1') => `users/${uid}/recurring/${id}`, valid: validRecurring },
 };
 

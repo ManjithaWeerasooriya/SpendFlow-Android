@@ -31,6 +31,11 @@ class FirestoreTransactionRepository @Inject constructor(
     override fun Transaction.toFirestore(): Map<String, Any?> = mapToFirestore()
     override fun fromFirestore(id: String, data: Map<String, Any?>): Transaction = transactionFromFirestore(id, data)
 
+    override fun observeRecent(limit: Int): Flow<AppResult<List<Transaction>>> {
+        require(limit > 0)
+        return observe { it.orderBy(FirestoreFields.DATE_TIME, Query.Direction.DESCENDING).limit(limit.toLong()) }
+    }
+
     override fun observeTransactions(from: Instant, until: Instant): Flow<AppResult<List<Transaction>>> =
         observe { collection ->
             collection

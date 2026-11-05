@@ -109,5 +109,31 @@
                 <ImageView style="@style/Widget.SpendFlow.LinkRow.Chevron" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/sf_space_xxl"
+            android:layout_marginBottom="@dimen/sf_space_s"
+            android:text="@string/more_section_account"
+            android:textAppearance="@style/TextAppearance.SpendFlow.Overline" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.SpendFlow.CardShell"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="?attr/sfColorInsetCard"
+            app:contentPadding="0dp">
+
+            <LinearLayout
+                android:id="@+id/logOutRow"
+                style="@style/Widget.SpendFlow.LinkRow">
+
+                <TextView
+                    style="@style/Widget.SpendFlow.LinkRow.Title"
+                    android:text="@string/log_out"
+                    android:textColor="?attr/sfColorOverCapText" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

@@ -8,6 +8,7 @@ import com.example.spendflow.R
 
 enum class AppGraph(@IdRes val id: Int) {
     AUTH(R.id.auth_graph),
+    ONBOARDING(R.id.onboarding_graph),
     MAIN(R.id.main_graph),
 }
 

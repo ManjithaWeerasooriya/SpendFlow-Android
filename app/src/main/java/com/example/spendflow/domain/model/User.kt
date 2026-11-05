@@ -14,4 +14,9 @@ data class User(
     init {
         requireCurrencyCode(baseCurrency)
     }
+
+    companion object {
+        /** Set on registration; there is no way to pick another one yet. */
+        const val DEFAULT_BASE_CURRENCY = "LKR"
+    }
 }
