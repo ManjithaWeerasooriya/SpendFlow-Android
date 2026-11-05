@@ -18,11 +18,13 @@ class ExpenseCategoriesViewModel @Inject constructor(
     private val repository: CategoryRepository,
     private val budgets: BudgetRepository,
     users: UserRepository,
+    summaries: com.example.spendflow.domain.usecase.GetMonthlySummary,
 ) : ViewModel() {
     private val refresh = MutableStateFlow(0)
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val categories = refresh.flatMapLatest { repository.observeCategories(CategoryType.EXPENSE, includeArchived = true) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val spending = summaries(java.time.YearMonth.now()).stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val caps = budgets.observeBudgets().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val saving = MutableStateFlow(false)

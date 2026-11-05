@@ -77,6 +77,8 @@ import com.example.spendflow.ui.theme.SpendFlowTheme
 import kotlinx.coroutines.launch
 import java.io.Serializable
 
+internal data class CategoryCapProgress(val spent: com.example.spendflow.domain.model.Money, val limit: com.example.spendflow.domain.model.Money)
+
 internal enum class CategoryAction(@StringRes val label: Int) {
     RENAME(R.string.category_rename),
     CAP(R.string.category_cap),
@@ -103,6 +105,14 @@ internal fun CategoriesRoute(
     val expenseResult by expenseModel.categories.collectAsStateWithLifecycle()
     val expenseSaving by expenseModel.saving.collectAsStateWithLifecycle()
     val caps by expenseModel.caps.collectAsStateWithLifecycle()
+    val spending by expenseModel.spending.collectAsStateWithLifecycle()
+    val summary = (spending as? AppResult.Success)?.data
+    val progress = (caps as? AppResult.Success)?.data.orEmpty().mapNotNull { budget ->
+        val id = budget.categoryId
+        if (id == null || summary == null || budget.period != com.example.spendflow.domain.model.BudgetPeriod.MONTHLY ||
+            budget.startDate > java.time.LocalDate.now() || budget.limit.currencyCode != summary.totalExpenses.currencyCode) null
+        else id to CategoryCapProgress(summary.expensesByCategory[id] ?: com.example.spendflow.domain.model.Money.zero(budget.limit.currencyCode), budget.limit)
+    }.toMap()
     val expenses = when (val result = expenseResult) {
         is AppResult.Success -> UiState.Success(result.data)
         is AppResult.Error -> UiState.Error(result.error)
@@ -164,6 +174,7 @@ internal fun CategoriesRoute(
         expenseBusy = expenseSaving || dialog != null,
         incomeBusy = incomeSaving || dialog != null,
         snackbar = snackbar,
+        capProgress = progress,
         onBack = onBack,
         onSelectTab = viewModel::selectTab,
         onAddCategory = { open(CategoriesDialog(CategoriesDialog.Kind.EXPENSE_FORM)) },
@@ -271,6 +282,7 @@ internal fun CategoriesScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
+    capProgress: Map<String, CategoryCapProgress> = emptyMap(),
 ) {
     var showingArchived by rememberSaveable { mutableStateOf(false) }
     val colors = SpendFlowTheme.colors
@@ -350,6 +362,7 @@ internal fun CategoriesScreen(
                         actionsEnabled = !expenseBusy,
                         onAction = onExpenseAction,
                         onReorder = onReorder.takeIf { !showingArchived && !expenseBusy },
+                        capProgress = if (showingArchived) emptyMap() else capProgress,
                     )
                 }
             } else {
@@ -440,6 +453,7 @@ private fun CategoryList(
     actionsEnabled: Boolean,
     onAction: (Category, CategoryAction) -> Unit,
     onReorder: ((List<String>) -> Unit)?,
+    capProgress: Map<String, CategoryCapProgress> = emptyMap(),
 ) {
     val listState = rememberLazyListState()
     // The drag gesture outlives recompositions, so it reads the latest rows and callback through these
@@ -493,6 +507,7 @@ private fun CategoryList(
             CategoryRow(
                 category = category,
                 badge = badge(category),
+                cap = capProgress[category.id],
                 actions = actions(category),
                 actionsEnabled = actionsEnabled && draggingId == null,
                 onAction = { onAction(category, it) },
@@ -523,55 +538,66 @@ private fun CategoryRow(
     actionsEnabled: Boolean,
     onAction: (CategoryAction) -> Unit,
     modifier: Modifier = Modifier,
+    cap: CategoryCapProgress? = null,
 ) {
     val colors = SpendFlowTheme.colors
     var menuOpen by remember { mutableStateOf(false) }
-    Row(
-        modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .padding(vertical = dimensionResource(R.dimen.sf_space_s)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Image(
-            painterResource(CategoryAppearance.icon(category.iconName)),
-            contentDescription = null,
+    Column(modifier) {
+        Row(
             Modifier
-                .size(40.dp)
-                .padding(dimensionResource(R.dimen.sf_space_s)),
-        )
-        Text(category.name, Modifier.weight(1f), color = colors.textHeading, style = MaterialTheme.typography.bodyLarge)
-        if (badge != null) {
-            Text(
-                badge,
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(vertical = dimensionResource(R.dimen.sf_space_s)),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                painterResource(CategoryAppearance.icon(category.iconName)),
+                contentDescription = null,
                 Modifier
-                    .background(colors.violetTint, MaterialTheme.shapes.small)
-                    .padding(horizontal = dimensionResource(R.dimen.sf_space_s), vertical = dimensionResource(R.dimen.sf_space_xs)),
-                color = colors.textMuted,
-                style = MaterialTheme.typography.labelMedium,
+                    .size(40.dp)
+                    .padding(dimensionResource(R.dimen.sf_space_s)),
             )
-        }
-        Box {
-            IconButton(onClick = { menuOpen = true }, enabled = actionsEnabled) {
-                Icon(
-                    painterResource(R.drawable.ic_more_mono),
-                    contentDescription = stringResource(R.string.category_actions, category.name),
-                    Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurface,
+            Text(category.name, Modifier.weight(1f), color = colors.textHeading, style = MaterialTheme.typography.bodyLarge)
+            if (badge != null) {
+                Text(
+                    badge,
+                    Modifier
+                        .background(colors.violetTint, MaterialTheme.shapes.small)
+                        .padding(horizontal = dimensionResource(R.dimen.sf_space_s), vertical = dimensionResource(R.dimen.sf_space_xs)),
+                    color = colors.textMuted,
+                    style = MaterialTheme.typography.labelMedium,
                 )
             }
-            DropdownMenu(expanded = menuOpen && actionsEnabled, onDismissRequest = { menuOpen = false }) {
-                actions.forEach { action ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(action.label)) },
-                        onClick = {
-                            menuOpen = false
-                            onAction(action)
-                        },
+            Box {
+                IconButton(onClick = { menuOpen = true }, enabled = actionsEnabled) {
+                    Icon(
+                        painterResource(R.drawable.ic_more_mono),
+                        contentDescription = stringResource(R.string.category_actions, category.name),
+                        Modifier.size(24.dp),
+                        tint = MaterialTheme.colorScheme.onSurface,
                     )
+                }
+                DropdownMenu(expanded = menuOpen && actionsEnabled, onDismissRequest = { menuOpen = false }) {
+                    actions.forEach { action ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(action.label)) },
+                            onClick = {
+                                menuOpen = false
+                                onAction(action)
+                            },
+                        )
+                    }
                 }
             }
         }
+        if (cap != null) com.example.spendflow.core.ui.components.LabeledProgress(
+            current = cap.spent, target = cap.limit,
+            label = stringResource(R.string.transaction_cap_progress, category.name),
+            modifier = Modifier.fillMaxWidth(),
+            showCard = false, showDecimals = true,
+            tone = if (cap.spent.amountMinor > cap.limit.amountMinor) com.example.spendflow.core.ui.components.ProgressTone.OVER_CAP
+                else com.example.spendflow.core.ui.components.ProgressTone.VIOLET,
+        )
     }
 }
 

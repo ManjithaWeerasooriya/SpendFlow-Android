@@ -88,7 +88,7 @@ fun SpendFlowShell(
     val startGraph = rememberSaveable { graph.route }
     val entry by nav.currentBackStackEntryAsState()
     // Quick Add opens over a tab, and the bar stays visible under it
-    val tabRoute = (if (entry?.destination?.route == Routes.QUICK_ADD) nav.previousBackStackEntry else entry)?.destination?.route
+    val tabRoute = (if (entry?.destination?.route in setOf(Routes.QUICK_ADD, Routes.EDIT_TRANSACTION)) nav.previousBackStackEntry else entry)?.destination?.route
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(graph) {
@@ -147,8 +147,9 @@ private fun Destination(
             home = true,
             onSeeAll = { nav.navigateToTab(Routes.TRANSACTIONS) },
             onViewGoals = { nav.navigate(Routes.GOALS) },
+            onEdit = nav::openTransactionEdit,
         )
-        Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {})
+        Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {}, onEdit = nav::openTransactionEdit)
         Routes.ANALYTICS -> AnalyticsRoute(hiltViewModel(), onAddTransaction = nav::openQuickAdd)
         Routes.MORE -> MoreRoute(
             hiltViewModel(),
@@ -159,9 +160,12 @@ private fun Destination(
         Routes.CATEGORIES -> CategoriesRoute(hiltViewModel(), hiltViewModel(), onBack = { nav.navigateUp() })
         Routes.GOALS -> GoalsRoute(hiltViewModel(), notifications, monitor, onBack = { nav.navigateUp() })
         Routes.SETTINGS -> SettingsRoute(onBack = { nav.navigateUp() })
-        Routes.QUICK_ADD -> {
+        Routes.QUICK_ADD, Routes.EDIT_TRANSACTION -> {
             val model = hiltViewModel<QuickAddViewModel>()
-            QuickAddSheet(onDismissed = nav::dismissQuickAdd) { close ->
+            val sheetEntryId = nav.currentBackStackEntry?.id
+            QuickAddSheet(onDismissed = {
+                if (nav.currentBackStackEntry?.id == sheetEntryId) nav.dismissQuickAdd()
+            }) { close ->
                 // Saved just before a recreation: hand the entry to the undo snackbar and close
                 LaunchedEffect(Unit) {
                     if (model.completed) {

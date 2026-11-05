@@ -34,7 +34,7 @@ class ExpenseCategoriesViewModelTest {
         override suspend fun createProfileIfMissing(user: User) = AppResult.Success(Unit)
         override suspend fun updateProfile(user: User) = AppResult.Success(Unit)
     }
-    private fun model() = ExpenseCategoriesViewModel(repository, budgets, users)
+    private fun model() = ExpenseCategoriesViewModel(repository, budgets, users, com.example.spendflow.domain.usecase.GetMonthlySummary(FakeTransactionRepository(), users))
 
     @Test fun `add and rename validate names inline and preserve metadata`() = runTest {
         val model = model()

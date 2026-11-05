@@ -25,7 +25,11 @@ class QuickAddViewModel @Inject constructor(
     val draft: SavedStateHandle,
     private val exchangeRates: com.example.spendflow.data.repository.ExchangeRates,
 ) : ViewModel() {
-    val categories = categories.observeCategories().stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    val isEditing = draft.get<String>("transactionId") != null
+    private var original: Transaction? = null
+    val loading = MutableStateFlow(isEditing)
+    val loadError = MutableStateFlow<com.example.spendflow.core.common.AppError?>(null)
+    val categories = categories.observeCategories(includeArchived = isEditing).stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val profile = users.observeProfile().stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val results = Channel<AppResult<Unit>>(Channel.BUFFERED)
     val events = results.receiveAsFlow()
@@ -36,6 +40,44 @@ class QuickAddViewModel @Inject constructor(
     var completed = false
         private set
 
+    init { if (isEditing) loadTransaction() }
+
+    fun loadTransaction() {
+        val id = draft.get<String>("transactionId") ?: return
+        if (original != null) return
+        loading.value = true
+        loadError.value = null
+        viewModelScope.launch {
+            when (val result = transactions.get(id)) {
+                is AppResult.Error -> loadError.value = result.error
+                is AppResult.Success -> {
+                    val item = result.data
+                    original = item
+                    if (draft.get<String>("edit_initialized") != id) {
+                        val digits = Currency.getInstance(item.amount.currencyCode).defaultFractionDigits.coerceAtLeast(0)
+                        draft["amount"] = BigDecimal.valueOf(item.amount.amountMinor, digits).toPlainString()
+                        draft["note"] = item.note.orEmpty()
+                        draft["income"] = item.type == TransactionType.INCOME
+                        draft["currency"] = item.amount.currencyCode
+                        draft["rate"] = item.rate.toPlainString()
+                        draft["category"] = item.categoryId
+                        draft["date"] = item.dateTime.toString()
+                        draft["payment"] = item.paymentMethod?.let { it.ordinal + 1 } ?: 0
+                        draft["details"] = true
+                        draft["edit_initialized"] = id
+                    }
+                }
+            }
+            loading.value = false
+        }
+    }
+
+    val isTransfer get() = original?.type == TransactionType.TRANSFER
+
+    private fun entryCurrency(income: Boolean, base: String): String =
+        if (income || isEditing)
+            draft.get<String>("currency") ?: base else base
+
     fun takeSavedEntry(): SavedEntry? = savedEntry.also { savedEntry = null }
 
     val rateLoading = MutableStateFlow(false)
@@ -44,7 +86,7 @@ class QuickAddViewModel @Inject constructor(
 
     fun selectSource(category: Category) {
         draft["category"] = category.id
-        if (category.type == CategoryType.INCOME) {
+        if (category.type == CategoryType.INCOME && !isEditing) {
             category.defaultCurrency?.takeIf { code ->
                 runCatching { Currency.getInstance(code).defaultFractionDigits >= 0 }.getOrDefault(false)
             }?.let(::selectCurrency)
@@ -88,7 +130,7 @@ class QuickAddViewModel @Inject constructor(
 
     fun conversion(amount: String, income: Boolean): Pair<Money, BigDecimal>? {
         val base = (profile.value as? AppResult.Success)?.data?.baseCurrency ?: return null
-        val currency = if (income) draft.get<String>("currency") ?: base else base
+        val currency = entryCurrency(income, base)
         val money = parseAmount(amount, currency) ?: return null
         val rate = if (currency == base) BigDecimal.ONE else
             draft.get<String>("rate")?.trim()?.replace(',', '.')?.toBigDecimalOrNull()?.takeIf { it.signum() > 0 } ?: return null
@@ -96,46 +138,55 @@ class QuickAddViewModel @Inject constructor(
     }
 
     fun save(amount: String, categoryId: String?, income: Boolean, payment: PaymentMethod?, note: String): Boolean {
-        if (saving.value || completed) return false
+        if (saving.value || completed || isEditing && (loading.value || original == null)) return false
         val user = (profile.value as? AppResult.Success)?.data
         val category = ((categories.value as? AppResult.Success)?.data ?: emptyList()).find {
-            it.id == categoryId && !it.isArchived && it.type == if (income) CategoryType.INCOME else CategoryType.EXPENSE
+            it.id == categoryId && (!it.isArchived || isEditing && it.id == original?.categoryId) && it.type == if (income) CategoryType.INCOME else CategoryType.EXPENSE
         }
-        val currency = if (income) draft.get<String>("currency") ?: user?.baseCurrency ?: "LKR" else user?.baseCurrency ?: "LKR"
+        val currency = entryCurrency(income, user?.baseCurrency ?: "LKR")
         val rateMissing = currency != (user?.baseCurrency ?: "LKR") &&
             (draft.get<String>("rate")?.trim()?.replace(',', '.')?.toBigDecimalOrNull()?.signum() ?: 0) <= 0
         errors.value = EntryErrors(
             amount = EntryValidation.amountError(amount, currency),
-            category = if (category == null) if (income) com.example.spendflow.R.string.entry_source_required else com.example.spendflow.R.string.entry_category_required else null,
+            category = if (category == null && !isTransfer) if (income) com.example.spendflow.R.string.entry_source_required else com.example.spendflow.R.string.entry_category_required else null,
             rate = if (rateMissing) com.example.spendflow.R.string.entry_rate_required else null,
             general = if (user == null) com.example.spendflow.R.string.entry_not_ready else null,
         )
-        if (errors.value.hasErrors || user == null || category == null) return false
+        if (errors.value.hasErrors || user == null || category == null && !isTransfer) return false
         val money = parseAmount(amount, currency) ?: return false
         val converted = conversion(amount, income)
         if (converted == null) {
             errors.value = errors.value.copy(rate = com.example.spendflow.R.string.entry_rate_invalid)
             return false
         }
-        val (baseAmount, rate) = converted
+        val (convertedAmount, rate) = converted
+        val baseAmount = original?.takeIf {
+            it.amount == money && it.rate.compareTo(rate) == 0 && it.baseAmount.currencyCode == user.baseCurrency
+        }?.baseAmount ?: convertedAmount
         val baseDigits = Currency.getInstance(user.baseCurrency).defaultFractionDigits
         if (BigDecimal.valueOf(baseAmount.amountMinor).movePointLeft(baseDigits) > EntryValidation.maximumAmount) {
             errors.value = errors.value.copy(amount = com.example.spendflow.R.string.entry_amount_large)
             return false
         }
+        val type = if (isTransfer) TransactionType.TRANSFER else if (income) TransactionType.INCOME else TransactionType.EXPENSE
         val transaction = Transaction(
-            id = transactions.newId(), type = if (income) TransactionType.INCOME else TransactionType.EXPENSE,
+            id = original?.id ?: transactions.newId(), type = type,
             amount = money, rate = rate, baseAmount = baseAmount,
             dateTime = draft.get<String>("date")?.let(Instant::parse) ?: Instant.now(),
-            categoryId = category.id, paymentMethod = if (income) null else payment,
+            categoryId = if (isTransfer) null else category?.id, paymentMethod = if (type == TransactionType.EXPENSE) payment else null,
             note = note.trim().takeIf { it.isNotEmpty() },
+            accountId = original?.accountId,
+            transferAccountId = original?.transferAccountId,
+            recurringTransactionId = original?.recurringTransactionId,
+            createdAt = original?.createdAt,
+            updatedAt = original?.updatedAt,
         )
         saving.value = true
         viewModelScope.launch {
-            val result = transactions.create(transaction)
+            val result = if (isEditing) transactions.update(transaction) else transactions.create(transaction)
             completed = result is AppResult.Success
             if (completed) {
-                savedEntry = SavedEntry(transaction, category.name)
+                if (!isEditing) savedEntry = SavedEntry(transaction, category?.name.orEmpty())
                 if (income) exchangeRates.remember(currency, user.baseCurrency, rate)
             }
             saving.value = false
