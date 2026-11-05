@@ -342,6 +342,30 @@ describe('profile specifics', () => {
 });
 
 
+describe('category cap specifics', () => {
+  it('accepts any subset of alert levels', async () => {
+    for (const alerts of [[], ['OVER'], ['NOTICE', 'OVER'], ['NOTICE', 'WARNING', 'OVER']]) {
+      await assertSucceeds(create('budgets', { categoryId: 'cat1', alerts }));
+    }
+  });
+
+  it('accepts a cap saved before per-cap alerts', async () => {
+    await assertSucceeds(createDoc(db, entities.budgets.path(ALICE, 'legacy'), without(entities.budgets.valid(), 'alerts')));
+  });
+
+  it('rejects unknown, repeated or non-list alerts', async () => {
+    for (const alerts of [['UNDER'], ['notice'], ['OVER', 'OVER'], ['NOTICE', 'WARNING', 'OVER', 'OVER'], 'OVER', [1]]) {
+      await assertFails(create('budgets', { alerts }));
+    }
+  });
+
+  it('rejects a zero or negative limit', async () => {
+    for (const limitMinor of [0, -50000]) {
+      await assertFails(create('budgets', { categoryId: 'cat1', limitMinor }));
+    }
+  });
+});
+
 describe('savings goal specifics', () => {
   it('accepts reaching and exceeding the target', async () => {
     await assertSucceeds(create('goals', { savedMinor: 15000000 }));

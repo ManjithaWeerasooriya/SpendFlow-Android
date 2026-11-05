@@ -19,22 +19,27 @@ class ExpenseCategoriesViewModelTest {
     private val rent = Category("rent", "Rent", CategoryType.EXPENSE, sortOrder = 1)
     private val salary = Category("salary", "Salary", CategoryType.INCOME)
     private val repository = FakeCategoryRepository(listOf(food, rent, salary))
-    private val budgets = object : BudgetRepository {
-        val items = MutableStateFlow<List<Budget>>(emptyList())
-        override fun newId() = "cap"
-        override fun observeBudgets() = items.map { AppResult.Success(it) }
-        override suspend fun get(id: String) = AppResult.Success(items.value.first { it.id == id })
-        override suspend fun create(item: Budget): AppResult<Unit> { items.value += item; return AppResult.Success(Unit) }
-        override suspend fun update(item: Budget): AppResult<Unit> { items.value = items.value.map { if (it.id == item.id) item else it }; return AppResult.Success(Unit) }
-        override suspend fun delete(id: String) = AppResult.Success(Unit)
-    }
-    private val users = object : UserRepository {
-        override fun observeProfile() = flowOf(AppResult.Success(User("u", null, null, "LKR")))
-        override suspend fun createProfile(user: User) = AppResult.Success(Unit)
-        override suspend fun createProfileIfMissing(user: User) = AppResult.Success(Unit)
-        override suspend fun updateProfile(user: User) = AppResult.Success(Unit)
-    }
-    private fun model() = ExpenseCategoriesViewModel(repository, budgets, users)
+    private val budgets = FakeBudgetRepository()
+    private val profiles = FakeProfileRepository(User("u", null, null, "LKR"))
+    private val transactions = FakeTransactionRepository()
+    private val warnings = com.example.spendflow.core.notifications.CapWarnings(
+        object : com.example.spendflow.core.notifications.CapAlertHistory {
+            val shown = mutableMapOf<String, CapLevel>()
+            override fun lastShown(uid: String, month: java.time.YearMonth, budgetId: String) = shown[budgetId] ?: CapLevel.UNDER
+            override fun record(uid: String, month: java.time.YearMonth, budgetId: String, level: CapLevel) { shown[budgetId] = level }
+        },
+        FakeUserSession("u"),
+    )
+    private val capUsage = com.example.spendflow.domain.usecase.ObserveCapUsage(
+        budgets,
+        com.example.spendflow.domain.usecase.GetMonthlySummary(transactions, profiles),
+        profiles,
+        object : com.example.spendflow.domain.usecase.CurrentMonth {
+            override val zone: java.time.ZoneId = java.time.ZoneId.systemDefault()
+            override fun months() = flowOf(java.time.YearMonth.now(zone))
+        },
+    )
+    private fun model() = ExpenseCategoriesViewModel(repository, budgets, profiles, capUsage, warnings)
 
     @Test fun `add and rename validate names inline and preserve metadata`() = runTest {
         val model = model()
@@ -91,18 +96,63 @@ class ExpenseCategoriesViewModelTest {
         }
     }
 
-    @Test fun `monthly cap validates input and updates existing budget`() = runTest {
+    @Test fun `cap amount errors are inline and nothing is saved`() = runTest {
         val model = model()
-        assertEquals(R.string.category_cap_invalid, model.saveCap(food, "-1"))
+        assertEquals(R.string.category_cap_required, model.saveCap(food, "  "))
+        assertEquals(R.string.category_cap_positive, model.saveCap(food, "0"))
+        assertEquals(R.string.category_cap_positive, model.saveCap(food, "-500"))
+        assertEquals(R.string.category_cap_invalid, model.saveCap(food, "abc"))
+        assertEquals(R.string.category_cap_invalid, model.saveCap(food, "1.234"))
+        assertTrue(budgets.items.value.isEmpty())
+    }
+
+    @Test fun `monthly cap saves alerts and updates the one existing cap`() = runTest {
+        val model = model()
         model.events.test {
-            assertNull(model.saveCap(food, "100.50"))
+            assertNull(model.saveCap(food, "100.50", setOf(CapLevel.WARNING, CapLevel.OVER)))
             awaitItem()
-            assertEquals(Money(10050, "LKR"), budgets.items.value.single().limit)
+            val saved = budgets.items.value.single()
+            assertEquals(Money(10050, "LKR"), saved.limit)
+            assertEquals(food.id, saved.categoryId)
+            assertEquals(BudgetPeriod.MONTHLY, saved.period)
+            assertEquals(setOf(CapLevel.WARNING, CapLevel.OVER), saved.alerts)
             assertNull(model.saveCap(food, "200"))
             awaitItem()
             assertEquals(1, budgets.items.value.size)
             assertEquals(Money(20000, "LKR"), budgets.items.value.single().limit)
+            assertEquals(CapLevel.ALERTS, budgets.items.value.single().alerts)
         }
+    }
+
+    @Test fun `remove cap deletes every cap on the category only`() = runTest {
+        val start = java.time.LocalDate.of(2026, 10, 1)
+        budgets.items.value = listOf(
+            Budget("a", "Food", Money(100, "LKR"), BudgetPeriod.MONTHLY, start, food.id),
+            Budget("b", "Food again", Money(200, "LKR"), BudgetPeriod.MONTHLY, start, food.id),
+            Budget("c", "Rent", Money(300, "LKR"), BudgetPeriod.MONTHLY, start, rent.id),
+        )
+        val model = model()
+        assertEquals("a", model.cap(food)?.id)
+        model.events.test {
+            model.removeCap(food)
+            assertEquals(AppResult.Success(Unit), awaitItem())
+        }
+        assertEquals(listOf("c"), budgets.items.value.map { it.id })
+    }
+
+    @Test fun `spending past a cap is saved, shown and warned about once`() = runTest {
+        val model = model()
+        assertNull(model.saveCap(food, "100"))
+        // Caps never block saving: the expense is stored like any other (BR-05)
+        transactions.create(expense("t", food.id, 12_000, java.time.Instant.now()))
+        val usage = (model.capOverview.value as AppResult.Success).data.usages.getValue(food.id)
+        assertEquals(Money(2_000, "LKR"), usage.overBy)
+        assertEquals(1, transactions.rows.value.size)
+        assertEquals(listOf(CapLevel.OVER), model.warnings.value.map { it.level })
+
+        model.dismissWarning(model.warnings.value.single())
+        transactions.create(expense("t2", food.id, 100, java.time.Instant.now()))
+        assertTrue(model.warnings.value.isEmpty())
     }
 
     @Test fun `classification icon order and archive round trip and legacy data remains valid`() {

@@ -62,6 +62,7 @@ rules_version = '2';
 //   - period: 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 //   - startDate: string (YYYY-MM-DD)
 //   - categoryId: string | null (document ID; null = all expenses)
+//   - alerts: list of 'NOTICE' | 'WARNING' | 'OVER' (optional; the cap thresholds it warns at)
 //
 // Collection: users/{uid}/recurring/{recurringId}
 //   - type, amount, currency, rate, baseAmount, baseCurrency, paymentMethod, accountId, categoryId,
@@ -278,7 +279,11 @@ service cloud.firestore {
     function isValidBudget(data) {
       return hasRequiredFields(data, ['name', 'limitMinor', 'currencyCode', 'period', 'startDate', 'createdAt', 'updatedAt']) &&
         hasOnlyAllowedFields(data, ['name', 'limitMinor', 'currencyCode', 'period', 'startDate', 'categoryId',
-          'createdAt', 'updatedAt']) &&
+          'alerts', 'createdAt', 'updatedAt']) &&
+        (!('alerts' in data) ||
+          (data.alerts is list && data.alerts.size() <= 3 &&
+           data.alerts.toSet().size() == data.alerts.size() &&
+           data.alerts.toSet().hasOnly(['NOTICE', 'WARNING', 'OVER']))) &&
         isValidString(data.name, 1, 100) &&
         isPositiveAmount(data.limitMinor) &&
         isCurrencyCode(data.currencyCode) &&

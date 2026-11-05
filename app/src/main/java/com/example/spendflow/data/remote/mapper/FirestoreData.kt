@@ -31,6 +31,14 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
 
     fun boolean(key: String, default: Boolean): Boolean = read(key) ?: default
 
+    inline fun <reified E : Enum<E>> optEnumList(key: String): List<E>? = optStringList(key)?.map { value ->
+        enumValues<E>().firstOrNull { it.name == value } ?: fail("Field '$key' has unknown ${E::class.simpleName} '$value'")
+    }
+
+    fun optStringList(key: String): List<String>? = read<List<*>>(key)?.map { value ->
+        value as? String ?: fail("Field '$key' should hold strings but has ${value?.let { it::class.simpleName }}")
+    }
+
     fun optIntList(key: String): List<Int>? = read<List<*>>(key)?.map { value ->
         when (value) {
             is Long -> Math.toIntExact(value)

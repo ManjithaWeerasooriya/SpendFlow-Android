@@ -41,6 +41,17 @@ class MapperRoundTripTest {
     }
 
     @Test
+    fun `cap alerts round-trip and caps saved before them alert at every threshold`() {
+        val cap = Budget("c", "Food", Money(5_000_000, "LKR"), BudgetPeriod.MONTHLY, LocalDate.of(2026, 10, 1), "food",
+            setOf(com.example.spendflow.domain.model.CapLevel.OVER, com.example.spendflow.domain.model.CapLevel.NOTICE))
+        val payload = cap.toFirestore()
+        assertEquals(listOf("NOTICE", "OVER"), payload["alerts"])
+        assertEquals(cap, budgetFromFirestore(cap.id, payload))
+        assertEquals(com.example.spendflow.domain.model.CapLevel.ALERTS, budgetFromFirestore(cap.id, payload - "alerts").alerts)
+        assertEquals(emptySet<Any>(), budgetFromFirestore(cap.id, payload + ("alerts" to emptyList<String>())).alerts)
+    }
+
+    @Test
     fun `user preferences round-trip and legacy profiles read as defaults`() {
         val preferences = UserPreferences(streakEnabled = true, lockScreenQuickEntry = true, capThresholds = CapThresholds(50, 80, 95))
         val user = User(id = "u1", displayName = null, email = null, baseCurrency = "USD", preferences = preferences)

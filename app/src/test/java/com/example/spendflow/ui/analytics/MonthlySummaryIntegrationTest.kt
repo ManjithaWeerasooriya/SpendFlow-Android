@@ -49,7 +49,22 @@ class MonthlySummaryIntegrationTest {
         val transactions = Transactions()
         val categories = FakeCategoryRepository()
         val summaries = GetMonthlySummary(transactions, Profile)
-        val feed = TransactionFeedViewModel(transactions, categories, summaries, Goals, SavedStateHandle())
+        val prefs = com.example.spendflow.testing.FakeProfileRepository(com.example.spendflow.domain.model.User("user", null, null, "LKR"))
+        val capUsage = com.example.spendflow.domain.usecase.ObserveCapUsage(
+            com.example.spendflow.testing.FakeBudgetRepository(), summaries, prefs,
+            object : com.example.spendflow.domain.usecase.CurrentMonth {
+            override val zone: java.time.ZoneId = java.time.ZoneId.systemDefault()
+            override fun months() = kotlinx.coroutines.flow.flowOf(java.time.YearMonth.now(zone))
+        },
+        )
+        val capWarnings = com.example.spendflow.core.notifications.CapWarnings(
+            object : com.example.spendflow.core.notifications.CapAlertHistory {
+                override fun lastShown(uid: String, month: YearMonth, budgetId: String) = com.example.spendflow.domain.model.CapLevel.UNDER
+                override fun record(uid: String, month: YearMonth, budgetId: String, level: com.example.spendflow.domain.model.CapLevel) = Unit
+            },
+            com.example.spendflow.testing.FakeUserSession(),
+        )
+        val feed = TransactionFeedViewModel(transactions, categories, summaries, Goals, capUsage, capWarnings, SavedStateHandle())
         val analytics = AnalyticsViewModel(
             summaries, categories, SavedStateHandle(mapOf("analytics_month" to feed.currentMonth.toString())),
         )
