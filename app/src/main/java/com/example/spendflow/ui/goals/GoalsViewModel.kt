@@ -7,6 +7,7 @@ import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.data.repository.GoalRepository
 import com.example.spendflow.data.repository.UserRepository
 import com.example.spendflow.data.repository.WriteFailures
+import com.example.spendflow.domain.model.GoalContribution
 import com.example.spendflow.domain.model.Money
 import com.example.spendflow.domain.model.SavingsGoal
 import com.example.spendflow.ui.quickadd.EntryValidation
@@ -109,7 +110,9 @@ class GoalsViewModel @Inject constructor(
             )
             return false
         }
-        val goal = SavingsGoal(existing?.id ?: repository.newId(), name.trim(), target, saved, deadline)
+        // copy keeps contributions, primary and completed flags on edit
+        val goal = existing?.copy(name = name.trim(), target = target, saved = saved, deadline = deadline)
+            ?: SavingsGoal(repository.newId(), name.trim(), target, saved, deadline)
         saving.value = true
         viewModelScope.launch {
             val result = if (existing == null) repository.create(goal) else repository.update(goal)
@@ -117,5 +120,55 @@ class GoalsViewModel @Inject constructor(
             results.send(result)
         }
         return true
+    }
+
+    /** Returns an error string resource, or null when the contribution was accepted and is being written. */
+    fun addContribution(goal: SavingsGoal, amountText: String, date: LocalDate?, note: String): Int? {
+        if (saving.value) return R.string.entry_not_ready
+        val code = goal.target.currencyCode
+        EntryValidation.amountError(amountText, code)?.let { return it }
+        if (date == null) return R.string.goal_deadline_required
+        if (note.trim().length > 200) return R.string.goal_note_long
+        val amount = QuickAddViewModel.parseAmount(amountText, code) ?: return R.string.entry_amount_invalid
+        if (goal.saved.amountMinor + amount.amountMinor > 99_999_999_999L) return R.string.entry_amount_large
+        // shortcut: read-modify-write can lose a contribution made offline on two devices, use FieldValue.increment if multi-device matters
+        write(goal.copy(
+            saved = goal.saved + amount,
+            contributions = goal.contributions + GoalContribution(repository.newId(), amount, date, note.trim().ifEmpty { null }),
+        ))
+        return null
+    }
+
+    fun markCompleted(goal: SavingsGoal) = write(goal.copy(markedCompleted = true))
+
+    fun setPrimary(goal: SavingsGoal) {
+        saving.value = true
+        viewModelScope.launch {
+            val all = (repository.observeGoals().first() as? AppResult.Success)?.data ?: listOf(goal)
+            var result: AppResult<Unit> = AppResult.Success(Unit)
+            for (g in all) {
+                val wanted = g.id == goal.id
+                if (g.isPrimary != wanted) {
+                    val r = repository.update(g.copy(isPrimary = wanted))
+                    if (r is AppResult.Error) result = r
+                }
+            }
+            saving.value = false
+            results.send(result)
+        }
+    }
+
+    fun delete(goal: SavingsGoal) {
+        // Success is visible: the goal leaves the list, and "Goal saved" would be wrong here
+        viewModelScope.launch { repository.delete(goal.id).let { if (it is AppResult.Error) results.send(it) } }
+    }
+
+    private fun write(goal: SavingsGoal) {
+        saving.value = true
+        viewModelScope.launch {
+            val result = repository.update(goal)
+            saving.value = false
+            results.send(result)
+        }
     }
 }

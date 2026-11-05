@@ -76,6 +76,7 @@ import com.example.spendflow.core.ui.components.SummaryCard
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.domain.model.Money
+import com.example.spendflow.domain.model.primaryGoal
 import com.example.spendflow.domain.model.CapUsage
 import com.example.spendflow.domain.model.CapWarning
 import com.example.spendflow.ui.categories.CategoryAppearance
@@ -195,7 +196,7 @@ internal fun TransactionFeedRoute(
         state = FeedUiState(
             rows = rows,
             monthly = (monthly as? AppResult.Success)?.data,
-            goal = if (home) (goals as? AppResult.Success)?.data?.sortedBy { it.isCompleted }?.firstOrNull() else null,
+            goal = if (home) (goals as? AppResult.Success)?.data?.let(::primaryGoal) else null,
             filter = filter,
             month = model.currentMonth,
             caps = homeCaps,

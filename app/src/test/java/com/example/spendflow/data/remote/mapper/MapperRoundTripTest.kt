@@ -37,6 +37,15 @@ class MapperRoundTripTest {
     }
 
     @Test
+    fun `goal contributions and flags round trip and default when absent`() {
+        val c = com.example.spendflow.domain.model.GoalContribution("c", Money(2000000, "LKR"), java.time.LocalDate.of(2026, 10, 11), "bonus")
+        val goal = com.example.spendflow.domain.model.SavingsGoal("g", "Mac", Money(500000000, "LKR"), Money(2000000, "LKR"), null, listOf(c), true, true)
+        assertEquals(goal, savingsGoalFromFirestore(goal.id, goal.toFirestore()))
+        val old = savingsGoalFromFirestore("g", goal.toFirestore() - "contributions" - "isPrimary" - "markedCompleted")
+        assertTrue(old.contributions.isEmpty() && !old.isPrimary && !old.markedCompleted)
+    }
+
+    @Test
     fun `savings goals preserve exact target and saved amounts`() {
         val goal = com.example.spendflow.domain.model.SavingsGoal("g", "Laptop", Money(15000000, "LKR"), Money(15000000, "LKR"))
         assertEquals(goal, savingsGoalFromFirestore(goal.id, goal.toFirestore()))

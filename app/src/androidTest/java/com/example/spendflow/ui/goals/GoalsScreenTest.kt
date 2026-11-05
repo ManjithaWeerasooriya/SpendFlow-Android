@@ -135,4 +135,21 @@ class GoalsScreenTest {
         compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("-5")
         compose.onNodeWithText(text(R.string.entry_amount_positive)).assertExists()
     }
+
+    @Test
+    fun detailOffersAddMoneyAndNamesGoalOnDelete() {
+        var deleted = false
+        compose.setContent {
+            SpendFlowTheme {
+                GoalDetailScreen(laptop, LocalDate.of(2026, 10, 11), null, onBack = {}, onEdit = {},
+                    onAddMoney = { _, _, _ -> null }, onMarkCompleted = {}, onSetPrimary = {}, onDelete = { deleted = true })
+            }
+        }
+        compose.onNodeWithText(text(R.string.goal_add_money)).assertExists()
+        compose.onNodeWithText(text(R.string.goal_more_actions)).performClick()
+        compose.onNodeWithText(text(R.string.goal_delete)).performClick()
+        compose.onNodeWithText(text(R.string.goal_delete_message, "Laptop")).assertExists()
+        compose.onNode(hasText(text(R.string.goal_delete)) and hasClickAction()).performClick()
+        assertEquals(true, deleted)
+    }
 }
