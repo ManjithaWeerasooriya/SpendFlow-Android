@@ -4,11 +4,24 @@
 
 Settings and Onboarding are migrated to Jetpack Compose with Material 3. Other screens still use XML/ViewBinding, and Fragment Navigation remains active. These migrations do not change ViewModels, repositories, Firebase, or business logic.
 
+The goal is to remove every XML layout. The work runs in four phases:
+
+0. **Foundations — done.** Kotlin colour tokens and the Compose component library (below).
+1. **Screens inside their Fragments.** More, Login, Categories (including `dialog_income_source.xml` and `menu/income_source_actions.xml`), Transactions + Home, Goals, Analytics (chart in `AndroidView` at first), Quick Add. Port each screen's instrumented test to `compose-ui-test` in the same task.
+2. **Shell swap, as one change.** `MainActivity` becomes a `ComponentActivity` with a `Scaffold` (Compose bottom bar, `SnackbarHost`, insets), Navigation Compose replaces the XML graphs, and Quick Add becomes a `ModalBottomSheet`. Add `navigation-compose` and `hilt-navigation-compose` here. All Fragments, navigation graphs, menus and `activity_main.xml` are deleted.
+3. **Cleanup.** Canvas chart, Compose gallery, delete View components, remaining layouts, `styles_components.xml`, `type.xml`, `attrs.xml` and `colors.xml` (with `ThemeColorsSyncTest`), turn off `viewBinding`, drop RecyclerView/ConstraintLayout/Fragment/Navigation-Fragment dependencies.
+
 ## Migration progress
 
 - **Settings — migrated:** `SettingsFragment` hosts `SettingsRoute` in a `ComposeView` with `DisposeOnViewTreeLifecycleDestroyed`. `SettingsScreen` accepts immutable display state and a Back callback. Light and dark previews use sample display state without Firebase or a ViewModel. Settings has no existing ViewModel or asynchronous state to collect. MainActivity continues to own system-bar and keyboard insets. The shared `fragment_placeholder.xml` and `PlaceholderFragment` are retained.
 - **Onboarding — migrated:** `OnboardingFragment` hosts `OnboardingRoute` in a lifecycle-disposed `ComposeView`, preserving its Fragment-scoped `OnboardingViewModel`. The stateless `OnboardingScreen` accepts currency state and Skip/Continue callbacks; both callbacks still call `finish()`, leaving completion/navigation to the existing auth and MainActivity flow. The ViewModel has a fixed value and no state/event Flow to collect. The currency remains read-only with a localized display name. Light, dark and large-text previews have no Firebase or ViewModel dependency. The content scrolls on smaller displays; MainActivity owns system-bar/keyboard insets. `fragment_onboarding.xml` is retained pending user confirmation.
-- **Next screen:** More. Continue one screen per task.
+- **Phase 0 foundations — done:**
+  - `ui/theme/Color.kt` holds every `sf_*` token as `SpendFlowColors` (light and dark palettes) and derives the Material colour schemes from them with the same role mapping as `values/themes.xml`. Composables read brand roles through `SpendFlowTheme.colors`.
+  - `ColorContrastTest` checks the Kotlin palettes. `ThemeColorsSyncTest` fails if `colors.xml`/`values-night/colors.xml` drift from them while Views still read the XML. `ThemeOnlyColorsTest` also rejects `Color(0x…)` outside `ui/theme/`.
+  - Compose components in `core/ui/components/`, each with light/dark previews: `AmountText`, `PrimaryButton`/`SecondaryButton`/`DestructiveButton`, `EmptyState`, `LabeledProgress`, `SummaryCard` (the compact `MonthlySummary` layout the app uses, with the optional expense-ratio bar), and, beside their View classes of the same name, `CategoryChip`, `LabeledSwitch`, `SpendFlowSnackbar` (+ `SpendFlowSnackbarVisuals`) and `SpendFlowBottomBar`.
+  - Compose UI test libraries added (`ui-test-junit4` for androidTest, `ui-test-manifest` for debug).
+  - Several vector drawables (`ic_badge_*`, `ic_status_*`, `bg_*`, `ic_category_*`) take colours from `?attr/sfColor*`. Compose resolves them through the Activity theme for now; they need Kotlin-side tinting or recolouring before `attrs.xml` is removed in Phase 3.
+- **Next screen:** More. Continue one screen per task, using the Phase 0 components.
 
 The inventories below describe the initial XML baseline; migrated screens are identified explicitly.
 
@@ -99,13 +112,15 @@ For each screen, use a stateful wrapper and a stateless screen with previews. Ho
 
 ## Theme and dependency setup
 
-- `ui/theme/Color.kt`: explicit light/dark Material 3 roles matching `values/colors.xml`, `values-night/colors.xml`, and `values/themes.xml`. Keep both theme definitions aligned during coexistence. Add semantic income/warning/hero tokens when the first screen needs them rather than embedding screen colors.
+- `ui/theme/Color.kt`: `SpendFlowColors` light/dark palettes (all `sf_*` tokens) and the Material 3 roles derived from them. `ThemeColorsSyncTest` keeps them equal to the XML colours during coexistence.
 - `ui/theme/Type.kt`: existing bundled Outfit and DM Sans files, with the current type scale and tracking. Amount-specific title/inline styles can be added when migrating AmountView.
 - `ui/theme/Theme.kt`: SpendFlowTheme with system light/dark selection, an explicit darkTheme override for previews, and existing corner dimensions. Brand colors are deterministic rather than dynamic wallpaper colors.
 - Version catalog: Compose BOM `2026.09.00`, Material 3, UI, tooling previews, debug tooling, activity-compose and lifecycle-runtime-compose. The Compose compiler plugin uses the existing Kotlin `2.4.21` version. AGP's existing built-in Kotlin setup is retained.
 - Setup reference: [Android Compose dependencies and compiler](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler).
 
 ## Verification for each screen
+
+Phase 0 verification (2026-11-05): `assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin` passed with 149 tests and zero failures/errors. No screen uses the new components yet, so there is no runtime UI change; previews were compiled but not rendered or checked on a device.
 
 Onboarding migration verification (2026-11-05): `assembleDebug testDebugUnitTest` passed with 146 tests and zero failures/errors. `git diff --check` passed. No ViewModel, repository, auth, navigation graph or dependency changes were needed. Light/dark/large-text previews are included; no device/emulator UI validation was performed. Manually check Skip/Continue completion, system Back, recreation, localized currency text, large-text scrolling and system insets.
 

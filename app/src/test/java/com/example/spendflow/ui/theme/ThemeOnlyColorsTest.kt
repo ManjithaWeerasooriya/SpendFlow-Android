@@ -13,6 +13,7 @@ class ThemeOnlyColorsTest {
     private val literal = Regex("""="#\p{XDigit}{3,8}"""")
     private val directColor = Regex("""="@(android:)?color/""")
     private val codeColor = Regex("""Color\.(parseColor|rgb|argb)\(|R\.color\.""")
+    private val composeLiteral = Regex("""\bColor\(\s*0x""")
 
     @Test
     fun `layouts use theme attributes for colours`() {
@@ -34,6 +35,18 @@ class ThemeOnlyColorsTest {
                     .map { (i, line) -> "${file.path}:${i + 1}: ${line.trim()}" }
             }.toList()
         assertTrue("Resolve colours with MaterialColors.getColor instead:\n${offenders.joinToString("\n")}", offenders.isEmpty())
+    }
+
+    @Test
+    fun `composables take colours from the theme`() {
+        val offenders = File("src/main").walkTopDown()
+            .filter { it.extension == "kt" && "/ui/theme/" !in it.invariantSeparatorsPath }
+            .flatMap { file ->
+                file.readLines().withIndex()
+                    .filter { (_, line) -> composeLiteral.containsMatchIn(line) }
+                    .map { (i, line) -> "${file.path}:${i + 1}: ${line.trim()}" }
+            }.toList()
+        assertTrue("Use MaterialTheme.colorScheme or SpendFlowTheme.colors instead:\n${offenders.joinToString("\n")}", offenders.isEmpty())
     }
 
     private fun layoutFiles(): List<File> = File("src").walkTopDown()
