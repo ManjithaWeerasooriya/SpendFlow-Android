@@ -312,4 +312,11 @@ Expenses: %3$s</string>
     <string name="goal_short_by">Short by %1$s a month</string>
     <string name="goal_open_detail">Open details: %1$s</string>
     <plurals name="goal_months_left"><item quantity="one">%1$d month</item><item quantity="other">%1$d months</item></plurals>
+    <string name="transaction_edit_title">Edit transaction</string>
+    <string name="transaction_loading">Loading transaction&#8230;</string>
+    <string name="transaction_delete">Delete</string>
+    <string name="transaction_delete_confirm">Delete %1$s %2$s?</string>
+    <string name="transaction_delete_action">Delete %1$s</string>
+    <string name="transaction_transfer">Transfer</string>
+    <string name="transaction_currency">Currency</string>
 </resources>

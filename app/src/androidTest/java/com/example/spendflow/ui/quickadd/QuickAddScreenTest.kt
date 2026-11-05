@@ -121,4 +121,13 @@ class QuickAddScreenTest {
         compose.onNode(hasText(text(android.R.string.ok)) and hasAnyAncestor(isDialog())).assertExists()
         assertEquals(listOf("details"), calls)
     }
+    @Test
+    fun editingUsesTheSameFormWithStoredCurrencyAndRate() {
+        show(QuickAddUiState(editing = true, income = true, amount = "500.00", currency = "USD", rate = "300.123456",
+            categoryId = "salary", categories = UiState.Success(listOf(Category("salary", "Salary", CategoryType.INCOME)))))
+        compose.onNodeWithText(text(R.string.transaction_edit_title)).assertExists()
+        compose.onNodeWithTag(QuickAddTags.AMOUNT).assert(hasText("500.00"))
+        compose.onNodeWithTag(QuickAddTags.CURRENCY).assertExists()
+        compose.onNodeWithText("300.123456").assertExists()
+    }
 }
