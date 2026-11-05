@@ -34,3 +34,7 @@ val SpendFlowTypography = Typography(
     labelMedium = TextStyle(fontFamily = DmSans, fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 16.sp),
     labelSmall = TextStyle(fontFamily = DmSans, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.96.sp),
 )
+
+// TextAppearance.SpendFlow.Amount.Title and .Inline: the display amount style at smaller sizes.
+val SpendFlowAmountTitle = SpendFlowTypography.displaySmall.copy(fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = (-0.44).sp)
+val SpendFlowAmountInline = SpendFlowTypography.displaySmall.copy(fontSize = 17.sp, lineHeight = 22.sp, letterSpacing = (-0.34).sp)

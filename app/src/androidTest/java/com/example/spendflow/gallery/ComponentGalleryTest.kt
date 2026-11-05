@@ -1,20 +1,20 @@
 package com.example.spendflow.gallery
 
 import android.content.res.Configuration
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.core.content.ContextCompat
 import androidx.test.core.app.ActivityScenario
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.action.ViewActions.scrollTo
-import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.R
-import org.hamcrest.Matchers.allOf
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
@@ -27,20 +27,10 @@ class ComponentGalleryTest(private val dark: Boolean) {
         @JvmStatic
         @Parameterized.Parameters(name = "dark={0}")
         fun modes() = listOf(false, true)
-
-        // <include> ids in activity_component_gallery.xml, one per component preview
-        private val previews = listOf(
-            R.id.buttons,
-            R.id.amounts,
-            R.id.chips,
-            R.id.summary,
-            R.id.progress,
-            R.id.switches,
-            R.id.snackbars,
-            R.id.empty,
-            R.id.bottomBars,
-        )
     }
+
+    @get:Rule
+    val compose = createEmptyComposeRule()
 
     private fun launch() = ActivityScenario.launch<ComponentGalleryActivity>(
         ComponentGalleryActivity.intent(InstrumentationRegistry.getInstrumentation().targetContext, dark),
@@ -61,27 +51,26 @@ class ComponentGalleryTest(private val dark: Boolean) {
     @Test
     fun rendersEveryComponent() {
         launch().use {
-            previews.forEach { id -> onView(withId(id)).perform(scrollTo()).check(matches(isDisplayed())) }
+            ComponentGalleryActivity.SECTIONS.forEach { compose.onNodeWithTag(it).performScrollTo().assertIsDisplayed() }
         }
     }
 
     @Test
-    fun switchSpellsOutItsState() {
+    fun switchTogglesFromTheWholeRow() {
         launch().use {
-            val state = allOf(withId(R.id.state), isDescendantOfA(withId(R.id.streakSwitch)))
-            onView(withId(R.id.streakSwitch)).perform(scrollTo())
-            onView(state).check(matches(withText(R.string.switch_on)))
-            onView(withId(R.id.streakSwitch)).perform(click())
-            onView(state).check(matches(withText(R.string.switch_off)))
+            compose.onNodeWithTag("streakSwitch").performScrollTo().assertIsOn()
+            compose.onNodeWithTag("streakSwitch").performClick()
+            compose.onNodeWithTag("streakSwitch").assertIsOff()
         }
     }
 
     @Test
     fun snackbarShowsMessageAndAction() {
         launch().use {
-            onView(withId(R.id.showSuccessSnackbar)).perform(scrollTo(), click())
-            onView(withText(ComponentGalleryActivity.SAVED_MESSAGE)).check(matches(isDisplayed()))
-            onView(withText("Undo")).check(matches(isDisplayed()))
+            compose.onNodeWithText("Show success snackbar").performScrollTo().performClick()
+            // The gallery shows the snackbar in place, inside the scrolling list
+            compose.onNodeWithText(ComponentGalleryActivity.SAVED_MESSAGE).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Undo").assertIsDisplayed()
         }
     }
 }
