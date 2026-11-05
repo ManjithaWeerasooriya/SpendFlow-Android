@@ -22,10 +22,19 @@ import kotlinx.coroutines.tasks.await
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import com.example.spendflow.ui.transactions.FeedTags
+import org.junit.Rule
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
 class EntryValidationUndoFlowTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     private fun <T> main(block: () -> T): T {
@@ -67,7 +76,7 @@ class EntryValidationUndoFlowTest {
             "name" to "Groceries", "type" to "EXPENSE", "sortOrder" to 0L, "isArchived" to false,
         ) + timestamps).await()
 
-        eventually { main { assertEquals("Home", activity.findViewById<TextView>(R.id.screenTitle)?.text?.toString()) } }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
         main { activity.findViewById<android.view.View>(R.id.addButton).performClick() }
         fun sheet(): QuickAddBottomSheet {
             val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
@@ -124,10 +133,10 @@ class EntryValidationUndoFlowTest {
                 .filterIsInstance<CategoryChip>().first { it.label == "Groceries" }.performClick()
         }
         save()
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Expenses: LKR 2,450.00").fetchSemanticsNodes().isNotEmpty() }
         eventually { main {
             val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
             assertFalse(host.childFragmentManager.fragments.any { it is QuickAddBottomSheet })
-            assertTrue(activity.findViewById<TextView>(R.id.totals).text.contains("Expense: LKR 2,450.00"))
             assertEquals("Saved \u00b7 Groceries LKR 2,450", activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)?.text?.toString())
             assertEquals("Undo", activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_action)?.text?.toString())
         } }
@@ -135,8 +144,8 @@ class EntryValidationUndoFlowTest {
         val saved = profile.collection("transactions").get().await().documents.single()
         assertEquals(245000L, saved.getLong("amount"))
         main { activity.findViewById<android.view.View>(com.google.android.material.R.id.snackbar_action).performClick() }
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Expenses: LKR 0.00").fetchSemanticsNodes().isNotEmpty() }
         eventually { main {
-            assertTrue(activity.findViewById<TextView>(R.id.totals).text.contains("Expense: LKR 0.00"))
             assertEquals("Entry removed", activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)?.text?.toString())
         } }
         assertTrue(profile.collection("transactions").get().await().isEmpty)

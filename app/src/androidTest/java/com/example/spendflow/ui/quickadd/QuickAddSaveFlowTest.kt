@@ -22,10 +22,19 @@ import kotlinx.coroutines.tasks.await
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import com.example.spendflow.ui.transactions.FeedTags
+import org.junit.Rule
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
 class QuickAddSaveFlowTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     private fun <T> main(block: () -> T): T {
@@ -67,7 +76,7 @@ class QuickAddSaveFlowTest {
             "name" to "SF08 Food", "type" to "EXPENSE", "sortOrder" to 0L, "isArchived" to false,
         ) + timestamps).await()
 
-        eventually { main { assertEquals("Home", activity.findViewById<TextView>(R.id.screenTitle)?.text?.toString()) } }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
         val started = SystemClock.elapsedRealtime()
         main { activity.findViewById<android.view.View>(R.id.addButton).performClick() }
         fun sheet(): QuickAddBottomSheet {
@@ -89,9 +98,7 @@ class QuickAddSaveFlowTest {
                 .filterIsInstance<CategoryChip>().first { it.label == "SF08 Food" }.performClick()
             form.findViewById<android.view.View>(R.id.saveButton).performClick()
         }
-        eventually { main {
-            assertTrue(activity.findViewById<TextView>(R.id.totals).text.contains("Expense: LKR 25.50"))
-        } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Expenses: LKR 25.50").fetchSemanticsNodes().isNotEmpty() }
         val elapsed = SystemClock.elapsedRealtime() - started
         assertTrue("Save flow took ${elapsed}ms", elapsed <= 10_000)
 
@@ -106,13 +113,10 @@ class QuickAddSaveFlowTest {
         val age = System.currentTimeMillis() - saved.getTimestamp("dateTime")!!.toDate().time
         assertTrue("Default date should be now", age in 0..30_000)
         main { activity.findViewById<android.view.View>(R.id.transactionsFragment).performClick() }
-        eventually { main {
-            val list = activity.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
-            assertTrue(list.children.any {
-                it.findViewById<TextView>(R.id.transactionTitle)?.text?.contains("SF08 Food") == true &&
-                    it.findViewById<TextView>(R.id.transactionAmount)?.text?.contains("LKR 25.50") == true
-            })
-        } }
+        compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(FeedTags.ROW) and hasText("SF08 Food", substring = true) and hasText("LKR 25.50", substring = true))
+                .fetchSemanticsNodes().isNotEmpty()
+        }
         println("SF08_SAVE_FLOW_MS=$elapsed; TEST_UID=${user.uid}; amount=2550; optional details=null")
     }
 }

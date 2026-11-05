@@ -32,6 +32,9 @@ import com.example.spendflow.core.notifications.AndroidGoalNotifications
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import com.example.spendflow.ui.transactions.FeedTags
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -80,7 +83,7 @@ class GoalCompletionNotificationFlowTest {
             instrumentation.uiAutomation.grantRuntimePermission(context.packageName, Manifest.permission.POST_NOTIFICATIONS)
         }
         val manager = context.getSystemService(NotificationManager::class.java)
-        eventually { main { assertEquals("Home", activity.findViewById<TextView>(R.id.screenTitle)?.text?.toString()) } }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
         main { activity.findViewById<android.view.View>(R.id.moreFragment).performClick() }
         val goalsLink = context.getString(R.string.goals_title)
         compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsLink).fetchSemanticsNodes().isNotEmpty() }

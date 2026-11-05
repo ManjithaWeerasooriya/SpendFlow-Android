@@ -36,10 +36,21 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import com.example.spendflow.ui.transactions.FeedTags
+import org.junit.Rule
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
 class AnalyticsRefinementFlowTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     private fun <T> main(block: () -> T): T {
@@ -92,7 +103,7 @@ class AnalyticsRefinementFlowTest {
         val entries = listOf(tx("groceries", "food", 620000, 3), tx("shop", "shopping", 1280000, 8), tx("bus", "transport", 185000, 12), tx("freelance", "freelance", 15000000, 2, true))
         for (entry in entries) profile.collection("transactions").document(entry.id).set(entry.toFirestore().withCreateTimestamps()).await()
         profile.collection("goals").document("laptop").set(SavingsGoal("laptop", "MacBook", Money(45000000,"LKR"), Money(21600000,"LKR")).toFirestore().withCreateTimestamps()).await()
-        eventually { main { assertEquals("Home", activity.findViewById<TextView>(R.id.screenTitle)?.text?.toString()) } }
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
         fun screenshot(name: String) {
             SystemClock.sleep(600)
             instrumentation.uiAutomation.executeShellCommand("screencap -p /sdcard/Download/$name").use { fd -> java.io.FileInputStream(fd.fileDescriptor).use { it.readBytes() } }
@@ -166,15 +177,9 @@ class AnalyticsRefinementFlowTest {
             resumed.findViewById<android.view.View>(R.id.transactionsFragment).performClick()
         }
         screenshot("refined-transactions.png")
-        main {
-            val resumed = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().first()
-            resumed.findViewById<android.view.View>(R.id.filterIncome).performClick()
-        }
-        eventually { main {
-            val resumed = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().first()
-            val list = resumed.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.list)
-            assertEquals(1, list.adapter?.itemCount)
-        } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag(FeedTags.filter("INCOME")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag(FeedTags.filter("INCOME")).performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag(FeedTags.ROW).fetchSemanticsNodes().size == 1 }
         println("ANALYTICS_REFINEMENT_FLOW_PASSED")
     }
 }
