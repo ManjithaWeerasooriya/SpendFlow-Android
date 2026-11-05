@@ -34,3 +34,7 @@ suspend inline fun <T> appResultOf(
 } catch (e: Exception) {
     AppResult.Error(errorMapper(e))
 }
+
+/** Turns a throwing repository flow into an error value so stateIn never crashes the app. */
+fun <T> kotlinx.coroutines.flow.Flow<AppResult<T>>.catchAsError(): kotlinx.coroutines.flow.Flow<AppResult<T>> =
+    kotlinx.coroutines.flow.catch { emit(AppResult.Error(AppError.Unknown(it))) }
