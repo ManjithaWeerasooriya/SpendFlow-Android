@@ -3,14 +3,9 @@ package com.example.spendflow.ui.categories
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -25,10 +20,10 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.window.DialogProperties
 import com.example.spendflow.R
 import com.example.spendflow.core.ui.CurrencyOptions
 import com.example.spendflow.core.ui.components.DropdownField
+import com.example.spendflow.core.ui.components.FormDialog
 import com.example.spendflow.core.ui.components.LabeledTextField
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.domain.model.Category
@@ -52,8 +47,9 @@ internal fun ExpenseCategoryDialog(
         mutableIntStateOf(CategoryAppearance.classifications.indexOf(category?.classification).coerceAtLeast(0))
     }
     FormDialog(
-        title = if (category == null) R.string.category_add_title else R.string.category_edit_title,
-        confirm = R.string.quick_save,
+        title = stringResource(if (category == null) R.string.category_add_title else R.string.category_edit_title),
+        confirm = stringResource(R.string.quick_save),
+        dismiss = stringResource(R.string.action_cancel),
         saving = saving,
         onConfirm = { onSave(name, CategoryAppearance.icons[icon], CategoryAppearance.classifications[classification]) },
         onDismiss = onDismiss,
@@ -91,7 +87,14 @@ internal fun CategoryCapDialog(
     onDismiss: () -> Unit,
 ) {
     var amount by rememberSaveable { mutableStateOf(initialAmount) }
-    FormDialog(R.string.category_cap, R.string.quick_save, saving, onConfirm = { onSave(amount) }, onDismiss = onDismiss) {
+    FormDialog(
+        title = stringResource(R.string.category_cap),
+        confirm = stringResource(R.string.quick_save),
+        dismiss = stringResource(R.string.action_cancel),
+        saving = saving,
+        onConfirm = { onSave(amount) },
+        onDismiss = onDismiss,
+    ) {
         LabeledTextField(
             label = stringResource(R.string.category_cap_hint),
             value = amount,
@@ -115,8 +118,9 @@ internal fun IncomeSourceDialog(
     var name by rememberSaveable { mutableStateOf(source?.name.orEmpty()) }
     var currency by rememberSaveable { mutableIntStateOf(CurrencyOptions.codes.indexOf("LKR")) }
     FormDialog(
-        title = if (source == null) R.string.income_sources_add else R.string.income_sources_rename_title,
-        confirm = R.string.quick_save,
+        title = stringResource(if (source == null) R.string.income_sources_add else R.string.income_sources_rename_title),
+        confirm = stringResource(R.string.quick_save),
+        dismiss = stringResource(R.string.action_cancel),
         saving = saving,
         onConfirm = { onSave(name, if (source == null) CurrencyOptions.codes.getOrNull(currency) else null) },
         onDismiss = onDismiss,
@@ -155,8 +159,9 @@ internal fun IncomeSourceDialog(
 @Composable
 internal fun ArchiveIncomeSourceDialog(source: Category, saving: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     FormDialog(
-        title = R.string.income_sources_archive_title,
-        confirm = R.string.income_sources_archive,
+        title = stringResource(R.string.income_sources_archive_title),
+        confirm = stringResource(R.string.income_sources_archive),
+        dismiss = stringResource(R.string.action_cancel),
         saving = saving,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
@@ -164,33 +169,6 @@ internal fun ArchiveIncomeSourceDialog(source: Category, saving: Boolean, onConf
     ) {
         Text(stringResource(R.string.income_sources_archive_message, source.name))
     }
-}
-
-/** Dialog whose buttons and dismissal are locked while [saving], matching the View dialogs. */
-@Composable
-private fun FormDialog(
-    @StringRes title: Int,
-    @StringRes confirm: Int,
-    saving: Boolean,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    dismissOnClickOutside: Boolean = true,
-    content: @Composable () -> Unit,
-) {
-    // Violet is too dark as text on the dark dialog surface
-    val buttonColors = ButtonDefaults.textButtonColors(contentColor = SpendFlowTheme.colors.violetText)
-    AlertDialog(
-        onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(stringResource(title)) },
-        text = { Column(Modifier.verticalScroll(rememberScrollState())) { content() } },
-        confirmButton = {
-            TextButton(onClick = onConfirm, enabled = !saving, colors = buttonColors) { Text(stringResource(confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !saving, colors = buttonColors) { Text(stringResource(R.string.action_cancel)) }
-        },
-        properties = DialogProperties(dismissOnBackPress = !saving, dismissOnClickOutside = dismissOnClickOutside && !saving),
-    )
 }
 
 @ThemePreviews

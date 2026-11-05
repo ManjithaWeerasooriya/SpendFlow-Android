@@ -25,9 +25,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import org.junit.Assert.*
 import android.app.NotificationManager
-import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.*
-import androidx.test.espresso.matcher.ViewMatchers.withId
 import com.example.spendflow.core.notifications.AndroidGoalNotifications
 import org.junit.Rule
 import org.junit.Test
@@ -35,6 +32,9 @@ import org.junit.runner.RunWith
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import com.example.spendflow.ui.transactions.FeedTags
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.performTextReplacement
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -88,12 +88,15 @@ class GoalCompletionNotificationFlowTest {
         val goalsLink = context.getString(R.string.goals_title)
         compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsLink).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(goalsLink).performClick()
-        eventually { main { assertNotNull(activity.findViewById<android.view.View>(R.id.addGoal)) } }
-        onView(withId(R.id.addGoal)).perform(click())
-        onView(withId(R.id.nameInput)).perform(replaceText("Laptop"))
-        onView(withId(R.id.targetInput)).perform(replaceText("100"))
-        onView(withId(R.id.savedInput)).perform(replaceText("0"), closeSoftKeyboard())
-        onView(withId(android.R.id.button1)).perform(click())
+        val addGoal = hasText(context.getString(R.string.goals_add)) and hasClickAction()
+        compose.waitUntil(15_000) { compose.onAllNodes(addGoal).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNode(addGoal).performClick()
+        // Name, target and saved amount, in that order
+        compose.waitUntil(5_000) { compose.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().size == 3 }
+        compose.onAllNodes(hasSetTextAction())[0].performTextReplacement("Laptop")
+        compose.onAllNodes(hasSetTextAction())[1].performTextReplacement("100")
+        compose.onAllNodes(hasSetTextAction())[2].performTextReplacement("0")
+        compose.onNodeWithText(context.getString(R.string.quick_save)).performClick()
         var goalId: String? = null
         val deadline = SystemClock.elapsedRealtime() + 15000
         while (SystemClock.elapsedRealtime() < deadline && goalId == null) {
