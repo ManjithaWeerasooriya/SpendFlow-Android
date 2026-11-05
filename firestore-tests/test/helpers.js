@@ -21,6 +21,9 @@ export const validUser = () => ({
   displayName: 'Alice',
   email: 'alice@example.com',
   baseCurrency: 'LKR',
+  streakEnabled: false,
+  lockScreenQuickEntry: false,
+  capThresholds: [75, 90, 100],
 });
 
 export const validAccount = () => ({

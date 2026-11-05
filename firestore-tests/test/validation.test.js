@@ -310,10 +310,34 @@ describe('profile specifics', () => {
     await assertFails(create('profile', { baseCurrency: 'lkr' }));
   });
 
-  it('rejects changing the base currency', async () => {
+  it('allows changing the base currency', async () => {
     await seed(env, entities.profile.path(ALICE), entities.profile.valid());
-    await assertFails(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'USD' }));
-    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { displayName: 'Alice W' }));
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'USD' }));
+    await assertFails(updateDoc(db, entities.profile.path(ALICE), { baseCurrency: 'usd' }));
+  });
+
+  it('accepts a profile without preference fields', async () => {
+    const { streakEnabled, lockScreenQuickEntry, capThresholds, ...legacy } = entities.profile.valid();
+    await assertSucceeds(createDoc(db, entities.profile.path(ALICE), legacy));
+  });
+
+  it('updates a single preference with a partial write', async () => {
+    await seed(env, entities.profile.path(ALICE), entities.profile.valid());
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { streakEnabled: true }));
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { lockScreenQuickEntry: true }));
+    await assertSucceeds(updateDoc(db, entities.profile.path(ALICE), { capThresholds: [50, 80, 95] }));
+  });
+
+  it('rejects non-boolean switches', async () => {
+    await assertFails(create('profile', { streakEnabled: 'yes' }));
+    await assertFails(create('profile', { lockScreenQuickEntry: 1 }));
+  });
+
+  it('rejects invalid cap thresholds', async () => {
+    for (const capThresholds of [[75, 90], [75, 90, 100, 110], [90, 75, 100], [75, 75, 100], [0, 90, 100],
+      [75, 90, 101], [75.5, 90, 100], ['75', 90, 100], 75]) {
+      await assertFails(create('profile', { capThresholds }));
+    }
   });
 });
 
