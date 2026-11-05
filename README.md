@@ -77,6 +77,8 @@ need access to the production Firebase project to work on it.
 ./gradlew :app:connectedDebugAndroidTest    # instrumented tests (needs a running emulator/device)
 ```
 
+Coverage: `./gradlew :app:createDebugUnitTestCoverageReport` runs the unit tests and writes a JaCoCo report to `app/build/reports/coverage/test/debug/` (`report.xml`, `html/`). `python3 scripts/domain_coverage.py app/build/reports/coverage/test/debug/report.xml` prints domain-package line coverage (target 80%). CI shows it in the build job summary and uploads the full report with the build reports artifact.
+
 ### Firestore security rules
 
 `firestore-tests/` checks `firestore.rules` against the Firestore emulator: owner-only access
