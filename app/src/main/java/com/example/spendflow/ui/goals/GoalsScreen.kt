@@ -8,6 +8,8 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +18,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.semantics.Role
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -50,6 +64,7 @@ import com.example.spendflow.core.notifications.AndroidGoalNotifications
 import com.example.spendflow.core.notifications.GoalNotificationMonitor
 import com.example.spendflow.core.ui.EventEffect
 import com.example.spendflow.core.ui.UiState
+import com.example.spendflow.core.ui.components.AmountFormatter
 import com.example.spendflow.core.ui.components.FormDialog
 import com.example.spendflow.core.ui.components.LabeledProgress
 import com.example.spendflow.core.ui.components.LabeledTextField
@@ -62,6 +77,8 @@ import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
 import com.example.spendflow.domain.model.Money
 import com.example.spendflow.domain.model.SavingsGoal
+import com.example.spendflow.domain.model.requiredMonthlySaving
+import com.example.spendflow.ui.quickadd.QuickAddViewModel
 import com.example.spendflow.ui.theme.SpendFlowTheme
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -89,6 +106,9 @@ internal fun GoalsRoute(
     val result by model.goals.collectAsStateWithLifecycle()
     val saving by model.saving.collectAsStateWithLifecycle()
     val errors by model.errors.collectAsStateWithLifecycle()
+    val lastMonth by model.lastMonth.collectAsStateWithLifecycle()
+    val today = model.today
+    var selectedGoalId by rememberSaveable { mutableStateOf<String?>(null) }
 
     var notificationsOn by remember { mutableStateOf(notifications.enabled()) }
     var permissionAsked by remember { mutableStateOf(context.notificationPermissionAsked()) }
@@ -133,7 +153,23 @@ internal fun GoalsRoute(
             current.data.sortedWith(compareBy<SavingsGoal> { it.isCompleted }.thenBy { it.name.lowercase() }),
         )
     }
-    GoalsScreen(
+    val selected = selectedGoalId?.let { id -> (goals as? UiState.Success)?.data?.firstOrNull { it.id == id } }
+    // Clear the selection once the goal is gone
+    if (selectedGoalId != null && selected == null && goals is UiState.Success) LaunchedEffect(selectedGoalId) { selectedGoalId = null }
+    BackHandler(enabled = selected != null) { selectedGoalId = null }
+    if (selected != null) {
+        GoalDetailScreen(
+            goal = selected, today = today, lastMonth = lastMonth,
+            onBack = { selectedGoalId = null },
+            onEdit = {
+                model.resetErrors()
+                writeError = null
+                dialogGoalId = selected.id
+            },
+        )
+    } else GoalsScreen(
+        today = today,
+        lastMonth = lastMonth,
         goals = goals,
         notificationsOn = notificationsOn,
         permissionAsked = permissionAsked,
@@ -158,11 +194,7 @@ internal fun GoalsRoute(
             writeError = null
             dialogGoalId = NEW
         },
-        onUpdateGoal = { goal ->
-            model.resetErrors()
-            writeError = null
-            dialogGoalId = goal.id
-        },
+        onOpenGoal = { selectedGoalId = it.id },
     )
 
     val id = dialogGoalId ?: return
@@ -178,9 +210,10 @@ internal fun GoalsRoute(
         saving = saving,
         errors = errors,
         writeError = writeError,
-        onSave = { name, target, saved ->
+        today = today,
+        onSave = { name, target, saved, deadline ->
             writeError = null
-            model.save(goal, name, target, saved)
+            model.save(goal, name, target, saved, deadline)
         },
         onDismiss = { dialogGoalId = null },
     )
@@ -189,13 +222,15 @@ internal fun GoalsRoute(
 /** Savings goals with progress, the completion-notification switch and the add/update form. */
 @Composable
 internal fun GoalsScreen(
+    today: LocalDate,
+    lastMonth: Money?,
     goals: UiState<List<SavingsGoal>>,
     notificationsOn: Boolean,
     permissionAsked: Boolean,
     onBack: () -> Unit,
     onEnableNotifications: () -> Unit,
     onAddGoal: () -> Unit,
-    onUpdateGoal: (SavingsGoal) -> Unit,
+    onOpenGoal: (SavingsGoal) -> Unit,
     modifier: Modifier = Modifier,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
 ) {
@@ -254,30 +289,20 @@ internal fun GoalsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
-            (goals as? UiState.Success)?.data?.forEach { goal -> GoalRow(goal, onUpdate = { onUpdateGoal(goal) }) }
+            (goals as? UiState.Success)?.data?.forEach { goal -> GoalRow(goal, today, lastMonth, onOpen = { onOpenGoal(goal) }) }
         }
     }
 }
 
 @Composable
-private fun GoalRow(goal: SavingsGoal, onUpdate: () -> Unit) {
-    Column(Modifier.padding(vertical = dimensionResource(R.dimen.sf_space_l))) {
-        LabeledProgress(
-            goal.saved,
-            goal.target,
-            if (goal.isCompleted) stringResource(R.string.goal_completed_label, goal.name) else goal.name,
-            Modifier.fillMaxWidth(),
-            showDecimals = true,
-        )
-        val label = stringResource(R.string.goal_update)
-        SecondaryButton(
-            label,
-            onClick = onUpdate,
-            modifier = Modifier
-                .padding(top = dimensionResource(R.dimen.sf_space_s))
-                .semantics { contentDescription = "$label: ${goal.name}" },
-        )
-    }
+private fun GoalRow(goal: SavingsGoal, today: LocalDate, lastMonth: Money?, onOpen: () -> Unit) {
+    val label = stringResource(R.string.goal_open_detail, goal.name)
+    GoalSummary(
+        goal, today, lastMonth,
+        Modifier
+            .padding(vertical = dimensionResource(R.dimen.sf_space_l))
+            .clickable(onClickLabel = label, role = Role.Button, onClick = onOpen),
+    )
 }
 
 @Composable
@@ -287,7 +312,8 @@ internal fun GoalDialog(
     saving: Boolean,
     errors: GoalFormErrors,
     @StringRes writeError: Int?,
-    onSave: (name: String, target: String, saved: String) -> Unit,
+    today: LocalDate,
+    onSave: (name: String, target: String, saved: String, deadline: LocalDate?) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val digits = Currency.getInstance(currency).defaultFractionDigits
@@ -295,20 +321,36 @@ internal fun GoalDialog(
     var name by rememberSaveable { mutableStateOf(goal?.name.orEmpty()) }
     var target by rememberSaveable { mutableStateOf(goal?.let { plain(it.target) }.orEmpty()) }
     var saved by rememberSaveable { mutableStateOf(goal?.let { plain(it.saved) } ?: "0") }
+    var deadlineText by rememberSaveable { mutableStateOf(goal?.deadline?.toString().orEmpty()) }
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
+    val deadline = deadlineText.takeIf { it.isNotEmpty() }?.let(LocalDate::parse)
+    val locale = LocalLocale.current.platformLocale
+    val resources = LocalResources.current
+    val live = remember(name, target, saved, deadline, goal, currency, today) {
+        goalFormErrors(name, target, saved, deadline, goal?.deadline, currency, today)
+    }
+    val required = remember(target, saved, deadline, today) {
+        val t = QuickAddViewModel.parseAmount(target, currency)
+        val s = if (saved.isBlank()) Money.zero(currency) else QuickAddViewModel.parseAmount(saved, currency)
+        if (t != null && s != null && deadline != null && live.target == null && live.saved == null) {
+            Money(requiredMonthlySaving(t.amountMinor, s.amountMinor, deadline, today), currency)
+        } else null
+    }
     val amountKeyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal)
     FormDialog(
         title = stringResource(if (goal == null) R.string.goals_add else R.string.goal_edit),
-        confirm = stringResource(R.string.quick_save),
+        confirm = stringResource(if (goal == null) R.string.goal_create else R.string.quick_save),
+        confirmEnabled = !live.hasErrors,
         dismiss = stringResource(R.string.action_cancel),
         saving = saving,
-        onConfirm = { onSave(name, target, saved) },
+        onConfirm = { onSave(name, target, saved, deadline) },
         onDismiss = onDismiss,
     ) {
         LabeledTextField(
             label = stringResource(R.string.goal_name_label),
             value = name,
             onValueChange = { name = it },
-            error = errors.name?.let { stringResource(it) },
+            error = (errors.name ?: live.name.takeIf { name.isNotEmpty() })?.let { stringResource(it) },
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             maxLength = 100,
         )
@@ -322,7 +364,7 @@ internal fun GoalDialog(
             label = stringResource(R.string.goal_target_label),
             value = target,
             onValueChange = { target = it },
-            error = errors.target?.let { stringResource(it) },
+            error = (errors.target ?: live.target.takeIf { target.isNotEmpty() })?.let { stringResource(it) },
             keyboardOptions = amountKeyboard,
             maxLength = 40,
         )
@@ -330,10 +372,33 @@ internal fun GoalDialog(
             label = stringResource(R.string.goal_saved_label),
             value = saved,
             onValueChange = { saved = it },
-            error = errors.saved?.let { stringResource(it) },
+            error = (errors.saved ?: live.saved.takeIf { saved.isNotEmpty() })?.let { stringResource(it) },
             keyboardOptions = amountKeyboard,
             maxLength = 40,
         )
+        val deadlineError = errors.deadline ?: live.deadline.takeIf { deadline != null }
+        SecondaryButton(
+            deadline?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
+                ?: stringResource(R.string.goal_deadline_choose),
+            onClick = { pickingDate = true },
+            modifier = Modifier
+                .padding(top = dimensionResource(R.dimen.sf_space_s))
+                .fillMaxWidth()
+                .semantics { contentDescription = "${resources.getString(R.string.goal_deadline_label)}: ${deadline ?: resources.getString(R.string.goal_deadline_choose)}" },
+        )
+        deadlineError?.let {
+            Text(stringResource(it), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+        required?.let {
+            Text(
+                stringResource(R.string.goal_required_live, AmountFormatter.formatTrimmed(it, locale)),
+                Modifier
+                    .padding(top = dimensionResource(R.dimen.sf_space_s))
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+                color = SpendFlowTheme.colors.textHeading,
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
         (writeError ?: errors.general)?.let {
             Text(
                 stringResource(it),
@@ -345,10 +410,29 @@ internal fun GoalDialog(
             )
         }
     }
+    if (pickingDate) {
+        // Dates are not restricted so the past-deadline error stays reachable
+        val dateState = rememberDatePickerState(
+            initialSelectedDateMillis = (deadline ?: today).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+        )
+        val buttons = ButtonDefaults.textButtonColors(contentColor = SpendFlowTheme.colors.violetText)
+        DatePickerDialog(
+            onDismissRequest = { pickingDate = false },
+            confirmButton = {
+                TextButton(colors = buttons, onClick = {
+                    dateState.selectedDateMillis?.let {
+                        deadlineText = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()
+                    }
+                    pickingDate = false
+                }) { Text(stringResource(android.R.string.ok)) }
+            },
+            dismissButton = { TextButton(onClick = { pickingDate = false }, colors = buttons) { Text(stringResource(R.string.action_cancel)) } },
+        ) { DatePicker(dateState) }
+    }
 }
 
 private val previewGoals = listOf(
-    SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR")),
+    SavingsGoal("laptop", "Laptop", Money(500_000_00, "LKR"), Money(240_000_00, "LKR"), LocalDate.of(2027, 3, 31)),
     SavingsGoal("trip", "Trip", Money(100_000_00, "LKR"), Money(100_000_00, "LKR")),
 )
 
@@ -356,10 +440,11 @@ private val previewGoals = listOf(
 @Composable
 private fun GoalsScreenPreview() = SpendFlowTheme {
     GoalsScreen(
+        today = LocalDate.of(2026, 10, 11), lastMonth = Money(45_000_00, "LKR"),
         goals = UiState.Success(previewGoals),
         notificationsOn = false,
         permissionAsked = false,
-        onBack = {}, onEnableNotifications = {}, onAddGoal = {}, onUpdateGoal = {},
+        onBack = {}, onEnableNotifications = {}, onAddGoal = {}, onOpenGoal = {},
     )
 }
 
@@ -368,7 +453,7 @@ private fun GoalsScreenPreview() = SpendFlowTheme {
 private fun GoalDialogPreview() = SpendFlowTheme {
     GoalDialog(
         goal = previewGoals.first(), currency = "LKR", saving = false,
-        errors = GoalFormErrors(target = R.string.goal_name_required), writeError = null,
-        onSave = { _, _, _ -> }, onDismiss = {},
+        errors = GoalFormErrors(target = R.string.goal_name_required), writeError = null, today = LocalDate.of(2026, 10, 11),
+        onSave = { _, _, _, _ -> }, onDismiss = {},
     )
 }
