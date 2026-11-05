@@ -175,6 +175,13 @@
     <string name="entry_rate_required">Enter a positive exchange rate.</string>
     <string name="entry_rate_invalid">This rate cannot be used. Enter a valid exchange rate.</string>
     <string name="entry_not_ready">Your profile is still loading. Try again.</string>
+    <string name="sync_pending">Pending</string>
+    <string name="sync_saved_offline">Saved offline · will sync</string>
+    <string name="sync_offline">You\'re offline</string>
+    <plurals name="sync_offline_pending">
+        <item quantity="one">You\'re offline · %1$d change pending sync</item>
+        <item quantity="other">You\'re offline · %1$d changes pending sync</item>
+    </plurals>
     <string name="entry_saved">Saved \u00b7 %1$s %2$s</string>
     <string name="entry_undo">Undo</string>
     <string name="entry_undone">Entry removed</string>

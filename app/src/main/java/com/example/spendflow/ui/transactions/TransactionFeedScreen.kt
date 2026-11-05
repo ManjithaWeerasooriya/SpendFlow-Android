@@ -105,6 +105,7 @@ internal data class FeedRow(
     val amount: Money,
     val type: TransactionType,
     val categoryName: String = title,
+    val pending: Boolean = false,
 )
 
 /** [filter] is "ALL", "EXPENSE" or "INCOME", as stored by [TransactionFeedViewModel]. */
@@ -141,6 +142,7 @@ internal fun TransactionFeedRoute(
     val categories by model.categories.collectAsStateWithLifecycle()
     val filter by model.filter.collectAsStateWithLifecycle()
     val goals by model.goals.collectAsStateWithLifecycle()
+    val pendingIds by model.pendingIds.collectAsStateWithLifecycle()
     val capFlow = if (home) model.caps else remember { kotlinx.coroutines.flow.MutableStateFlow(null) }
     val caps by capFlow.collectAsStateWithLifecycle()
     val warnings by model.warnings.collectAsStateWithLifecycle()
@@ -175,6 +177,7 @@ internal fun TransactionFeedRoute(
                         subtitle = category + " - " + item.dateTime.atZone(ZoneId.systemDefault()).format(dateFormat),
                         amount = if (item.type == TransactionType.EXPENSE) -item.amount else item.amount,
                         type = item.type,
+                        pending = item.id in pendingIds,
                         categoryName = category,
                     )
                 },
@@ -540,6 +543,14 @@ private fun TransactionRow(row: FeedRow, modifier: Modifier = Modifier) {
                 color = colors.textMuted,
                 style = MaterialTheme.typography.bodySmall,
             )
+            if (row.pending) {
+                Text(
+                    stringResource(R.string.sync_pending),
+                    Modifier.padding(top = dimensionResource(R.dimen.sf_space_xs)),
+                    color = colors.violetText,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
         }
         AmountText(
             row.amount,
@@ -557,6 +568,7 @@ private fun TransactionRow(row: FeedRow, modifier: Modifier = Modifier) {
 private val previewRows = listOf(
     FeedRow("1", "G", "Weekly shop", "Groceries - 04 Nov, 18:20", Money(-2_450_00, "LKR"), TransactionType.EXPENSE),
     FeedRow("2", "S", "Salary", "Salary - 01 Nov, 09:00", Money(185_000_00, "LKR"), TransactionType.INCOME),
+    FeedRow("3", "C", "Coffee", "Food - 05 Nov, 08:10", Money(-450_00, "LKR"), TransactionType.EXPENSE, pending = true),
 )
 
 @ThemePreviews
