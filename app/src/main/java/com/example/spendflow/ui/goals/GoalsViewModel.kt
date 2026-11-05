@@ -48,7 +48,7 @@ fun goalFormErrors(
     val normalizedSaved = savedText.trim().replace(',', '.')
     val savedDecimal = normalizedSaved.toBigDecimalOrNull()
     val digits = Currency.getInstance(code).defaultFractionDigits.coerceIn(0, 2)
-    val validZero = normalizedSaved.matches(Regex("0+(?:\.0{0,2})?")) && (savedDecimal?.scale() ?: -1) in 0..digits
+    val validZero = normalizedSaved.matches(Regex("0+(?:\\.0{0,2})?")) && (savedDecimal?.scale() ?: -1) in 0..digits
     return GoalFormErrors(
         name = if (name.isBlank() || name.trim().length > 100) R.string.goal_name_required else null,
         target = EntryValidation.amountError(targetText, code),
