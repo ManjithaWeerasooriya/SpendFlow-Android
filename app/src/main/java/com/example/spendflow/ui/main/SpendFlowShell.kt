@@ -89,6 +89,8 @@ fun SpendFlowShell(
     val entry by nav.currentBackStackEntryAsState()
     // Quick Add opens over a tab, and the bar stays visible under it
     val tabRoute = (if (entry?.destination?.route == Routes.QUICK_ADD) nav.previousBackStackEntry else entry)?.destination?.route
+    // Settings sits under the More tab in the wireframes, so it keeps the bar with More selected
+    val barRoute = if (tabRoute == Routes.SETTINGS) Routes.MORE else tabRoute
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(graph) {
@@ -106,12 +108,17 @@ fun SpendFlowShell(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbar) { SpendFlowSnackbar(it) } },
         bottomBar = {
-            if (tabRoute in topLevelDestinations) {
+            if (barRoute in topLevelDestinations) {
                 SpendFlowBottomBar(
                     tabs = TABS,
-                    selected = TABS.firstOrNull { it.route == tabRoute },
-                    // The bar only shows on tab roots, so reselecting has nothing to pop
-                    onSelect = { if (it.route != tabRoute) nav.navigateToTab(it.route) },
+                    selected = TABS.firstOrNull { it.route == barRoute },
+                    // Reselecting More from Settings returns to More; on tab roots there is nothing to pop
+                    onSelect = {
+                        when {
+                            it.route != barRoute -> nav.navigateToTab(it.route)
+                            tabRoute != barRoute -> nav.popBackStack(Routes.MORE, inclusive = false)
+                        }
+                    },
                     onAdd = nav::openQuickAdd,
                 )
             }
@@ -158,7 +165,11 @@ private fun Destination(
         )
         Routes.CATEGORIES -> CategoriesRoute(hiltViewModel(), hiltViewModel(), onBack = { nav.navigateUp() })
         Routes.GOALS -> GoalsRoute(hiltViewModel(), notifications, monitor, onBack = { nav.navigateUp() })
-        Routes.SETTINGS -> SettingsRoute(onBack = { nav.navigateUp() })
+        Routes.SETTINGS -> SettingsRoute(
+            hiltViewModel(),
+            onOpenCategories = { nav.navigate(Routes.CATEGORIES) },
+            onOpenGoals = { nav.navigate(Routes.GOALS) },
+        )
         Routes.QUICK_ADD -> {
             val model = hiltViewModel<QuickAddViewModel>()
             QuickAddSheet(onDismissed = nav::dismissQuickAdd) { close ->

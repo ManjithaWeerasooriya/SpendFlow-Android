@@ -31,6 +31,14 @@ internal class FirestoreData(private val id: String, private val data: Map<Strin
 
     fun boolean(key: String, default: Boolean): Boolean = read(key) ?: default
 
+    fun optIntList(key: String): List<Int>? = read<List<*>>(key)?.map { value ->
+        when (value) {
+            is Long -> Math.toIntExact(value)
+            is Int -> value
+            else -> fail("Field '$key' should hold integers but has ${value?.let { it::class.simpleName }}")
+        }
+    }
+
     // Via seconds/nanos: Timestamp.toInstant() is API 26+ and isn't covered by desugaring
     fun instant(key: String): Instant = optInstant(key) ?: missing(key)
     fun optInstant(key: String): Instant? =
