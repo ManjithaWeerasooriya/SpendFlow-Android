@@ -21,7 +21,8 @@ The goal is to remove every XML layout. The work runs in four phases:
   - Compose components in `core/ui/components/`, each with light/dark previews: `AmountText`, `PrimaryButton`/`SecondaryButton`/`DestructiveButton`, `EmptyState`, `LabeledProgress`, `SummaryCard` (the compact `MonthlySummary` layout the app uses, with the optional expense-ratio bar), and, beside their View classes of the same name, `CategoryChip`, `LabeledSwitch`, `SpendFlowSnackbar` (+ `SpendFlowSnackbarVisuals`) and `SpendFlowBottomBar`.
   - Compose UI test libraries added (`ui-test-junit4` for androidTest, `ui-test-manifest` for debug).
   - Several vector drawables (`ic_badge_*`, `ic_status_*`, `bg_*`, `ic_category_*`) take colours from `?attr/sfColor*`. Compose resolves them through the Activity theme for now; they need Kotlin-side tinting or recolouring before `attrs.xml` is removed in Phase 3.
-- **Next screen:** More. Continue one screen per task, using the Phase 0 components.
+- **More — migrated (Phase 1):** `MoreFragment` hosts `MoreRoute` in a lifecycle-disposed `ComposeView`, keeping the Fragment-scoped `MoreViewModel` and the existing nav-graph actions to Categories, Goals and Settings. `MoreScreen` is stateless apart from the log-out confirmation, now a Compose `AlertDialog` held in `rememberSaveable`, so it survives recreation (the old Material dialog was dismissed). Dialog buttons use `violetText` because violet fails as text on the dark dialog surface. `GoalCompletionNotificationFlowTest` now opens Goals through a Compose test rule instead of `R.id.goalsRow`. `fragment_more.xml` is retained pending user confirmation.
+- **Next screen:** Login. Continue one screen per task, using the Phase 0 components.
 
 The inventories below describe the initial XML baseline; migrated screens are identified explicitly.
 
@@ -119,6 +120,8 @@ For each screen, use a stateful wrapper and a stateless screen with previews. Ho
 - Setup reference: [Android Compose dependencies and compiler](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler).
 
 ## Verification for each screen
+
+More migration verification (2026-11-05): `assembleDebug testDebugUnitTest` passed (149 tests). On a Pixel 8 emulator (API 37) with the Firebase emulators, `AppNavigationTest` (7) and `GoalCompletionNotificationFlowTest` (1) passed. Manually checked in light and dark: layout matches the XML screen, the dialog survives a light/dark switch, and confirming log out returns to Login. Not checked: large text, TalkBack.
 
 Phase 0 verification (2026-11-05): `assembleDebug testDebugUnitTest compileDebugAndroidTestKotlin` passed with 149 tests and zero failures/errors. No screen uses the new components yet, so there is no runtime UI change; previews were compiled but not rendered or checked on a device.
 

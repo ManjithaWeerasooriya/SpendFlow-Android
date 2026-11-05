@@ -6,6 +6,10 @@ import android.os.Build
 import android.os.SystemClock
 import android.widget.EditText
 import android.widget.TextView
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.core.view.children
 import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -25,12 +29,16 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import com.example.spendflow.core.notifications.AndroidGoalNotifications
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
 class GoalCompletionNotificationFlowTest {
+    @get:Rule
+    val compose = createEmptyComposeRule()
+
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
 
     private fun <T> main(block: () -> T): T {
@@ -74,8 +82,9 @@ class GoalCompletionNotificationFlowTest {
         val manager = context.getSystemService(NotificationManager::class.java)
         eventually { main { assertEquals("Home", activity.findViewById<TextView>(R.id.screenTitle)?.text?.toString()) } }
         main { activity.findViewById<android.view.View>(R.id.moreFragment).performClick() }
-        eventually { main { assertNotNull(activity.findViewById<android.view.View>(R.id.goalsRow)) } }
-        main { activity.findViewById<android.view.View>(R.id.goalsRow).performClick() }
+        val goalsLink = context.getString(R.string.goals_title)
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsLink).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText(goalsLink).performClick()
         eventually { main { assertNotNull(activity.findViewById<android.view.View>(R.id.addGoal)) } }
         onView(withId(R.id.addGoal)).perform(click())
         onView(withId(R.id.nameInput)).perform(replaceText("Laptop"))
