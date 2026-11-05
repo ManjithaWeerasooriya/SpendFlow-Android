@@ -1,6 +1,8 @@
 package com.example.spendflow.core.common
 
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 
 /** Return type for repository operations. Repositories return this instead of throwing. */
 sealed interface AppResult<out T> {
@@ -36,8 +38,8 @@ suspend inline fun <T> appResultOf(
 }
 
 /** Turns a throwing repository flow into an error value so stateIn never crashes the app. */
-fun <T> kotlinx.coroutines.flow.Flow<AppResult<T>>.catchAsError(): kotlinx.coroutines.flow.Flow<AppResult<T>> =
-    kotlinx.coroutines.flow.catch { emit(AppResult.Error(AppError.Unknown(it))) }
+fun <T> Flow<AppResult<T>>.catchAsError(): Flow<AppResult<T>> =
+    catch { emit(AppResult.Error(AppError.Unknown(it))) }
 
 /** Like [appResultOf] for repository calls that already return an [AppResult]: a throw becomes an error. */
 suspend inline fun <T> guarded(block: suspend () -> AppResult<T>): AppResult<T> = try {
