@@ -1,6 +1,8 @@
 package com.example.spendflow.ui.main
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,7 +104,11 @@ fun SpendFlowShell(
         if (nav.currentDestination?.route != Routes.GOALS) nav.navigate(Routes.GOALS)
         onGoalsOpened()
     }
-    EntryFeedbackSnackbars(entryFeedback, snackbar)
+    val syncModel = hiltViewModel<SyncStatusViewModel>()
+    val sync by syncModel.status.collectAsStateWithLifecycle()
+    // rememberUpdatedState: read at show time, so a connectivity change doesn't restart the snackbar
+    val offlineNow by rememberUpdatedState(sync.offline)
+    EntryFeedbackSnackbars(entryFeedback, snackbar) { offlineNow }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -124,16 +130,21 @@ fun SpendFlowShell(
             }
         },
     ) { padding ->
-        NavHost(
-            navController = nav,
-            startDestination = startGraph,
-            // Screens leave system bars, the bottom bar and the keyboard to the shell
-            modifier = Modifier
+        // Screens leave system bars, the bottom bar and the keyboard to the shell
+        Column(
+            Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .imePadding(),
         ) {
-            appNavGraph { route, _ -> Destination(route, nav, entryFeedback, notifications, monitor) }
+            if (graph == AppGraph.MAIN && sync.offline) OfflineBanner(sync.pendingCount)
+            NavHost(
+                navController = nav,
+                startDestination = startGraph,
+                modifier = Modifier.weight(1f),
+            ) {
+                appNavGraph { route, _ -> Destination(route, nav, entryFeedback, notifications, monitor) }
+            }
         }
     }
 }
@@ -218,7 +229,11 @@ private fun QuickAddSheet(onDismissed: () -> Unit, content: @Composable (close: 
 
 /** "Saved · Groceries LKR 2,450 [Undo]" for 5 s after a save, plus undo results and rejected writes. */
 @Composable
-private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackbar: SnackbarHostState) {
+private fun EntryFeedbackSnackbars(
+    entryFeedback: EntryFeedbackViewModel,
+    snackbar: SnackbarHostState,
+    isOffline: () -> Boolean,
+) {
     val resources = LocalResources.current
     val locale = LocalLocale.current.platformLocale
     val scope = rememberCoroutineScope()
@@ -229,7 +244,8 @@ private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackb
         val remaining = current.expiresAt - System.currentTimeMillis()
         if (remaining <= 0) return@LaunchedEffect
         val visuals = SpendFlowSnackbarVisuals(
-            resources.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current, locale)),
+            if (isOffline()) resources.getString(R.string.sync_saved_offline)
+            else resources.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current, locale)),
             SpendFlowSnackbar.Tone.SUCCESS,
             actionLabel = resources.getString(R.string.entry_undo),
             duration = SnackbarDuration.Indefinite,
