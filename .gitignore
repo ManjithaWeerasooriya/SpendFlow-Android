@@ -1,5 +1,6 @@
 # Gradle
 .gradle/
+.kotlin/
 /build
 /captures
 .externalNativeBuild
@@ -21,7 +22,6 @@ local.properties
 *-debug.log
 
 # AI agent tooling
-AGENTS.md
 .agents/
 .claude/
 skills-lock.json

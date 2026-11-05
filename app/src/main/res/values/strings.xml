@@ -324,4 +324,11 @@ Expenses: %3$s</string>
     <string name="goal_delete">Delete</string>
     <string name="goal_delete_title">Delete goal?</string>
     <string name="goal_delete_message">Delete \"%1$s\"? This removes the goal and its contributions.</string>
+    <string name="transaction_edit_title">Edit transaction</string>
+    <string name="transaction_loading">Loading transaction&#8230;</string>
+    <string name="transaction_delete">Delete</string>
+    <string name="transaction_delete_confirm">Delete %1$s %2$s?</string>
+    <string name="transaction_delete_action">Delete %1$s</string>
+    <string name="transaction_transfer">Transfer</string>
+    <string name="transaction_currency">Currency</string>
 </resources>
