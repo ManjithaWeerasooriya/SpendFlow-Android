@@ -1,6 +1,16 @@
 package com.example.spendflow.domain.model
 
-data class SavingsGoal(val id: String, val name: String, val target: Money, val saved: Money) {
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+
+data class SavingsGoal(
+    val id: String,
+    val name: String,
+    val target: Money,
+    val saved: Money,
+    /** Null only for goals created before deadlines existed. */
+    val deadline: LocalDate? = null,
+) {
     init {
         require(name.isNotBlank() && name.length <= 100)
         require(target.amountMinor in 1..99_999_999_999L)
@@ -8,4 +18,21 @@ data class SavingsGoal(val id: String, val name: String, val target: Money, val 
         require(saved.amountMinor in 0..99_999_999_999L)
     }
     val isCompleted get() = saved.amountMinor >= target.amountMinor
+    val remaining get() = Money((target.amountMinor - saved.amountMinor).coerceAtLeast(0), target.currencyCode)
+
+    fun monthsRemaining(today: LocalDate): Int? = deadline?.let { wholeMonthsBetween(today, it) }
+    fun requiredMonthly(today: LocalDate): Money? = deadline?.let {
+        Money(requiredMonthlySaving(target.amountMinor, saved.amountMinor, it, today), target.currencyCode)
+    }
+}
+
+/** Whole months from [today] to [deadline], rounded down, never below 1. */
+fun wholeMonthsBetween(today: LocalDate, deadline: LocalDate): Int =
+    ChronoUnit.MONTHS.between(today, deadline).toInt().coerceAtLeast(1)
+
+/** Minor units to save each month, rounded up so the goal is reached by the deadline. */
+fun requiredMonthlySaving(target: Long, saved: Long, deadline: LocalDate, today: LocalDate): Long {
+    val left = (target - saved).coerceAtLeast(0)
+    val months = wholeMonthsBetween(today, deadline).toLong()
+    return (left + months - 1) / months
 }

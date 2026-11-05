@@ -376,6 +376,12 @@ describe('savings goal specifics', () => {
       await assertFails(create('goals', changes));
     }
   });
+  it('accepts a deadline or none, rejects a malformed one', async () => {
+    await assertSucceeds(create('goals', { deadline: '2027-03-31' }));
+    await assertSucceeds(create('goals', { deadline: null }));
+    await assertFails(create('goals', { deadline: 'soon' }));
+    await assertFails(create('goals', { deadline: 20270331 }));
+  });
   it('rejects changing a goal currency', async () => {
     const path = entities.goals.path(ALICE, 'fixed-currency');
     await seed(env, path, entities.goals.valid());
