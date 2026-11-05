@@ -166,6 +166,13 @@ internal fun GoalsRoute(
                 writeError = null
                 dialogGoalId = selected.id
             },
+            onAddMoney = { amount, date, note -> model.addContribution(selected, amount, date, note) },
+            onMarkCompleted = { model.markCompleted(selected) },
+            onSetPrimary = { model.setPrimary(selected) },
+            onDelete = {
+                selectedGoalId = null
+                model.delete(selected)
+            },
         )
     } else GoalsScreen(
         today = today,
