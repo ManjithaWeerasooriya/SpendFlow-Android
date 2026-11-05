@@ -114,3 +114,7 @@ private fun LabeledProgressPreview() = ComponentPreview {
         )
     }
 }
+
+/** Whole percent of [target] reached; can exceed 100 when a cap is overspent. */
+internal fun progressPercent(current: Money, target: Money): Int =
+    if (target.amountMinor <= 0) 0 else (current.amountMinor * 100 / target.amountMinor).toInt()

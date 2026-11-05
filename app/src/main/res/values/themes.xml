@@ -67,33 +67,6 @@
         <item name="sfColorTextOnDark">@color/sf_text_on_dark</item>
         <item name="sfColorTextOnDarkMuted">@color/sf_text_on_dark_muted</item>
         <item name="sfColorSnackbarAction">@color/sf_snackbar_action</item>
-
-        <item name="materialButtonStyle">@style/Widget.SpendFlow.Button</item>
-        <item name="materialButtonOutlinedStyle">@style/Widget.SpendFlow.Button.Outlined</item>
-        <item name="snackbarStyle">@style/Widget.SpendFlow.Snackbar</item>
-        <item name="snackbarTextViewStyle">@style/Widget.SpendFlow.Snackbar.TextView</item>
-        <item name="snackbarButtonStyle">@style/Widget.SpendFlow.Snackbar.Button</item>
-
-        <!-- Default for plain TextViews. Not android:fontFamily: a theme-level font beats every textAppearance. -->
-        <item name="android:textAppearance">@style/TextAppearance.SpendFlow.BodyMedium</item>
-        <item name="textAppearanceDisplaySmall">@style/TextAppearance.SpendFlow.Amount</item>
-        <item name="textAppearanceHeadlineMedium">@style/TextAppearance.SpendFlow.ScreenTitle</item>
-        <item name="textAppearanceHeadlineSmall">@style/TextAppearance.SpendFlow.SectionTitle</item>
-        <item name="textAppearanceTitleLarge">@style/TextAppearance.SpendFlow.DialogTitle</item>
-        <item name="textAppearanceTitleMedium">@style/TextAppearance.SpendFlow.CardTitle</item>
-        <item name="textAppearanceTitleSmall">@style/TextAppearance.SpendFlow.TitleSmall</item>
-        <item name="textAppearanceBodyLarge">@style/TextAppearance.SpendFlow.Body</item>
-        <item name="textAppearanceBodyMedium">@style/TextAppearance.SpendFlow.BodyMedium</item>
-        <item name="textAppearanceBodySmall">@style/TextAppearance.SpendFlow.Caption</item>
-        <item name="textAppearanceLabelLarge">@style/TextAppearance.SpendFlow.Button</item>
-        <item name="textAppearanceLabelMedium">@style/TextAppearance.SpendFlow.Label</item>
-        <item name="textAppearanceLabelSmall">@style/TextAppearance.SpendFlow.Overline</item>
-
-        <item name="shapeAppearanceCornerExtraSmall">@style/ShapeAppearance.SpendFlow.Tile</item>
-        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.SpendFlow.Tile</item>
-        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.SpendFlow.InsetCard</item>
-        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.SpendFlow.CardShell</item>
-        <item name="shapeAppearanceCornerExtraLarge">@style/ShapeAppearance.SpendFlow.Sheet</item>
     </style>
 
     <style name="Theme.SpendFlow" parent="Base.Theme.SpendFlow" />
