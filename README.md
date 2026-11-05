@@ -125,6 +125,8 @@ More > Goals lets a signed-in user create a savings target and update the total 
 
 Enable goal notifications on the Goals screen; Android 13+ asks for permission, and disabled channels can be restored in system notification settings. Completion history is stored per user and goal on this device, so repeated snapshots, edits, and app restarts do not repeat an alert. A denied notification is retried when permission is enabled. Clearing app data or reinstalling resets this local history.
 
+Goals now carry a required deadline and show the monthly saving needed to reach it. This adds an optional `deadline` field, so **`firestore.rules` must be redeployed** (`firebase deploy --only firestore:rules`) before creating goals against production Firebase.
+
 Goal monitoring runs while the app process is alive and checks saved completions again on the next launch. This does not include server push delivery while the app is fully stopped. Deploy the updated `firestore.rules` before using goals against production Firebase; goal documents live at `users/{uid}/goals/{id}`.
 
 ### Refined dashboard and Analytics

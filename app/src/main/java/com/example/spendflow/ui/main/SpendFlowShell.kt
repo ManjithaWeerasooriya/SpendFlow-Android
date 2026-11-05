@@ -59,8 +59,6 @@ import com.example.spendflow.ui.settings.SettingsRoute
 import com.example.spendflow.ui.transactions.TransactionFeedRoute
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import java.math.BigDecimal
-import java.util.Currency
 import java.util.Locale
 
 private val TABS = listOf(
@@ -90,7 +88,7 @@ fun SpendFlowShell(
     val startGraph = rememberSaveable { graph.route }
     val entry by nav.currentBackStackEntryAsState()
     // Quick Add opens over a tab, and the bar stays visible under it
-    val tabRoute = (if (entry?.destination?.route == Routes.QUICK_ADD) nav.previousBackStackEntry else entry)?.destination?.route
+    val tabRoute = (if (entry?.destination?.route in setOf(Routes.QUICK_ADD, Routes.EDIT_TRANSACTION)) nav.previousBackStackEntry else entry)?.destination?.route
     // Settings sits under the More tab in the wireframes, so it keeps the bar with More selected
     val barRoute = if (tabRoute == Routes.SETTINGS) Routes.MORE else tabRoute
     val snackbar = remember { SnackbarHostState() }
@@ -165,9 +163,10 @@ private fun Destination(
             home = true,
             onSeeAll = { nav.navigateToTab(Routes.TRANSACTIONS) },
             onViewGoals = { nav.navigate(Routes.GOALS) },
+            onEdit = nav::openTransactionEdit,
             onManageCaps = { nav.navigate(Routes.CATEGORIES) },
         )
-        Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {})
+        Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {}, onEdit = nav::openTransactionEdit)
         Routes.ANALYTICS -> AnalyticsRoute(hiltViewModel(), onAddTransaction = nav::openQuickAdd)
         Routes.MORE -> MoreRoute(
             hiltViewModel(),
@@ -182,9 +181,12 @@ private fun Destination(
             onOpenCategories = { nav.navigate(Routes.CATEGORIES) },
             onOpenGoals = { nav.navigate(Routes.GOALS) },
         )
-        Routes.QUICK_ADD -> {
+        Routes.QUICK_ADD, Routes.EDIT_TRANSACTION -> {
             val model = hiltViewModel<QuickAddViewModel>()
-            QuickAddSheet(onDismissed = nav::dismissQuickAdd) { close ->
+            val sheetEntryId = nav.currentBackStackEntry?.id
+            QuickAddSheet(onDismissed = {
+                if (nav.currentBackStackEntry?.id == sheetEntryId) nav.dismissQuickAdd()
+            }) { close ->
                 // Saved just before a recreation: hand the entry to the undo snackbar and close
                 LaunchedEffect(Unit) {
                     if (model.completed) {
@@ -245,7 +247,7 @@ private fun EntryFeedbackSnackbars(
         if (remaining <= 0) return@LaunchedEffect
         val visuals = SpendFlowSnackbarVisuals(
             if (isOffline()) resources.getString(R.string.sync_saved_offline)
-            else resources.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current, locale)),
+            else resources.getString(R.string.entry_saved, current.entry.categoryName, AmountFormatter.formatTrimmed(current.entry.transaction.amount, locale)),
             SpendFlowSnackbar.Tone.SUCCESS,
             actionLabel = resources.getString(R.string.entry_undo),
             duration = SnackbarDuration.Indefinite,
@@ -269,12 +271,4 @@ private fun EntryFeedbackSnackbars(
         }
         scope.launch { snackbar.showSnackbar(visuals) }
     }
-}
-
-/** Whole amounts without decimals ("LKR 2,450"), fractional ones with them. */
-private fun savedAmount(confirmation: EntryConfirmation, locale: Locale): String {
-    val money = confirmation.entry.transaction.amount
-    val digits = Currency.getInstance(money.currencyCode).defaultFractionDigits
-    val hasFraction = BigDecimal.valueOf(money.amountMinor).movePointLeft(digits).stripTrailingZeros().scale() > 0
-    return AmountFormatter.format(money, showDecimals = hasFraction, locale = locale)
 }

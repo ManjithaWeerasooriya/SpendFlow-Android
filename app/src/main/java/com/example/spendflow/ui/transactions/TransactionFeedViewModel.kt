@@ -6,6 +6,10 @@ import com.example.spendflow.data.repository.*
 import com.example.spendflow.domain.usecase.GetMonthlySummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import com.example.spendflow.core.common.AppResult
+import com.example.spendflow.core.common.AppError
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
@@ -13,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class TransactionFeedViewModel @Inject constructor(
-    transactions: TransactionRepository,
+    private val transactions: TransactionRepository,
     categories: CategoryRepository,
     summaries: GetMonthlySummary,
     goals: GoalRepository,
@@ -32,6 +36,25 @@ class TransactionFeedViewModel @Inject constructor(
     val currentMonth: YearMonth = YearMonth.now(zone)
     val monthly = summaries(currentMonth, zone).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val categories = categories.observeCategories(includeArchived = true).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val deleting = MutableStateFlow<String?>(null)
+    val deleteError = MutableStateFlow<AppError?>(null)
+    private val deletionResults = Channel<AppResult<Unit>>(Channel.BUFFERED)
+    val deletionEvents = deletionResults.receiveAsFlow()
+
+    fun deleteTransaction(id: String) {
+        if (deleting.value != null) return
+        deleting.value = id
+        deleteError.value = null
+        viewModelScope.launch {
+            try {
+                val result = transactions.delete(id)
+                deleteError.value = (result as? AppResult.Error)?.error
+                deletionResults.send(result)
+            } finally { deleting.value = null }
+        }
+    }
+
+    fun clearDeleteError() { deleteError.value = null }
 
     /** Home's Spending caps; collecting it also raises the cap warnings (AC2). Archived categories don't warn. */
     val caps = capUsage()
