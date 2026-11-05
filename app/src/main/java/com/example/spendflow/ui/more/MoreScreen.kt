@@ -70,7 +70,7 @@ internal fun MoreScreen(
 ) {
     var confirmingLogOut by rememberSaveable { mutableStateOf(false) }
     val colors = SpendFlowTheme.colors
-    // MainActivity already pads the Fragment host for system bars and the bottom bar.
+    // The app shell already pads the NavHost for system bars and the bottom bar.
     Column(
         modifier
             .fillMaxSize()

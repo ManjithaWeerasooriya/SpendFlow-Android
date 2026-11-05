@@ -66,7 +66,7 @@ internal fun OnboardingScreen(
         state.baseCurrency,
         Currency.getInstance(state.baseCurrency).getDisplayName(locale),
     )
-    // MainActivity already supplies system bar/IME padding to the Fragment host.
+    // The app shell already pads the NavHost for system bars and the keyboard.
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             Column(

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import android.widget.TextView
-import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.BuildConfig
@@ -33,6 +32,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.onNodeWithContentDescription
+import com.example.spendflow.ui.main.Routes
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -83,7 +84,7 @@ class QuickAddSaveFlowTest {
 
         compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
         val started = SystemClock.elapsedRealtime()
-        main { activity.findViewById<android.view.View>(R.id.addButton).performClick() }
+        compose.onNodeWithContentDescription(context.getString(R.string.nav_add_transaction)).performClick()
         fun waitFor(matcher: SemanticsMatcher) = compose.waitUntil(15_000) { compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }
         val foodChip = hasText("SF08 Food") and hasClickAction()
         waitFor(foodChip)
@@ -106,7 +107,7 @@ class QuickAddSaveFlowTest {
         assertNull(saved.get("note"))
         val age = System.currentTimeMillis() - saved.getTimestamp("dateTime")!!.toDate().time
         assertTrue("Default date should be now", age in 0..30_000)
-        main { activity.findViewById<android.view.View>(R.id.transactionsFragment).performClick() }
+        compose.onNodeWithTag("tab_${Routes.TRANSACTIONS}").performClick()
         compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(FeedTags.ROW) and hasText("SF08 Food", substring = true) and hasText("LKR 25.50", substring = true))
                 .fetchSemanticsNodes().isNotEmpty()

@@ -55,7 +55,7 @@ internal fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // MainActivity already pads the Fragment host for system bars and the keyboard.
+    // The app shell already pads the NavHost for system bars and the keyboard.
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,

@@ -7,7 +7,6 @@ import android.os.SystemClock
 import android.widget.EditText
 import android.widget.TextView
 import androidx.core.view.children
-import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.BuildConfig
@@ -47,6 +46,8 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performScrollTo
+import com.example.spendflow.ui.main.Routes
+import com.example.spendflow.ui.quickadd.QuickAddTags
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -112,7 +113,7 @@ class AnalyticsRefinementFlowTest {
             instrumentation.uiAutomation.executeShellCommand("screencap -p /sdcard/Download/$name").use { fd -> java.io.FileInputStream(fd.fileDescriptor).use { it.readBytes() } }
         }
         screenshot("refined-home.png")
-        main { activity.findViewById<android.view.View>(R.id.analyticsFragment).performClick() }
+        compose.onNodeWithTag("tab_${Routes.ANALYTICS}").performClick()
         val close = context.getString(R.string.action_close)
         fun breakdownAmountIs(value: String) = compose.waitUntil(15_000) {
             compose.onAllNodes(hasTestTag(AnalyticsTags.BREAKDOWN_AMOUNT) and hasText(value)).fetchSemanticsNodes().isNotEmpty()
@@ -136,10 +137,7 @@ class AnalyticsRefinementFlowTest {
         waitForTag(AnalyticsTags.EMPTY)
         compose.onNodeWithTag(AnalyticsTags.REPORT).assertDoesNotExist()
         compose.onNode(hasText(context.getString(R.string.nav_add_transaction)) and hasClickAction()).performClick()
-        eventually { main {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            assertEquals(R.id.quickAddSheet, host.navController.currentDestination?.id)
-        } }
+        waitForTag(QuickAddTags.SAVE)
         pressBack()
         val previousExpense = tx("previous-expense", "food", 5_000, 4).copy(
             dateTime = month.minusMonths(1).atDay(4).atStartOfDay(zone).toInstant(),
@@ -168,10 +166,7 @@ class AnalyticsRefinementFlowTest {
         eventually { main {
             assertNotNull(ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().firstOrNull())
         } }
-        main {
-            val resumed = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().first()
-            resumed.findViewById<android.view.View>(R.id.transactionsFragment).performClick()
-        }
+        compose.onNodeWithTag("tab_${Routes.TRANSACTIONS}").performClick()
         screenshot("refined-transactions.png")
         compose.waitUntil(15_000) { compose.onAllNodesWithTag(FeedTags.filter("INCOME")).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag(FeedTags.filter("INCOME")).performClick()

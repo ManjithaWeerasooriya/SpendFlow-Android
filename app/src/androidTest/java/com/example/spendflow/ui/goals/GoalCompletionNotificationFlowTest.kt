@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.core.view.children
-import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.BuildConfig
@@ -35,6 +34,9 @@ import com.example.spendflow.ui.transactions.FeedTags
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.performTextReplacement
+import com.example.spendflow.ui.main.Routes
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.test.espresso.Espresso.pressBack
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -84,7 +86,7 @@ class GoalCompletionNotificationFlowTest {
         }
         val manager = context.getSystemService(NotificationManager::class.java)
         compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
-        main { activity.findViewById<android.view.View>(R.id.moreFragment).performClick() }
+        compose.onNodeWithTag("tab_${Routes.MORE}").performClick()
         val goalsLink = context.getString(R.string.goals_title)
         compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsLink).fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithText(goalsLink).performClick()
@@ -117,15 +119,12 @@ class GoalCompletionNotificationFlowTest {
         goal.update(mapOf("savedMinor" to 11000L, "updatedAt" to FieldValue.serverTimestamp())).await()
         SystemClock.sleep(800)
         assertEquals(notification.postTime, manager.activeNotifications.first { it.tag == notification.tag }.postTime)
-        main {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            host.navController.popBackStack(R.id.moreFragment, false)
-        }
+        // Back to More, so the notification has to navigate to Goals itself
+        pressBack()
+        val goalsDescription = context.getString(R.string.goals_description)
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsDescription).fetchSemanticsNodes().isEmpty() }
         notification.notification.contentIntent.send()
-        eventually { main {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            assertEquals(R.id.goalsFragment, host.navController.currentDestination?.id)
-        } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithText(goalsDescription).fetchSemanticsNodes().isNotEmpty() }
         SystemClock.sleep(600)
         instrumentation.uiAutomation.executeShellCommand("screencap -p /sdcard/Download/goal-completed.png").use { descriptor ->
             java.io.FileInputStream(descriptor.fileDescriptor).use { it.readBytes() }

@@ -38,7 +38,7 @@ fun SpendFlowTopBar(title: String, onBack: () -> Unit, modifier: Modifier = Modi
             }
         },
         expandedHeight = 56.dp,
-        // MainActivity already pads the Fragment host for the status bar
+        // The app shell already pads the NavHost for the status bar
         windowInsets = WindowInsets(0, 0, 0, 0),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
     )

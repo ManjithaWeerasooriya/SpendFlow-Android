@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -88,7 +89,8 @@ class SpendFlowBottomBar @JvmOverloads constructor(
     fun setOnAddClickListener(listener: OnClickListener?) = binding.addButton.setOnClickListener(listener)
 }
 
-data class BottomBarTab(@StringRes val label: Int, @DrawableRes val icon: Int)
+/** [route] identifies the tab and is also its test tag, as "tab_<route>". */
+data class BottomBarTab(val route: String, @StringRes val label: Int, @DrawableRes val icon: Int)
 
 /**
  * The tabs either side of a raised Add button (02a); the first half of [tabs] sits left of it.
@@ -141,7 +143,7 @@ fun SpendFlowBottomBar(
                     NavigationBarItem(
                         selected = isSelected,
                         onClick = { onSelect(tab) },
-                        icon = { Icon(painterResource(tab.icon), contentDescription = null) },
+                        icon = { Icon(painterResource(tab.icon), contentDescription = null, Modifier.size(dimensionResource(R.dimen.sf_icon_size))) },
                         label = {
                             Text(
                                 stringResource(tab.label),
@@ -149,6 +151,7 @@ fun SpendFlowBottomBar(
                             )
                         },
                         colors = itemColors,
+                        modifier = Modifier.testTag("tab_${tab.route}"),
                     )
                 }
             }
@@ -183,10 +186,10 @@ fun SpendFlowBottomBar(
 @Composable
 private fun SpendFlowBottomBarPreview() = SpendFlowTheme {
     val tabs = listOf(
-        BottomBarTab(R.string.nav_home, R.drawable.ic_home_mono),
-        BottomBarTab(R.string.nav_transactions, R.drawable.ic_transactions_mono),
-        BottomBarTab(R.string.nav_analytics, R.drawable.ic_analytics_mono),
-        BottomBarTab(R.string.nav_more, R.drawable.ic_more_mono),
+        BottomBarTab("home", R.string.nav_home, R.drawable.ic_home_mono),
+        BottomBarTab("transactions", R.string.nav_transactions, R.drawable.ic_transactions_mono),
+        BottomBarTab("analytics", R.string.nav_analytics, R.drawable.ic_analytics_mono),
+        BottomBarTab("more", R.string.nav_more, R.drawable.ic_more_mono),
     )
     var selected by remember { mutableStateOf(tabs.first()) }
     Box(Modifier.background(SpendFlowTheme.colors.page)) {

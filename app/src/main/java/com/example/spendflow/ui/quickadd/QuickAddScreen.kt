@@ -47,9 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -263,8 +261,6 @@ internal fun QuickAddForm(
     Column(
         modifier
             .fillMaxWidth()
-            // Lets the bottom sheet's drag and this scroll share gestures
-            .nestedScroll(rememberNestedScrollInteropConnection())
             .verticalScroll(rememberScrollState())
             .padding(
                 start = dimensionResource(R.dimen.sf_screen_padding),
@@ -272,14 +268,6 @@ internal fun QuickAddForm(
                 bottom = dimensionResource(R.dimen.sf_space_xxxl),
             ),
     ) {
-        Box(
-            Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(vertical = dimensionResource(R.dimen.sf_space_l))
-                .size(width = 32.dp, height = 4.dp)
-                .background(MaterialTheme.colorScheme.onSurfaceVariant, MaterialTheme.shapes.extraSmall)
-                .clearAndSetSemantics {},
-        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 stringResource(R.string.quick_add_title),

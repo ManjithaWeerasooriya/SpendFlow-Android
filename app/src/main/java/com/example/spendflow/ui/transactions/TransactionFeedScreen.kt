@@ -158,7 +158,7 @@ internal fun TransactionFeedScreen(
     val colors = SpendFlowTheme.colors
     val screenPadding = dimensionResource(R.dimen.sf_screen_padding)
     val rows = (state.rows as? UiState.Success)?.data.orEmpty()
-    // MainActivity already pads the Fragment host for system bars and the bottom bar.
+    // The app shell already pads the NavHost for system bars and the bottom bar.
     LazyColumn(
         modifier
             .fillMaxSize()

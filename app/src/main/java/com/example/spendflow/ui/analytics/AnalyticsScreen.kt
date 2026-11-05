@@ -110,7 +110,7 @@ internal fun AnalyticsScreen(
 ) {
     val colors = SpendFlowTheme.colors
     val monthLabel = state.month.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()))
-    // MainActivity already pads the Fragment host for system bars and the bottom bar.
+    // The app shell already pads the NavHost for system bars and the bottom bar.
     Column(
         modifier
             .fillMaxSize()

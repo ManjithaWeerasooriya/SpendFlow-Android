@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Build
 import android.os.SystemClock
 import android.widget.TextView
-import androidx.navigation.fragment.NavHostFragment
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.spendflow.BuildConfig
@@ -32,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.onNodeWithContentDescription
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -81,7 +81,7 @@ class EntryValidationUndoFlowTest {
         ) + timestamps).await()
 
         compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag(FeedTags.TITLE) and hasText("Home")).fetchSemanticsNodes().isNotEmpty() }
-        main { activity.findViewById<android.view.View>(R.id.addButton).performClick() }
+        compose.onNodeWithContentDescription(context.getString(R.string.nav_add_transaction)).performClick()
         fun waitFor(matcher: SemanticsMatcher) = compose.waitUntil(15_000) { compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }
         val groceriesChip = hasText("Groceries") and hasClickAction()
         waitFor(groceriesChip)
@@ -117,20 +117,16 @@ class EntryValidationUndoFlowTest {
         compose.onNode(groceriesChip).performScrollTo().performClick()
         save()
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Expenses: LKR 2,450.00").fetchSemanticsNodes().isNotEmpty() }
-        eventually { main {
-            val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
-            assertFalse(host.childFragmentManager.fragments.any { it is QuickAddBottomSheet })
-            assertEquals("Saved \u00b7 Groceries LKR 2,450", activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)?.text?.toString())
-            assertEquals("Undo", activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_action)?.text?.toString())
-        } }
+        compose.onNodeWithTag(QuickAddTags.SAVE).assertDoesNotExist()
+        waitFor(hasText("Saved \u00b7 Groceries LKR 2,450"))
+        val undo = hasText(context.getString(R.string.entry_undo)) and hasClickAction()
+        waitFor(undo)
         screenshot("sf10-saved-undo.png")
         val saved = profile.collection("transactions").get().await().documents.single()
         assertEquals(245000L, saved.getLong("amount"))
-        main { activity.findViewById<android.view.View>(com.google.android.material.R.id.snackbar_action).performClick() }
+        compose.onNode(undo).performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithContentDescription("Expenses: LKR 0.00").fetchSemanticsNodes().isNotEmpty() }
-        eventually { main {
-            assertEquals("Entry removed", activity.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)?.text?.toString())
-        } }
+        waitFor(hasText(context.getString(R.string.entry_undone)))
         assertTrue(profile.collection("transactions").get().await().isEmpty)
         println("SF10_VALIDATION_SAVE_UNDO_PASSED; TEST_UID=${user.uid}")
         main { activity.finish() }
