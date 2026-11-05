@@ -1,6 +1,8 @@
 package com.example.spendflow.ui.main
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,8 +59,6 @@ import com.example.spendflow.ui.settings.SettingsRoute
 import com.example.spendflow.ui.transactions.TransactionFeedRoute
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import java.math.BigDecimal
-import java.util.Currency
 import java.util.Locale
 
 private val TABS = listOf(
@@ -88,7 +88,7 @@ fun SpendFlowShell(
     val startGraph = rememberSaveable { graph.route }
     val entry by nav.currentBackStackEntryAsState()
     // Quick Add opens over a tab, and the bar stays visible under it
-    val tabRoute = (if (entry?.destination?.route == Routes.QUICK_ADD) nav.previousBackStackEntry else entry)?.destination?.route
+    val tabRoute = (if (entry?.destination?.route in setOf(Routes.QUICK_ADD, Routes.EDIT_TRANSACTION)) nav.previousBackStackEntry else entry)?.destination?.route
     // Settings sits under the More tab in the wireframes, so it keeps the bar with More selected
     val barRoute = if (tabRoute == Routes.SETTINGS) Routes.MORE else tabRoute
     val snackbar = remember { SnackbarHostState() }
@@ -102,7 +102,11 @@ fun SpendFlowShell(
         if (nav.currentDestination?.route != Routes.GOALS) nav.navigate(Routes.GOALS)
         onGoalsOpened()
     }
-    EntryFeedbackSnackbars(entryFeedback, snackbar)
+    val syncModel = hiltViewModel<SyncStatusViewModel>()
+    val sync by syncModel.status.collectAsStateWithLifecycle()
+    // rememberUpdatedState: read at show time, so a connectivity change doesn't restart the snackbar
+    val offlineNow by rememberUpdatedState(sync.offline)
+    EntryFeedbackSnackbars(entryFeedback, snackbar) { offlineNow }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -124,16 +128,21 @@ fun SpendFlowShell(
             }
         },
     ) { padding ->
-        NavHost(
-            navController = nav,
-            startDestination = startGraph,
-            // Screens leave system bars, the bottom bar and the keyboard to the shell
-            modifier = Modifier
+        // Screens leave system bars, the bottom bar and the keyboard to the shell
+        Column(
+            Modifier
                 .padding(padding)
                 .consumeWindowInsets(padding)
                 .imePadding(),
         ) {
-            appNavGraph { route, _ -> Destination(route, nav, entryFeedback, notifications, monitor) }
+            if (graph == AppGraph.MAIN && sync.offline) OfflineBanner(sync.pendingCount)
+            NavHost(
+                navController = nav,
+                startDestination = startGraph,
+                modifier = Modifier.weight(1f),
+            ) {
+                appNavGraph { route, _ -> Destination(route, nav, entryFeedback, notifications, monitor) }
+            }
         }
     }
 }
@@ -154,9 +163,11 @@ private fun Destination(
             home = true,
             onSeeAll = { nav.navigateToTab(Routes.TRANSACTIONS) },
             onViewGoals = { nav.navigate(Routes.GOALS) },
+            onEdit = nav::openTransactionEdit,
             onManageCaps = { nav.navigate(Routes.CATEGORIES) },
+            onAddTransaction = nav::openQuickAdd,
         )
-        Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {})
+        Routes.TRANSACTIONS -> TransactionFeedRoute(hiltViewModel(), home = false, onSeeAll = {}, onViewGoals = {}, onEdit = nav::openTransactionEdit, onAddTransaction = nav::openQuickAdd)
         Routes.ANALYTICS -> AnalyticsRoute(hiltViewModel(), onAddTransaction = nav::openQuickAdd)
         Routes.MORE -> MoreRoute(
             hiltViewModel(),
@@ -171,9 +182,12 @@ private fun Destination(
             onOpenCategories = { nav.navigate(Routes.CATEGORIES) },
             onOpenGoals = { nav.navigate(Routes.GOALS) },
         )
-        Routes.QUICK_ADD -> {
+        Routes.QUICK_ADD, Routes.EDIT_TRANSACTION -> {
             val model = hiltViewModel<QuickAddViewModel>()
-            QuickAddSheet(onDismissed = nav::dismissQuickAdd) { close ->
+            val sheetEntryId = nav.currentBackStackEntry?.id
+            QuickAddSheet(onDismissed = {
+                if (nav.currentBackStackEntry?.id == sheetEntryId) nav.dismissQuickAdd()
+            }) { close ->
                 // Saved just before a recreation: hand the entry to the undo snackbar and close
                 LaunchedEffect(Unit) {
                     if (model.completed) {
@@ -218,7 +232,11 @@ private fun QuickAddSheet(onDismissed: () -> Unit, content: @Composable (close: 
 
 /** "Saved · Groceries LKR 2,450 [Undo]" for 5 s after a save, plus undo results and rejected writes. */
 @Composable
-private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackbar: SnackbarHostState) {
+private fun EntryFeedbackSnackbars(
+    entryFeedback: EntryFeedbackViewModel,
+    snackbar: SnackbarHostState,
+    isOffline: () -> Boolean,
+) {
     val resources = LocalResources.current
     val locale = LocalLocale.current.platformLocale
     val scope = rememberCoroutineScope()
@@ -229,7 +247,8 @@ private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackb
         val remaining = current.expiresAt - System.currentTimeMillis()
         if (remaining <= 0) return@LaunchedEffect
         val visuals = SpendFlowSnackbarVisuals(
-            resources.getString(R.string.entry_saved, current.entry.categoryName, savedAmount(current, locale)),
+            if (isOffline()) resources.getString(R.string.sync_saved_offline)
+            else resources.getString(R.string.entry_saved, current.entry.categoryName, AmountFormatter.formatTrimmed(current.entry.transaction.amount, locale)),
             SpendFlowSnackbar.Tone.SUCCESS,
             actionLabel = resources.getString(R.string.entry_undo),
             duration = SnackbarDuration.Indefinite,
@@ -253,12 +272,4 @@ private fun EntryFeedbackSnackbars(entryFeedback: EntryFeedbackViewModel, snackb
         }
         scope.launch { snackbar.showSnackbar(visuals) }
     }
-}
-
-/** Whole amounts without decimals ("LKR 2,450"), fractional ones with them. */
-private fun savedAmount(confirmation: EntryConfirmation, locale: Locale): String {
-    val money = confirmation.entry.transaction.amount
-    val digits = Currency.getInstance(money.currencyCode).defaultFractionDigits
-    val hasFraction = BigDecimal.valueOf(money.amountMinor).movePointLeft(digits).stripTrailingZeros().scale() > 0
-    return AmountFormatter.format(money, showDecimals = hasFraction, locale = locale)
 }

@@ -69,7 +69,7 @@ class EntryFeedbackViewModel @Inject constructor(
         pending.value = null
         if (session.currentUid() != confirmation.uid || System.currentTimeMillis() > confirmation.expiresAt) return
         viewModelScope.launch {
-            results.send(transactions.delete(confirmation.entry.transaction.id))
+            results.send(com.example.spendflow.core.common.guarded { transactions.delete(confirmation.entry.transaction.id) })
         }
     }
 }

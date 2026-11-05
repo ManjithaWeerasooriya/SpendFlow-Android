@@ -167,4 +167,16 @@ class AppNavigationTest {
             assertEquals(Routes.HOME, nav.previousBackStackEntry?.destination?.route)
         }
     }
+    @Test
+    fun editRetainsTransactionArgumentAndReturnsToTheOriginalTab() {
+        start(AppGraph.MAIN)
+        onMain { nav.navigateToTab(Routes.TRANSACTIONS) }
+        onMain { nav.openTransactionEdit("stored-id") }
+        onMain {
+            assertEquals(Routes.EDIT_TRANSACTION, currentRoute)
+            assertEquals("stored-id", nav.currentBackStackEntry?.arguments?.getString("transactionId"))
+            nav.dismissQuickAdd()
+        }
+        onMain { assertEquals(Routes.TRANSACTIONS, currentRoute) }
+    }
 }

@@ -1,5 +1,7 @@
 package com.example.spendflow.ui.categories
 
+import com.example.spendflow.core.common.catchAsError
+import com.example.spendflow.core.common.guarded
 import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -78,7 +80,7 @@ class CategoriesViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<UiState<List<Category>>> = retries
         .flatMapLatest {
-            categories.observeCategories()
+            categories.observeCategories().catchAsError()
                 .map { it.toUiState() }
                 .onStart { emit(UiState.Loading) }
         }
@@ -146,7 +148,7 @@ class CategoriesViewModel @Inject constructor(
         _incomeSourceSaving.value = true
         viewModelScope.launch {
             val result = try {
-                write()
+                guarded { write() }
             } finally {
                 _incomeSourceSaving.value = false
             }
@@ -174,7 +176,7 @@ class CategoriesViewModel @Inject constructor(
             return
         }
         viewModelScope.launch {
-            categories.create(Category(id = categories.newId(), name = trimmed, type = type, defaultCurrency = if (type == CategoryType.INCOME) defaultCurrency else null))
+            guarded { categories.create(Category(id = categories.newId(), name = trimmed, type = type, defaultCurrency = if (type == CategoryType.INCOME) defaultCurrency else null)) }
                 .onSuccess { _events.send(CategoriesEvent.CategoryAdded) }
                 .onError { _events.send(CategoriesEvent.ShowError(it)) }
         }
