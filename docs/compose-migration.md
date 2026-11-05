@@ -22,7 +22,8 @@ The goal is to remove every XML layout. The work runs in four phases:
   - Compose UI test libraries added (`ui-test-junit4` for androidTest, `ui-test-manifest` for debug).
   - Several vector drawables (`ic_badge_*`, `ic_status_*`, `bg_*`, `ic_category_*`) take colours from `?attr/sfColor*`. Compose resolves them through the Activity theme for now; they need Kotlin-side tinting or recolouring before `attrs.xml` is removed in Phase 3.
 - **More — migrated (Phase 1):** `MoreFragment` hosts `MoreRoute` in a lifecycle-disposed `ComposeView`, keeping the Fragment-scoped `MoreViewModel` and the existing nav-graph actions to Categories, Goals and Settings. `MoreScreen` is stateless apart from the log-out confirmation, now a Compose `AlertDialog` held in `rememberSaveable`, so it survives recreation (the old Material dialog was dismissed). Dialog buttons use `violetText` because violet fails as text on the dark dialog surface. `GoalCompletionNotificationFlowTest` now opens Goals through a Compose test rule instead of `R.id.goalsRow`. `fragment_more.xml` is retained pending user confirmation.
-- **Next screen:** Login. Continue one screen per task, using the Phase 0 components.
+- **Login — migrated (Phase 1):** `LoginFragment` hosts `LoginRoute`, keeping the Fragment-scoped `LoginViewModel` unchanged; leaving the screen is still MainActivity's job. `LoginScreen` holds the typed text in `rememberSaveable` (as EditTexts saved theirs) and passes it to `submit`/`sendPasswordReset`; field errors, the busy state and mode come from `LoginUiState`. Events are collected with the new `core/ui/EventEffect` and shown in the screen's own `SnackbarHost` with `SpendFlowSnackbar`. Autofill uses Compose content types (email, password, new password). New shared pieces: `LabeledTextField` (Widget.SpendFlow.TextField) and `ic_visibility`/`ic_visibility_off` for the password toggle, since Compose has no `password_toggle` end icon. No existing instrumented test drove the Login UI, so `LoginScreenTest` (5 tests) covers the stateless screen. `fragment_login.xml` is retained pending user confirmation.
+- **Next screen:** Categories. Continue one screen per task, using the Phase 0 components.
 
 The inventories below describe the initial XML baseline; migrated screens are identified explicitly.
 
@@ -120,6 +121,8 @@ For each screen, use a stateful wrapper and a stateless screen with previews. Ho
 - Setup reference: [Android Compose dependencies and compiler](https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler).
 
 ## Verification for each screen
+
+Login migration verification (2026-11-05): `assembleDebug testDebugUnitTest` passed (149 tests). On a Pixel 8 emulator (API 37) with the Firebase emulators, `LoginScreenTest` (5), `AppNavigationTest` (7) and `GoalCompletionNotificationFlowTest` (1) passed. Manually checked: light log-in layout matches the XML screen; a wrong password shows "Email or password is incorrect" under the field after the keyboard Done action; Forgot password shows the success snackbar; dark create-account mode keeps typed values across the theme switch; registering a new account reaches onboarding. Not checked: real autofill with a password manager, large text, TalkBack.
 
 More migration verification (2026-11-05): `assembleDebug testDebugUnitTest` passed (149 tests). On a Pixel 8 emulator (API 37) with the Firebase emulators, `AppNavigationTest` (7) and `GoalCompletionNotificationFlowTest` (1) passed. Manually checked in light and dark: layout matches the XML screen, the dialog survives a light/dark switch, and confirming log out returns to Login. Not checked: large text, TalkBack.
 
