@@ -20,11 +20,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import org.junit.Assert.*
-import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.pressBack
-import androidx.test.espresso.action.ViewActions.click
-import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
 import com.example.spendflow.domain.model.*
 import com.example.spendflow.data.remote.mapper.toFirestore
 import com.example.spendflow.data.remote.mapper.withCreateTimestamps
@@ -44,6 +40,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.example.spendflow.ui.transactions.FeedTags
 import org.junit.Rule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.performScrollTo
 
 /** Requires the debug app's Auth (9099) and Firestore (8080) emulators. Uses a new test user. */
 @RunWith(AndroidJUnit4::class)
@@ -110,30 +113,29 @@ class AnalyticsRefinementFlowTest {
         }
         screenshot("refined-home.png")
         main { activity.findViewById<android.view.View>(R.id.analyticsFragment).performClick() }
-        eventually { main {
-            assertEquals("20,850.00", activity.findViewById<TextView>(R.id.breakdownAmount)?.text?.toString())
-            assertEquals(3, activity.findViewById<android.view.ViewGroup>(R.id.categoryRows).childCount)
-        } }
+        val close = context.getString(R.string.action_close)
+        fun breakdownAmountIs(value: String) = compose.waitUntil(15_000) {
+            compose.onAllNodes(hasTestTag(AnalyticsTags.BREAKDOWN_AMOUNT) and hasText(value)).fetchSemanticsNodes().isNotEmpty()
+        }
+        fun waitForTag(tag: String) = compose.waitUntil(15_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+        breakdownAmountIs("20,850.00")
+        compose.onAllNodesWithTag(AnalyticsTags.CATEGORY_ROW).assertCountEquals(3)
         screenshot("refined-analytics.png")
-        onView(withId(R.id.dailyDetails)).perform(androidx.test.espresso.action.ViewActions.scrollTo())
+        compose.onNodeWithTag(AnalyticsTags.DAILY_DETAILS).performScrollTo()
         screenshot("refined-cashflow.png")
-        onView(withId(R.id.dailyDetails)).perform(click())
-        onView(withText(R.string.action_close)).inRoot(androidx.test.espresso.matcher.RootMatchers.isDialog()).perform(click())
-        eventually { main { assertTrue(activity.hasWindowFocus()) } }
-        main { activity.findViewById<androidx.core.widget.NestedScrollView>(R.id.analyticsScroll).scrollTo(0, 0) }
-        main { activity.findViewById<android.view.View>(R.id.breakdownIncome).performClick() }
-        eventually { main { assertEquals("150,000.00", activity.findViewById<TextView>(R.id.breakdownAmount)?.text?.toString()) } }
-        main { activity.findViewById<android.view.ViewGroup>(R.id.categoryRows).getChildAt(0).performClick() }
-        onView(withText("Freelance")).inRoot(androidx.test.espresso.matcher.RootMatchers.isDialog())
-            .check(androidx.test.espresso.assertion.ViewAssertions.matches(androidx.test.espresso.matcher.ViewMatchers.isDisplayed()))
-        onView(withText(R.string.action_close)).inRoot(androidx.test.espresso.matcher.RootMatchers.isDialog()).perform(click())
-        eventually { main { assertTrue(activity.hasWindowFocus()) } }
-        main { activity.findViewById<android.view.View>(R.id.previousMonth).performClick() }
-        eventually { main {
-            assertTrue(activity.findViewById<android.view.View>(R.id.analyticsEmptyState)?.isShown == true)
-            assertFalse(activity.findViewById<android.view.View>(R.id.reportContent)?.isShown == true)
-        } }
-        onView(withText(R.string.nav_add_transaction)).perform(click())
+        compose.onNodeWithTag(AnalyticsTags.DAILY_DETAILS).performClick()
+        compose.onNode(hasText(close) and hasAnyAncestor(isDialog())).performClick()
+        compose.onNode(isDialog()).assertDoesNotExist()
+        compose.onNodeWithTag(AnalyticsTags.BREAKDOWN_INCOME).performScrollTo().performClick()
+        breakdownAmountIs("150,000.00")
+        compose.onAllNodesWithTag(AnalyticsTags.CATEGORY_ROW)[0].performScrollTo().performClick()
+        compose.onNode(hasText("Freelance") and hasAnyAncestor(isDialog())).assertIsDisplayed()
+        compose.onNode(hasText(close) and hasAnyAncestor(isDialog())).performClick()
+        compose.onNode(isDialog()).assertDoesNotExist()
+        compose.onNodeWithContentDescription(context.getString(R.string.analytics_previous_month)).performScrollTo().performClick()
+        waitForTag(AnalyticsTags.EMPTY)
+        compose.onNodeWithTag(AnalyticsTags.REPORT).assertDoesNotExist()
+        compose.onNode(hasText(context.getString(R.string.nav_add_transaction)) and hasClickAction()).performClick()
         eventually { main {
             val host = activity.supportFragmentManager.findFragmentById(R.id.navHost) as NavHostFragment
             assertEquals(R.id.quickAddSheet, host.navController.currentDestination?.id)
@@ -144,27 +146,21 @@ class AnalyticsRefinementFlowTest {
         )
         val previousExpenseDoc = profile.collection("transactions").document(previousExpense.id)
         previousExpenseDoc.set(previousExpense.toFirestore().withCreateTimestamps()).await()
-        eventually { main {
-            assertTrue(activity.findViewById<android.view.View>(R.id.reportContent)?.isShown == true)
-            assertTrue(activity.findViewById<android.view.View>(R.id.incomeRequiredNote)?.isShown == true)
-            assertFalse(activity.findViewById<android.view.View>(R.id.expenseRatioBar)?.isShown == true)
-            assertEquals(
-                activity.getString(R.string.summary_saved_ratio, activity.getString(R.string.summary_ratio_unavailable)),
-                activity.findViewById<TextView>(R.id.savedRate)?.text?.toString(),
-            )
-        } }
+        waitForTag(AnalyticsTags.INCOME_REQUIRED)
+        compose.onNodeWithTag(AnalyticsTags.REPORT).assertExists()
+        // Without income the ratio bar is replaced by its "unavailable" announcement, and so is the savings rate
+        compose.onNodeWithContentDescription(context.getString(R.string.summary_expense_to_income_unavailable)).assertExists()
+        compose.onNodeWithContentDescription(context.getString(R.string.summary_savings_rate_unavailable)).assertExists()
         previousExpenseDoc.delete().await()
-        eventually { main {
-            assertTrue(activity.findViewById<android.view.View>(R.id.analyticsEmptyState)?.isShown == true)
-        } }
-        main { activity.findViewById<android.view.View>(R.id.nextMonth).performClick() }
-        eventually { main { assertEquals("150,000.00", activity.findViewById<TextView>(R.id.breakdownAmount)?.text?.toString()) } }
-        main { activity.findViewById<android.view.View>(R.id.breakdownExpenses).performClick() }
+        waitForTag(AnalyticsTags.EMPTY)
+        compose.onNodeWithContentDescription(context.getString(R.string.analytics_next_month)).performClick()
+        breakdownAmountIs("150,000.00")
+        compose.onNodeWithTag(AnalyticsTags.BREAKDOWN_EXPENSES).performScrollTo().performClick()
         main { AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES) }
         eventually { main {
-            val resumed = ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().firstOrNull()
-            assertNotNull(resumed?.findViewById<TextView>(R.id.breakdownAmount))
+            assertNotNull(ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(Stage.RESUMED).filterIsInstance<MainActivity>().firstOrNull())
         } }
+        breakdownAmountIs("20,850.00")
         screenshot("refined-analytics-dark.png")
         main {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
