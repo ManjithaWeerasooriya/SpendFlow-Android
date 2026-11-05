@@ -18,7 +18,7 @@ class SavingsGoalTest {
         assertEquals(Money(260_000_00, "LKR"), g.remaining)
     }
 
-    @Test fun `months round down`() = assertEquals(2, wholeMonthsBetween(today, LocalDate.of(2026, 12, 10)))
+    @Test fun `months round down`() = assertEquals(2, wholeMonthsBetween(today, LocalDate.of(2027, 1, 10)))
 
     @Test fun `months are at least one`() {
         assertEquals(1, wholeMonthsBetween(today, LocalDate.of(2026, 10, 20)))
