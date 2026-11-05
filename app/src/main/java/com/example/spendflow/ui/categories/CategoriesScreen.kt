@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -63,7 +64,11 @@ import com.example.spendflow.R
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.core.ui.EventEffect
 import com.example.spendflow.core.ui.UiState
+import com.example.spendflow.core.ui.components.AmountFormatter
+import com.example.spendflow.core.ui.components.CapProgressBar
+import com.example.spendflow.core.ui.components.CapWarningBanner
 import com.example.spendflow.core.ui.components.EmptyState
+import com.example.spendflow.core.ui.components.OverCapLine
 import com.example.spendflow.core.ui.components.PrimaryButton
 import com.example.spendflow.core.ui.components.SecondaryButton
 import com.example.spendflow.core.ui.components.SpendFlowTopBar
@@ -71,8 +76,13 @@ import com.example.spendflow.core.ui.components.SpendFlowSnackbar
 import com.example.spendflow.core.ui.components.SpendFlowSnackbarVisuals
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
+import com.example.spendflow.domain.model.CapThresholds
+import com.example.spendflow.domain.model.CapWarning
 import com.example.spendflow.domain.model.Category
 import com.example.spendflow.domain.model.CategoryType
+import com.example.spendflow.domain.model.Money
+import com.example.spendflow.domain.model.User
+import com.example.spendflow.domain.usecase.CapOverview
 import com.example.spendflow.ui.theme.SpendFlowTheme
 import kotlinx.coroutines.launch
 import java.io.Serializable
@@ -103,6 +113,8 @@ internal fun CategoriesRoute(
     val expenseResult by expenseModel.categories.collectAsStateWithLifecycle()
     val expenseSaving by expenseModel.saving.collectAsStateWithLifecycle()
     val caps by expenseModel.caps.collectAsStateWithLifecycle()
+    val capOverview by expenseModel.capOverview.collectAsStateWithLifecycle()
+    val warnings by expenseModel.warnings.collectAsStateWithLifecycle()
     val expenses = when (val result = expenseResult) {
         is AppResult.Success -> UiState.Success(result.data)
         is AppResult.Error -> UiState.Error(result.error)
@@ -157,10 +169,16 @@ internal fun CategoriesRoute(
     }
 
     val activeExpenses = (expenses as? UiState.Success)?.data.orEmpty().filterNot { it.isArchived }
+    val overview = (capOverview as? AppResult.Success)?.data
+    val names = (expenses as? UiState.Success)?.data.orEmpty().associate { it.id to it.name }
+    val warning = warnings.filter { it.usage.categoryId in names }.maxByOrNull { it.level }
     CategoriesScreen(
         tab = tab,
         expenses = expenses,
         incomeSources = incomeSources,
+        caps = overview,
+        warning = warning?.let { it to names.getValue(it.usage.categoryId) },
+        onDismissWarning = { warning?.let(expenseModel::dismissWarning) },
         expenseBusy = expenseSaving || dialog != null,
         incomeBusy = incomeSaving || dialog != null,
         snackbar = snackbar,
@@ -217,12 +235,15 @@ internal fun CategoriesRoute(
             onSave = { name, icon, classification -> expenseError = expenseModel.save(category?.id, name, icon, classification) },
             onDismiss = close,
         )
-        CategoriesDialog.Kind.EXPENSE_CAP -> ObservedCategoryCapDialog(
+        CategoriesDialog.Kind.EXPENSE_CAP -> ObservedCapSheet(
             category = category!!,
             caps = caps,
+            currencyCode = overview?.currencyCode ?: User.DEFAULT_BASE_CURRENCY,
+            thresholds = overview?.thresholds ?: CapThresholds.DEFAULT,
             saving = expenseSaving,
             error = expenseError,
-            onSave = { amount -> expenseError = expenseModel.saveCap(category, amount) },
+            onSave = { amount, alerts -> expenseError = expenseModel.saveCap(category, amount, alerts) },
+            onRemove = { expenseModel.removeCap(category) },
             onDismiss = close,
         )
         CategoriesDialog.Kind.INCOME_FORM -> IncomeSourceDialog(
@@ -271,6 +292,9 @@ internal fun CategoriesScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
+    caps: CapOverview? = null,
+    warning: Pair<CapWarning, String>? = null,
+    onDismissWarning: () -> Unit = {},
 ) {
     var showingArchived by rememberSaveable { mutableStateOf(false) }
     val colors = SpendFlowTheme.colors
@@ -315,6 +339,9 @@ internal fun CategoriesScreen(
             }
             if (tab == CategoriesTab.CATEGORIES) {
                 val all = (expenses as? UiState.Success)?.data.orEmpty()
+                warning?.let { (current, name) ->
+                    CapWarningBanner(current, name, onDismissWarning, Modifier.padding(top = dimensionResource(R.dimen.sf_space_m)))
+                }
                 PrimaryButton(
                     stringResource(R.string.category_add_title),
                     onClick = onAddCategory,
@@ -350,6 +377,7 @@ internal fun CategoriesScreen(
                         actionsEnabled = !expenseBusy,
                         onAction = onExpenseAction,
                         onReorder = onReorder.takeIf { !showingArchived && !expenseBusy },
+                        details = { if (!it.isArchived && caps != null) CapDetails(it, caps) },
                     )
                 }
             } else {
@@ -440,6 +468,7 @@ private fun CategoryList(
     actionsEnabled: Boolean,
     onAction: (Category, CategoryAction) -> Unit,
     onReorder: ((List<String>) -> Unit)?,
+    details: @Composable (Category) -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     // The drag gesture outlives recompositions, so it reads the latest rows and callback through these
@@ -496,6 +525,7 @@ private fun CategoryList(
                 actions = actions(category),
                 actionsEnabled = actionsEnabled && draggingId == null,
                 onAction = { onAction(category, it) },
+                details = { details(category) },
                 modifier = Modifier
                     .then(if (dragging) Modifier else Modifier.animateItem())
                     .zIndex(if (dragging) 1f else 0f)
@@ -523,6 +553,7 @@ private fun CategoryRow(
     actionsEnabled: Boolean,
     onAction: (CategoryAction) -> Unit,
     modifier: Modifier = Modifier,
+    details: @Composable () -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
     var menuOpen by remember { mutableStateOf(false) }
@@ -540,16 +571,22 @@ private fun CategoryRow(
                 .size(40.dp)
                 .padding(dimensionResource(R.dimen.sf_space_s)),
         )
-        Text(category.name, Modifier.weight(1f), color = colors.textHeading, style = MaterialTheme.typography.bodyLarge)
-        if (badge != null) {
-            Text(
-                badge,
-                Modifier
-                    .background(colors.violetTint, MaterialTheme.shapes.small)
-                    .padding(horizontal = dimensionResource(R.dimen.sf_space_s), vertical = dimensionResource(R.dimen.sf_space_xs)),
-                color = colors.textMuted,
-                style = MaterialTheme.typography.labelMedium,
-            )
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(category.name, Modifier.weight(1f, fill = false), color = colors.textHeading, style = MaterialTheme.typography.bodyLarge)
+                if (badge != null) {
+                    Text(
+                        badge,
+                        Modifier
+                            .padding(start = dimensionResource(R.dimen.sf_space_s))
+                            .background(colors.violetTint, MaterialTheme.shapes.small)
+                            .padding(horizontal = dimensionResource(R.dimen.sf_space_s), vertical = dimensionResource(R.dimen.sf_space_xs)),
+                        color = colors.textMuted,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+            details()
         }
         Box {
             IconButton(onClick = { menuOpen = true }, enabled = actionsEnabled) {
@@ -571,6 +608,50 @@ private fun CategoryRow(
                     )
                 }
             }
+        }
+    }
+}
+
+/** 07a: the cap bar with "LKR 22,500 of 30,000", or "No cap · LKR 45,000 this month". */
+@Composable
+private fun CapDetails(category: Category, caps: CapOverview) {
+    val colors = SpendFlowTheme.colors
+    val locale = LocalLocale.current.platformLocale
+    val usage = caps.usages[category.id]
+    val caption = MaterialTheme.typography.bodyMedium
+    val gap = Modifier.padding(top = dimensionResource(R.dimen.sf_space_xs))
+    when {
+        usage == null -> Text(
+            stringResource(
+                R.string.cap_none,
+                AmountFormatter.format(caps.spentByCategory[category.id] ?: Money.zero(caps.currencyCode), locale = locale),
+            ),
+            gap,
+            color = colors.textMuted,
+            style = caption,
+        )
+        usage.spent == null -> Text(
+            stringResource(R.string.cap_other_currency, usage.cap.limit.currencyCode, caps.currencyCode),
+            gap,
+            color = colors.textMuted,
+            style = caption,
+        )
+        else -> {
+            CapProgressBar(
+                usage, category.name, Modifier.padding(top = dimensionResource(R.dimen.sf_space_s)),
+                gapColor = MaterialTheme.colorScheme.background,
+            )
+            Text(
+                stringResource(
+                    R.string.cap_used_of,
+                    AmountFormatter.format(usage.spent, locale = locale),
+                    AmountFormatter.parts(usage.cap.limit, showDecimals = false, signed = false, locale = locale).number,
+                ),
+                gap,
+                color = colors.textMuted,
+                style = caption,
+            )
+            usage.overBy?.let { OverCapLine(it, gap) }
         }
     }
 }

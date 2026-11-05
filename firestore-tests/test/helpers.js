@@ -69,6 +69,7 @@ export const validBudget = () => ({
   period: 'MONTHLY',
   startDate: '2026-10-01',
   categoryId: null,
+  alerts: ['NOTICE', 'WARNING', 'OVER'],
 });
 
 export const validGoal = () => ({ name: 'Laptop', targetMinor: 15000000, savedMinor: 0, currencyCode: 'LKR' });

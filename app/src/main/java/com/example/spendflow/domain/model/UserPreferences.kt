@@ -40,4 +40,12 @@ data class CapThresholds(val notice: Int, val warning: Int, val over: Int) {
     }
 }
 
-enum class CapLevel { UNDER, NOTICE, WARNING, OVER }
+/** How far spending has reached into a cap, by [CapThresholds]. Declared in ascending order. */
+enum class CapLevel {
+    UNDER, NOTICE, WARNING, OVER;
+
+    companion object {
+        /** The levels a cap can alert at; every one is on for a new cap. */
+        val ALERTS: Set<CapLevel> = setOf(NOTICE, WARNING, OVER)
+    }
+}

@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,6 +23,8 @@ import com.example.spendflow.core.common.AppError
 import com.example.spendflow.core.common.AppResult
 import com.example.spendflow.domain.model.Budget
 import com.example.spendflow.domain.model.BudgetPeriod
+import com.example.spendflow.domain.model.CapLevel
+import com.example.spendflow.domain.model.CapThresholds
 import com.example.spendflow.domain.model.Money
 import java.time.LocalDate
 import com.example.spendflow.core.ui.UiState
@@ -152,13 +155,17 @@ class CategoriesScreenTest {
     }
 
     @Test
-    fun capEditorWaitsForDataAndPreservesTheDraftAcrossObserverErrors() {
+    fun capSheetWaitsForDataAndPreservesTheDraftAcrossObserverErrors() {
         val cap = Budget("cap", "Food cap", Money(20_000_00, "LKR"), BudgetPeriod.MONTHLY, LocalDate.of(2026, 10, 1), groceries.id)
         var caps by mutableStateOf<AppResult<List<Budget>>?>(null)
-        var saved: String? = null
+        var saved: Pair<String, Set<CapLevel>>? = null
+        var removed = false
         compose.setContent {
             SpendFlowTheme {
-                ObservedCategoryCapDialog(groceries, caps, false, null, onSave = { saved = it }, onDismiss = {})
+                ObservedCapSheet(
+                    groceries, caps, "LKR", CapThresholds.DEFAULT, saving = false, error = null,
+                    onSave = { amount, alerts -> saved = amount to alerts }, onRemove = { removed = true }, onDismiss = {},
+                )
             }
         }
         compose.onNodeWithText(text(R.string.category_cap_loading)).assertExists()
@@ -171,8 +178,27 @@ class CategoriesScreenTest {
         compose.onNodeWithText(text(R.string.quick_save)).assertDoesNotExist()
         compose.runOnIdle { caps = AppResult.Success(listOf(cap)) }
         compose.onNode(hasSetTextAction() and hasText("25000")).assertExists()
-        compose.onNodeWithText(text(R.string.quick_save)).performClick()
-        assertEquals("25000", saved)
+        compose.onNodeWithText(text(R.string.cap_alert_used, 75)).performClick()
+        compose.onNodeWithText(text(R.string.quick_save)).performScrollTo().performClick()
+        assertEquals("25000" to setOf(CapLevel.WARNING, CapLevel.OVER), saved)
+        compose.onNodeWithText(text(R.string.cap_remove)).performScrollTo().performClick()
+        assertEquals(true, removed)
+    }
+
+    @Test
+    fun capSheetShowsTheAmountErrorAndNoRemoveForANewCap() {
+        compose.setContent {
+            SpendFlowTheme {
+                ObservedCapSheet(
+                    groceries, AppResult.Success(emptyList()), "LKR", CapThresholds.DEFAULT, saving = false,
+                    error = R.string.category_cap_positive, onSave = { _, _ -> }, onRemove = {}, onDismiss = {},
+                )
+            }
+        }
+        compose.onNodeWithText(text(R.string.cap_sheet_title, "Groceries")).assertExists()
+        compose.onNodeWithText(text(R.string.category_cap_positive)).assertExists()
+        compose.onNodeWithText(text(R.string.cap_alert_reached, 100)).assertExists()
+        compose.onNodeWithText(text(R.string.cap_remove)).assertDoesNotExist()
     }
 
     @Test
