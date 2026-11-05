@@ -27,10 +27,11 @@ class CategoryAdapter(
     class ViewHolder(private val binding: ItemCategoryBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(category: Category, showDefaultCurrency: Boolean, onActions: ((View, Category) -> Unit)?) {
             binding.name.text = category.name
+            binding.categoryIcon.setImageResource(CategoryAppearance.icon(category.iconName))
             binding.incomeSourceActions.isVisible = onActions != null
             if (onActions != null) {
                 binding.incomeSourceActions.contentDescription =
-                    binding.root.context.getString(R.string.income_sources_actions, category.name)
+                    binding.root.context.getString(R.string.category_actions, category.name)
                 binding.incomeSourceActions.setOnClickListener { onActions(it, category) }
             }
             if (showDefaultCurrency) {
@@ -40,12 +41,7 @@ class CategoryAdapter(
                 return
             }
             binding.type.isVisible = true
-            binding.type.setText(
-                when (category.type) {
-                    CategoryType.EXPENSE -> R.string.category_type_expense
-                    CategoryType.INCOME -> R.string.category_type_income
-                },
-            )
+            binding.type.setText(CategoryAppearance.classification(category.classification))
         }
     }
 

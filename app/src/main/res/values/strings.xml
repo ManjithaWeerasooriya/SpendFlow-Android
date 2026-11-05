@@ -220,4 +220,32 @@ Expenses: %3$s</string>
     <plurals name="analytics_source_count"><item quantity="one">%1$d income source</item><item quantity="other">%1$d income sources</item></plurals>
     <plurals name="analytics_entry_count"><item quantity="one">%1$d transaction</item><item quantity="other">%1$d transactions</item></plurals>
     <string name="ui_all_history">All your transactions</string>
+    <string name="category_duplicate">A category with this name already exists, including archived categories.</string>
+    <string name="category_needs">Needs</string>
+    <string name="category_wants">Wants</string>
+    <string name="category_savings">Savings</string>
+    <string name="category_unclassified">Unclassified</string>
+    <string name="category_icon_food">Food</string>
+    <string name="category_icon_home">Home</string>
+    <string name="category_icon_transport">Transport</string>
+    <string name="category_icon_shopping">Shopping</string>
+    <string name="category_icon_health">Health</string>
+    <string name="category_icon_other">Other</string>
+    <string name="category_icon">Icon</string>
+    <string name="category_classification">Classification</string>
+    <string name="category_rename">Rename</string>
+    <string name="category_cap">Set / edit monthly cap</string>
+    <string name="category_cap_hint">Monthly cap in your base currency</string>
+    <string name="category_cap_invalid">Enter a valid positive amount.</string>
+    <string name="category_archive">Archive</string>
+    <string name="category_restore">Restore</string>
+    <string name="category_archived">Archived (%1$d)</string>
+    <string name="category_active">Active categories</string>
+    <string name="category_add_title">Add category</string>
+    <string name="category_edit_title">Rename category</string>
+    <string name="category_actions">Actions for %1$s</string>
+    <string name="category_reorder">Hold and drag to reorder categories.</string>
+    <string name="category_move_up">Move up</string>
+    <string name="category_move_down">Move down</string>
+    <string name="category_expense_tab">Expense</string>
 </resources>
