@@ -30,6 +30,7 @@ class DashboardViewModelTest {
     private val january = YearMonth.of(2024, 1)
     private fun model(state: SavedStateHandle = SavedStateHandle()) = TransactionFeedViewModel(
         transactions, FakeCategoryRepository(), GetMonthlySummary(transactions, Profile), Goals, state,
+        com.example.spendflow.testing.FakeBudgetRepository(),
     )
     private fun saved(month: YearMonth = january) = SavedStateHandle(mapOf("home_month" to month.toString()))
     private suspend fun ReceiveTurbine<DashboardUiState>.ready(): DashboardUiState {

@@ -49,7 +49,7 @@ class MonthlySummaryIntegrationTest {
         val transactions = Transactions()
         val categories = FakeCategoryRepository()
         val summaries = GetMonthlySummary(transactions, Profile)
-        val feed = TransactionFeedViewModel(transactions, categories, summaries, Goals, SavedStateHandle())
+        val feed = TransactionFeedViewModel(transactions, categories, summaries, Goals, SavedStateHandle(), com.example.spendflow.testing.FakeBudgetRepository())
         val analytics = AnalyticsViewModel(
             summaries, categories, SavedStateHandle(mapOf("analytics_month" to feed.currentMonth.toString())),
         )

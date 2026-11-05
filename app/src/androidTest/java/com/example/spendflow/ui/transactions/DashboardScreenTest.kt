@@ -45,7 +45,7 @@ class DashboardScreenTest {
     private fun ready(summary: MonthlySummary = summary(), hasTransactions: Boolean = true) =
         DashboardUiState(month, true, UiState.Success(DashboardSummary(summary, hasTransactions)))
     private fun feed(rows: List<FeedRow> = emptyList()) = FeedUiState(
-        UiState.Success(rows), null, null, "ALL", month, dashboard,
+        UiState.Success(rows), null, UiState.Success(null), "ALL", month, dashboard,
     )
     private fun show(initial: DashboardUiState, rows: List<FeedRow> = emptyList()) {
         dashboard = initial

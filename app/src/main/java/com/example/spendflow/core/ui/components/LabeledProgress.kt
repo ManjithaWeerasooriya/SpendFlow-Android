@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.example.spendflow.R
 import com.example.spendflow.domain.model.Money
 import com.example.spendflow.ui.theme.SpendFlowTheme
+import java.math.BigDecimal
 
 enum class ProgressTone { VIOLET, INFO, WARNING, OVER_CAP }
 
@@ -44,11 +45,14 @@ fun LabeledProgress(
     tone: ProgressTone = ProgressTone.VIOLET,
     showCard: Boolean = true,
     showDecimals: Boolean = false,
+    fraction: BigDecimal? = null,
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
-    val percent = progressPercent(current, target)
-    val percentText = stringResource(R.string.percent, percent)
+    val percentText = if (fraction != null) PercentFormatter.formatFraction(fraction, locale)
+        else stringResource(R.string.percent, progressPercent(current, target))
+    val visualProgress = fraction?.coerceIn(BigDecimal.ZERO, BigDecimal.ONE)?.toFloat()
+        ?: (progressPercent(current, target).coerceIn(0, 100) / 100f)
     val shape = MaterialTheme.shapes.medium
     val container = if (showCard) {
         Modifier
@@ -73,7 +77,7 @@ fun LabeledProgress(
             )
         }
         LinearProgressIndicator(
-            progress = { percent.coerceIn(0, 100) / 100f },
+            progress = { visualProgress },
             modifier = Modifier
                 .padding(vertical = dimensionResource(R.dimen.sf_space_m))
                 .fillMaxWidth()

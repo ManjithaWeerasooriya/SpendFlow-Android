@@ -1,4 +1,25 @@
 <resources>
+    <string name="dashboard_caps_title">Monthly caps</string>
+    <string name="dashboard_manage_caps">Manage caps</string>
+    <string name="dashboard_caps_historical">Historical cap limits are unavailable. Cap progress is shown for the current month only.</string>
+    <string name="dashboard_caps_empty">No monthly caps configured</string>
+    <string name="dashboard_caps_empty_hint">Set a monthly category cap in Budget &amp; categories.</string>
+    <string name="dashboard_overall_cap">Overall monthly budget</string>
+    <string name="dashboard_cap_archived">Archived category</string>
+    <string name="dashboard_cap_missing">Category no longer available</string>
+    <string name="dashboard_cap_over">Over cap by %1$s</string>
+    <string name="dashboard_cap_spending">Spent: %1$s</string>
+    <string name="dashboard_cap_limit">Configured cap: %1$s</string>
+    <string name="dashboard_cap_duplicate">Progress unavailable: multiple monthly budgets apply.</string>
+    <string name="dashboard_cap_start_date">Progress unavailable: this budget starts after the beginning of this month.</string>
+    <string name="dashboard_cap_currency">Progress unavailable: the cap and spending use different currencies.</string>
+    <string name="dashboard_cap_invalid">Progress unavailable: a positive cap is required.</string>
+    <string name="dashboard_cap_information">Progress unavailable: category information is incompatible or incomplete.</string>
+    <string name="dashboard_goals_empty">No savings goals yet</string>
+    <string name="dashboard_goals_empty_hint">Open Goals to create a goal and track lifetime progress.</string>
+    <string name="dashboard_recent_empty">No recent transactions</string>
+    <string name="dashboard_recent_loading">Loading recent transactions…</string>
+    <string name="dashboard_recent_empty_hint">Your latest transactions across all months will appear here.</string>
     <string name="dashboard_previous_month">Previous dashboard month</string>
     <string name="dashboard_next_month">Next dashboard month</string>
     <string name="dashboard_loading">Loading monthly summary…</string>
