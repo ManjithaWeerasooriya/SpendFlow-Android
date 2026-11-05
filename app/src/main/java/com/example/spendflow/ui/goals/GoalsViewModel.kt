@@ -159,7 +159,8 @@ class GoalsViewModel @Inject constructor(
     }
 
     fun delete(goal: SavingsGoal) {
-        viewModelScope.launch { results.send(repository.delete(goal.id)) }
+        // Success is visible: the goal leaves the list, and "Goal saved" would be wrong here
+        viewModelScope.launch { repository.delete(goal.id).let { if (it is AppResult.Error) results.send(it) } }
     }
 
     private fun write(goal: SavingsGoal) {
