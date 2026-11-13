@@ -55,6 +55,14 @@ rules_version = '2';
 //   - dateTime: timestamp
 //   - recurringTransactionId: string | null (document ID)
 //
+// Collection: users/{uid}/goals/{goalId}
+//   - name: string (1..100)
+//   - targetMinor: int (1..99999999999), savedMinor: int (0..99999999999)
+//   - currencyCode: string (^[A-Z]{3}$, immutable)
+//   - deadline: string | null (YYYY-MM-DD; absent or null on goals created before deadlines)
+//   - contributions: list (optional; each {id, amountMinor, date, note}, embedded so a deposit is atomic)
+//   - isPrimary: bool (optional; the goal shown on Home), markedCompleted: bool (optional)
+//
 // Collection: users/{uid}/budgets/{budgetId}
 //   - name: string (1..100)
 //   - limitMinor: int (> 0, <= 1e14)
@@ -222,7 +230,11 @@ service cloud.firestore {
 
     function isValidGoal(data) {
       return hasRequiredFields(data, ['name', 'targetMinor', 'savedMinor', 'currencyCode', 'createdAt', 'updatedAt']) &&
-        hasOnlyAllowedFields(data, ['name', 'targetMinor', 'savedMinor', 'currencyCode', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(data, ['name', 'targetMinor', 'savedMinor', 'currencyCode', 'deadline', 'contributions', 'isPrimary', 'markedCompleted', 'createdAt', 'updatedAt']) &&
+        (data.get('deadline', null) == null || isIsoDate(data.deadline)) &&
+        (!('contributions' in data) || (data.contributions is list && data.contributions.size() <= 1000)) &&
+        (!('isPrimary' in data) || data.isPrimary is bool) &&
+        (!('markedCompleted' in data) || data.markedCompleted is bool) &&
         isValidString(data.name, 1, 100) && isCurrencyCode(data.currencyCode) &&
         data.targetMinor is int && data.targetMinor > 0 && data.targetMinor <= 99999999999 &&
         data.savedMinor is int && data.savedMinor >= 0 && data.savedMinor <= 99999999999;

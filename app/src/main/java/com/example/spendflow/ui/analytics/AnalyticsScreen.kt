@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.spendflow.R
 import com.example.spendflow.core.ui.components.AmountFormatter
 import com.example.spendflow.core.ui.components.EmptyState
+import com.example.spendflow.core.ui.components.ErrorState
 import com.example.spendflow.core.ui.components.SummaryCard
 import com.example.spendflow.core.ui.components.ThemePreviews
 import com.example.spendflow.core.ui.messageRes
@@ -92,6 +93,7 @@ internal fun AnalyticsRoute(model: AnalyticsViewModel, onAddTransaction: () -> U
         onNextMonth = { model.moveMonth(1) },
         onIncomeMode = model::setIncomeMode,
         onAddTransaction = onAddTransaction,
+        onRetry = model::retry,
     )
 }
 
@@ -108,6 +110,7 @@ internal fun AnalyticsScreen(
     onIncomeMode: (Boolean) -> Unit,
     onAddTransaction: () -> Unit,
     modifier: Modifier = Modifier,
+    onRetry: () -> Unit = {},
 ) {
     val colors = SpendFlowTheme.colors
     val locale = LocalLocale.current.platformLocale
@@ -155,7 +158,7 @@ internal fun AnalyticsScreen(
         }
         when (val content = state.content) {
             AnalyticsContent.Loading -> StatusText(stringResource(R.string.analytics_loading))
-            is AnalyticsContent.Error -> StatusText(stringResource(content.error.messageRes))
+            is AnalyticsContent.Error -> ErrorState(stringResource(content.error.messageRes), onRetry, Modifier.fillMaxWidth())
             AnalyticsContent.Empty -> EmptyState(
                 title = stringResource(R.string.analytics_empty_month_title),
                 modifier = Modifier
